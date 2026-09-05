@@ -10,10 +10,12 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './config/gameConfig.js';
 import { gameState } from './core/GameState.js';
+import { installDebugTools } from './systems/DebugTools.js';
 import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
 import { StarterSelectScene } from './scenes/StarterSelectScene.js';
+import { BattleScene } from './scenes/BattleScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -37,7 +39,7 @@ const config = {
   // Arcade physics is not used yet (movement is grid-based and tween-driven),
   // but it costs nothing to leave off until a system actually needs it.
 
-  scene: [BootScene, TitleScene, WorldScene, StarterSelectScene],
+  scene: [BootScene, TitleScene, WorldScene, StarterSelectScene, BattleScene],
 };
 
 // Surface a boot failure on the page instead of leaving a black screen behind.
@@ -48,6 +50,9 @@ try {
   // A console handle on the current playthrough: `__gs()` in devtools shows
   // your flags, bag and position. Also what the browser test suite reads.
   window.__gs = () => gameState;
+
+  // Developer tools. Nothing in the game imports these — they only reach in.
+  installDebugTools(window.game);
 } catch (error) {
   console.error('[main] The game failed to start:', error);
 

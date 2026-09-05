@@ -170,6 +170,59 @@ inflicts each of the four status conditions.
 
 ---
 
+## 4d. Battle rules (Phase 4)
+
+### Damage
+```
+base   = floor(floor(floor(2 * level / 5 + 2) * power * attack / defense) / 50) + 2
+damage = floor(base * STAB * effectiveness * critical * burn * variance)
+```
+Physical uses Attack vs Defense, special uses Sp. Atk vs Sp. Def. A connecting
+move always does at least 1; an immune defender takes exactly 0.
+
+| Knob | Value | Why |
+|------|-------|-----|
+| STAB | 1.5x | rewards building around a type |
+| Variance | 85-100% | alive, but never ruins a plan |
+| Critical | 1/16 at 1.5x | a pleasant surprise, not a coin flip |
+| Crit vs buffs | ignores the defender's defensive stages | stops a Harden Shell wall making luck worthless |
+
+### Turn order
+1. Action priority — run > switch > item > move
+2. Move priority — Quick Jab, Shadow Sneak
+3. Effective Speed — stat x stage, halved by paralysis
+4. A coin
+
+Switching before attacks is deliberate: committing to a swap should be a real
+tactical option, not a wasted turn.
+
+### Stat stages
+-6 to +6 on Attack, Defense, Sp. Atk, Sp. Def, Speed, accuracy and evasion.
+Battle stats use a steeper curve than accuracy/evasion — a miss is far more
+frustrating than a weak hit. Stages live on the battler, never on the creature,
+and **switching clears them**: buffs belong to whoever earned them.
+
+### Status
+One major status at a time; a second fails cleanly rather than replacing the
+first. Poison and burn deal residual damage at the **end** of the turn, so a
+creature always gets its turn before the poison that might finish it. A sleep of
+N turns costs exactly N turns.
+
+### PP and Struggle
+PP is spent when a move is **used**, hit or miss — that is what makes accuracy
+matter. With every move empty the creature Struggles (40 power, 25% recoil), so
+a battle can never deadlock.
+
+### Experience
+```
+exp = floor(baseExp * defeatedLevel / 7) x (1.5 for a trainer)
+```
+Every creature that was **sent out** gets the full amount rather than a share,
+so switching stays attractive. On level-up a creature keeps the damage it had
+taken and gains the extra max HP as real HP.
+
+---
+
 ## 4c. Stats, levels and experience
 
 ```
@@ -323,6 +376,12 @@ them, and later phases will gate areas with them.
 | `gotStarter` | Choosing a starter at the Lodge | Wick, her assistant, Mum, Bram and the gate warden all react — across three maps |
 | `pickedUpRoute1Potion` | Taking the Route 1 potion | The item stays taken |
 | `pickedUpRoute1Orbs` | Taking the Route 1 orbs | The item stays taken |
+
+### Practice battles
+Assistant Bly and Warden Tace at the Warden's Lodge offer repeatable practice
+bouts once you have a starter. They award **no experience and no money** on
+purpose: a repeatable fight that paid out would be an infinite progression
+exploit. Real, once-only trainer battles with real rewards arrive in Phase 8.
 
 Flags are plain strings — add one by using it in a dialogue branch's `setFlags`
 and checking it with `when` / `unless` somewhere else.

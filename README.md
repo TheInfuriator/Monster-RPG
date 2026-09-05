@@ -6,11 +6,11 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 3 (Creature Data) complete.**
-> Start a new game, explore Emberhollow and its four buildings, meet Professor
-> Wick at the Warden's Lodge and **choose your first Aether**, then walk Route 1
-> through tall grass that turns up wild creatures. 27 species, 56 moves and a
-> full 18-type chart are in. Battles are next — see [TODO.md](TODO.md).
+> **Status: Phase 4 (Battles) complete.**
+> Start a new game, explore Emberhollow, choose your first Aether from Professor
+> Wick, then **fight a real turn-based battle** at the Warden's Lodge — type
+> matchups, status conditions, switching, items, experience, level-ups, new moves
+> and evolution all work. Wild encounters are next — see [TODO.md](TODO.md).
 
 ---
 
@@ -68,6 +68,7 @@ src/
   data/                Game CONTENT — no logic, just data
     tiles.js           What each map character means
     types.js           The 18 types and the effectiveness chart
+    battles.js         Scripted battles
     moves.js           Every move in the game
     moveEffects.js     The vocabulary of what a move can do
     statuses.js        Poison, burn, paralysis, sleep
@@ -83,6 +84,7 @@ src/
     TitleScene.js      Title screen and main menu
     WorldScene.js      The overworld — connects the systems below
     StarterSelectScene.js  Choosing your first Aether
+    BattleScene.js     The battle screen — presentation only
   systems/             Reusable logic
     TileMap.js         Parses map data, answers "can I walk here?"
     MapRenderer.js     Draws a TileMap
@@ -96,6 +98,16 @@ src/
     StatCalculator.js  Stats, growth curves and experience thresholds
     CreatureFactory.js Species + level -> one individual creature
     PartySystem.js     The player's team
+    DebugTools.js      Developer console helpers (window.debug)
+    battle/            The battle system — no Phaser, fully unit tested
+      BattleEngine.js      battle state and orchestration
+      DamageCalculator.js  the damage formula, accuracy, crits
+      TurnResolver.js      who goes first
+      StatusSystem.js      poison, burn, paralysis, sleep
+      StatStages.js        the -6..+6 battle buffs and debuffs
+      MoveEffectRunner.js  carries out move effects by KIND
+      ExperienceSystem.js  rewards, levels, move learning, evolution
+      BattleAI.js          opponent decisions
   ui/
     Menu.js            Reusable keyboard menu
     DialogueBox.js     The text box at the bottom of the screen
@@ -429,6 +441,122 @@ the species' growth curve, fills HP, and stamps a unique `instanceId`.
 level, so `recalculateStats(creature)` refreshes it after a level-up or evolution
 (and after a balance change, to bring an old save back in line).
 
+### How a battle is put together
+
+Three layers, deliberately separated:
+
+| Layer | Where | Knows about |
+|-------|-------|-------------|
+| Rules | `src/systems/battle/*` (except BattleEngine) | maths only — no state, no Phaser |
+| State | `BattleEngine.js` | who is out, whose turn, what happened |
+| Screen | `BattleScene.js` | drawing, animation, input |
+
+`BattleEngine` reports everything as **events** — `{ type: 'message', text }`,
+`{ type: 'damage', side, amount }`, `{ type: 'faint', side }` — and the scene
+plays them back at reading speed. That is why an entire battle can be fought in
+a unit test with no browser.
+
+**The damage formula** (`DamageCalculator.js`):
+
+```
+base   = floor(floor(floor(2 * level / 5 + 2) * power * attack / defense) / 50) + 2
+damage = floor(base * STAB * effectiveness * critical * burn * variance)
+```
+
+Physical moves use Attack vs Defense, special use Sp. Atk vs Sp. Def, status
+moves never reach the formula. A move that connects always does at least 1
+damage; an immune defender takes exactly 0.
+
+**Turn order** (`TurnResolver.js`), highest wins:
+
+1. **Action** priority — run > switch > item > move
+2. **Move** priority — Quick Jab and Shadow Sneak go early
+3. **Effective Speed** — stat, times its stage, halved if paralysed
+4. A coin, so a true tie is not always won by the same side
+
+**Stat stages** run -6 to +6 and live on the battler, never on the creature, so
+they vanish when the battle ends. Switching clears them: buffs belong to the
+creature that earned them.
+
+**Status rules:** one major status at a time; poison and burn deal residual
+damage at the *end* of the turn, so a creature always gets its turn first; burn
+halves physical damage only; paralysis halves Speed and sometimes costs the
+turn; sleep of N turns always costs exactly N turns.
+
+**PP is spent when a move is used**, hit or miss. If every move is empty the
+creature Struggles, so a battle can never deadlock.
+
+### Create a scripted battle
+
+Add an entry to `src/data/battles.js`:
+
+```js
+riverboatDuel: {
+  id: 'riverboatDuel',
+  battleType: 'trainer',           // 'wild' | 'trainer' | 'practice'
+  opponentName: 'Ferryman Coll',
+  party: [{ species: 'dampling', level: 12 }],
+  canRun: false,
+  awardExperience: true,
+  rewardMoney: 300,
+},
+```
+
+Then point an NPC's dialogue at it with the `action` seam and add a case to
+`runDialogueAction()` in `WorldScene`. That is the whole wiring.
+
+### Add a new kind of move effect
+
+Effects are handled by KIND, never by move id — that is what lets 56 moves share
+one implementation. To add a kind:
+
+1. Add it to `EFFECT_KINDS` in `src/data/moveEffects.js`
+2. Add a case to `runEffect()` in `src/systems/battle/MoveEffectRunner.js`
+   and list it in `SUPPORTED_EFFECT_KINDS`
+3. Add its required shape to the move test
+
+A test asserts every kind the database uses has an implementation, so a new kind
+cannot ship half-done.
+
+### Experience, levels, moves and evolution
+
+```
+exp = floor(baseExp * defeatedLevel / 7) x (1.5 for a trainer)
+```
+
+Every creature that was **sent out** during the battle receives the full amount
+— not a split, so switching stays attractive.
+
+On level-up the creature keeps the damage it had taken and gains the extra max
+HP as real HP: levelling always feels like a gain, but never silently heals a
+badly hurt creature. Several levels can be crossed at once, and every move
+learned along the way is offered in order.
+
+With fewer than four moves a new one is learned automatically. With four, the
+player picks one to forget or declines — and cancelling counts as declining, so
+there is no way to get stuck in the prompt.
+
+Evolution keeps the creature's identity: same `instanceId`, same nickname, same
+experience, same moves. Only the species, the stats and the artwork change.
+
+### Debug tools
+
+Open the browser console and type `debug.help()`. Useful ones:
+
+```js
+debug.give('drizzle', 15)     // add a creature
+debug.wild('zaplet', 8)       // start a wild battle
+debug.trainer('lodgePractice')// start a scripted battle
+debug.level(16)               // set a level (try 16 to see an evolution)
+debug.exp(500)                // grant experience
+debug.status('burn')          // inflict a status
+debug.hp(5)                   // set current HP
+debug.heal()                  // full heal
+```
+
+Nothing in the game imports `DebugTools.js` — it only reaches in, so deleting it
+would not change how the game plays.
+
 ### Add a character look
 
 Add a palette to `CHARACTER_PALETTES` in `src/config/assets.js`:
@@ -471,11 +599,13 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-1260 tests covering map parsing, collision, spawn fallbacks, map validation, game
+1449 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, encounter rolling and its
 anti-ambush cooldown, inventory operations, interaction targeting, type
 effectiveness, the move and creature databases, stat and experience maths, the
-creature factory, the party, and the starter-selection rules.
+creature factory, the party, the starter-selection rules, and the whole battle
+system — damage, accuracy, crits, turn order, stat stages, status conditions,
+every move effect, experience, level-ups, move learning and evolution.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -495,6 +625,13 @@ every map you add. They catch, without you writing a line of test code:
 - an evolution loop, or an evolved form that is not stronger than its base
 - a body shape with no drawing routine (and a routine no species uses)
 - dialogue that asks for an `action` the game cannot run
+- a move whose effect kind the battle engine cannot run
+- an item whose battle effect the scene does not understand
+- a scripted battle referencing a species that does not exist
+
+Twenty-five seeded battles are also played to completion in the test suite, and
+every one of the 56 moves is used in a real battle to check nothing throws and
+HP never leaves its bounds.
 
 Gameplay is additionally verified in a real browser with Playwright during
 development — see the Verification section of [CHANGELOG.md](CHANGELOG.md).

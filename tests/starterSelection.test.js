@@ -199,7 +199,7 @@ describe('the world reacts to gotStarter', () => {
 });
 
 describe('dialogue actions across all map data', () => {
-  const KNOWN_ACTIONS = new Set(['starterSelect']);
+  const KNOWN_ACTIONS = new Set(['starterSelect', 'practiceBattle', 'practiceBattleDouble']);
 
   it('only uses actions the game knows how to run', () => {
     for (const [mapId, map] of Object.entries(MAPS)) {

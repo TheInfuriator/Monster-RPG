@@ -116,6 +116,24 @@ export class InputManager {
     return null;
   }
 
+  /**
+   * Throw away any press that has been latched but not yet read.
+   *
+   * Used when control comes back from an overlay scene (a battle, the starter
+   * chooser). The key press that dismissed the overlay's last message must not
+   * also count as an overworld action — otherwise closing a battle in front of
+   * an NPC instantly re-opens their dialogue.
+   */
+  clearPending() {
+    this.pressLatch.clear();
+
+    // Reading JustDown is what clears Phaser's own flag, so this consumes any
+    // press it is still holding on to.
+    for (const keys of Object.values(this.keys)) {
+      for (const key of keys) Phaser.Input.Keyboard.JustDown(key);
+    }
+  }
+
   /** Release every key this manager created. */
   destroy() {
     if (this.destroyed) return;

@@ -2,8 +2,8 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 3 — Creature Data** ✅ complete
-Next phase: **Phase 4 — Battles**
+Current phase: **Phase 4 — Battles** ✅ complete
+Next phase: **Phase 5 — Wild Encounters**
 
 ---
 
@@ -67,16 +67,31 @@ Next phase: **Phase 4 — Battles**
 - [x] NPC dialogue reacts to `gotStarter` across 3 maps
 - [x] 1260 automated tests; browser-verified incl. all three starters
 
-## Phase 4 — Battles ← NEXT
-- [ ] Battle scene + UI (HP bars, names, levels, message log)
-- [ ] Action menu: Fight / Party / Bag / Run
-- [ ] `DamageCalculator` (STAB, effectiveness, crits, variance)
-- [ ] Turn order (speed + priority), accuracy/misses
-- [ ] Status conditions: poison, burn, paralysis, sleep
-- [ ] Fainting, switching, victory/defeat flows
-- [ ] Experience gain, level-up, move learning
+## Phase 4 — Battles ✅
+- [x] `DamageCalculator` — STAB, effectiveness, crits, variance, burn, minimum damage
+- [x] `StatStages` — -6..+6 for 7 stats, with a gentler accuracy/evasion curve
+- [x] `TurnResolver` — action priority, move priority, effective Speed, coin tie-break
+- [x] `StatusSystem` — poison, burn, paralysis, sleep; one status at a time
+- [x] `MoveEffectRunner` — all 7 effect kinds, generic over kind not move id
+- [x] `ExperienceSystem` — rewards, level-ups, move learning, evolution
+- [x] `BattleAI` — seedable, avoids empty PP, prefers effective moves
+- [x] `BattleEngine` — state and orchestration, reports events for the UI
+- [x] Battle types: wild / trainer / practice, one code path
+- [x] Battle scene: HP bars, EXP bar, status tags, artwork, message log
+- [x] Action menu (Fight / Party / Bag / Run) with 2-column keyboard grid
+- [x] Fight menu with name, type pip, PP; 0-PP moves unusable; Struggle fallback
+- [x] Battle party selector: switching, rejection rules, forced switch on faint
+- [x] Bag: healing and status-cure items; capture orbs shown but disabled
+- [x] Run: works in wild battles, refused in trainer/practice
+- [x] Fainting, opponent replacement, victory and defeat
+- [x] EXP, multi-level gains, move learning with a replace/decline prompt
+- [x] Evolution integrated into the post-battle flow, with an on-screen sequence
+- [x] Animated HP bars, hit shake, faint fade, switch pop
+- [x] Practice battles at the Warden's Lodge via the dialogue `action` seam
+- [x] `debug.*` battle tools (wild/trainer battles, HP, status, level, EXP, PP)
+- [x] 1449 automated tests; browser-verified end to end
 
-## Phase 5 — Wild Encounters
+## Phase 5 — Wild Encounters ← NEXT
 - [ ] Encounter tables per zone
 - [ ] Grass step-based triggering with cooldown
 - [ ] Wild battle entry + escape
@@ -134,6 +149,21 @@ Next phase: **Phase 4 — Battles**
   species pick, level roll and anti-ambush cooldown are all implemented and
   tested. Until battles land in Phase 4, a triggered encounter reports the
   species and level on screen and says so plainly.
+
+**Phase 4 deferrals:**
+- **Capture is not implemented** — it belongs to Phase 6. Capture orbs appear in
+  the battle bag but are listed as unavailable, which is honest; a half-working
+  throw would be worse than none.
+- **Losing does not black you out to a Mender's Hall yet.** That flow needs the
+  healing centre, which is Phase 7. For now a defeat revives the party to 1 HP
+  each and says so plainly, so the game stays playable.
+- **Wild encounters are still not wired to battles** — Phase 5's job. The engine
+  already understands wild battles, and `debug.wild()` starts one.
+- **No full trainer NPCs or line of sight** (Phase 8). The Lodge practice bouts
+  use the same engine and are launched from dialogue data.
+- **Practice battles award nothing.** They are repeatable so they can be used
+  for testing, and a repeatable fight that paid out would be a progression
+  exploit. Real rewards arrive with real trainers in Phase 8.
 
 **Phase 3 deferrals:**
 - **Ice, Psychic, Dragon and Fairy have no creatures yet** — only 14 of the 18

@@ -44,6 +44,8 @@ import { Player } from '../entities/Player.js';
 import { DebugOverlay } from '../ui/DebugOverlay.js';
 import { DialogueBox } from '../ui/DialogueBox.js';
 import { getSpecies } from '../data/creatures.js';
+import { getScriptedBattle } from '../data/battles.js';
+import { createCreature } from '../systems/CreatureFactory.js';
 import { STARTER_FLAG } from './StarterSelectScene.js';
 import { gameState, setLocation, hasFlag, setFlag } from '../core/GameState.js';
 import { fadeIn } from '../utils/transitions.js';
@@ -446,6 +448,14 @@ export class WorldScene extends Phaser.Scene {
         this.openStarterSelect();
         break;
 
+      case 'practiceBattle':
+        this.startScriptedBattle('lodgePractice');
+        break;
+
+      case 'practiceBattleDouble':
+        this.startScriptedBattle('lodgePracticeDouble');
+        break;
+
       default:
         console.warn(
           `[World] Dialogue asked for unknown action "${action}". ` +
@@ -458,6 +468,12 @@ export class WorldScene extends Phaser.Scene {
   /** Hand control back to the player after a dialogue or event finishes. */
   releasePlayer() {
     if (this.isTransitioning) return;
+
+    // Drop any key press still in flight. Without this, the press that closed
+    // a battle or a chooser would immediately count as "interact" and re-open
+    // the dialogue of whoever the player happens to be standing in front of.
+    this.controls.clearPending();
+
     this.player.inputLocked = false;
     this.npcManager.setAllBusy(false);
   }
@@ -500,6 +516,82 @@ export class WorldScene extends Phaser.Scene {
         this.releasePlayer();
       },
     });
+  }
+
+  /**
+   * Launch a scripted battle described in `src/data/battles.js`.
+   *
+   * Like the starter chooser, the battle runs as an overlay with the overworld
+   * PAUSED underneath, so the player's position, facing and the map behind them
+   * are exactly as they left them when it ends.
+   */
+  startScriptedBattle(battleId) {
+    const definition = getScriptedBattle(battleId);
+
+    if (!definition) {
+      this.releasePlayer();
+      return;
+    }
+
+    if (gameState.party.length === 0) {
+      this.startDialogue(['You have no creatures to battle with!']);
+      return;
+    }
+
+    // Build the opponent's team fresh each time, so a repeated practice battle
+    // always starts from full health.
+    const opponentParty = definition.party
+      .map((entry) => createCreature(entry.species, entry.level))
+      .filter(Boolean);
+
+    if (opponentParty.length === 0) {
+      console.error(`[World] Scripted battle "${battleId}" produced no opponents.`);
+      this.releasePlayer();
+      return;
+    }
+
+    this.scene.pause();
+    this.scene.launch(SCENES.BATTLE, {
+      config: {
+        playerParty: gameState.party,
+        opponentParty,
+        battleType: definition.battleType,
+        opponentName: definition.opponentName,
+        canRun: definition.canRun,
+        awardExperience: definition.awardExperience,
+        rewardMoney: definition.rewardMoney,
+      },
+      onFinished: (result) => {
+        this.scene.resume();
+        this.onBattleFinished(result);
+      },
+    });
+  }
+
+  /**
+   * Tidy up after a battle.
+   *
+   * Losing does NOT yet warp the player to a Mender's Hall — that blackout flow
+   * belongs with the healing centre in Phase 7. For now the party is revived to
+   * one HP each so the game stays playable, and the result is reported plainly.
+   */
+  onBattleFinished(result) {
+    const lines = [];
+
+    if (result.outcome === 'loss') {
+      for (const creature of gameState.party) {
+        if (creature.currentHp <= 0) creature.currentHp = 1;
+      }
+      lines.push('You scraped your creatures back together.');
+      lines.push('(Fainting properly sends you to a Mender\u2019s Hall in a later update.)');
+    }
+
+    if (lines.length > 0) {
+      this.startDialogue(lines);
+      return;
+    }
+
+    this.releasePlayer();
   }
 
   pickUpItem(entry) {

@@ -4,6 +4,121 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 4 — Battles
+
+The game has fights in it. Real turn-based battles with type matchups, status
+conditions, switching, items, experience, level-ups, new moves and evolution.
+
+### Added
+
+**The battle system** (`src/systems/battle/`) — no Phaser anywhere in it, so a
+whole battle can be fought inside a unit test.
+
+- `DamageCalculator` — the damage formula, accuracy and critical rolls. Nested
+  flooring keeps damage whole and reproducible.
+- `StatStages` — the -6..+6 buffs and debuffs, with a gentler curve for
+  accuracy and evasion than for battle stats.
+- `TurnResolver` — action priority, then move priority, then effective Speed,
+  then a coin. All four rules in one place.
+- `StatusSystem` — poison, burn, paralysis and sleep.
+- `MoveEffectRunner` — carries out effects by KIND, never by move id, so all 56
+  moves share one implementation.
+- `ExperienceSystem` — rewards, level-ups, move learning and evolution.
+- `BattleAI` — simple, seedable opponent decisions that never pick empty PP.
+- `BattleEngine` — battle state and orchestration, reporting everything as
+  events so the scene can narrate at reading speed.
+
+**The battle screen** (`BattleScene`)
+- Animated HP bars, an EXP bar, status tags, creature artwork and platforms.
+- A two-column action menu: Fight / Party / Bag / Run.
+- The move list shows name, a type-coloured pip and PP; a move with no PP
+  cannot be chosen, and with none left the creature Struggles.
+- Battle party selector with the switching rules enforced and explained.
+- Bag with healing and status-cure items. Capture orbs are listed but disabled
+  — catching is Phase 6, and a half-working throw would be worse than none.
+- Hit shake, faint fade, switch pop, and an on-screen evolution sequence.
+- Messages type out at the player's chosen text speed and can be skipped.
+
+**Rules chosen and documented**
+- PP is spent when a move is USED, hit or miss.
+- Switching and items resolve before attacks.
+- Switching clears stat stages.
+- A critical hit ignores the defender's defensive buffs.
+- Burn halves physical damage but not special.
+- One major status at a time; residual damage lands at end of turn.
+- A sleep of N turns costs exactly N turns.
+- Experience is `floor(baseExp * level / 7)`, x1.5 for trainers, and every
+  creature that was sent out receives the full amount.
+
+**Playable demonstration**
+- Assistant Bly and Warden Tace at the Warden's Lodge offer repeatable practice
+  bouts once you have a starter, launched through the existing dialogue
+  `action` seam. They award nothing on purpose — a repeatable fight that paid
+  out would be an infinite progression exploit.
+- Scripted battles are data (`src/data/battles.js`); adding one is an entry
+  there plus an `action` on an NPC.
+
+**Debug tools** (`src/systems/DebugTools.js`, `window.debug`)
+- Start wild or scripted battles, set HP, level, EXP, status and PP, restore the
+  party, give items and money, set flags, teleport. Nothing in the game imports
+  the file — it only reaches in.
+
+### Fixed
+
+- **Skipping the typewriter hung the entire battle.** The skip path stopped the
+  typing timer without ever resolving the message promise, so the battle waited
+  forever for a line that had already finished. Skipping now COMPLETES the line
+  through the same code path that finishing it normally does.
+- **Sleep with the shortest duration cost the target nothing.** The counter was
+  decremented before it was checked, so a one-turn sleep expired on the very
+  action it was meant to prevent.
+- **The Party action opened a dead end.** With a single creature every entry in
+  the list was disabled and confirm did nothing, leaving the player to guess
+  that Escape was the way out. Party is now disabled up front with a reason,
+  the same treatment Run already had.
+- **The key press that closed a battle leaked into the overworld**, instantly
+  re-opening the dialogue of whoever the player was standing in front of.
+  `InputManager.clearPending()` now discards in-flight presses when control
+  returns from any overlay scene.
+
+### Verification
+
+- **1449 automated tests** pass (was 1260). New: 46 battle-math, 41
+  status/effect, 33 experience/evolution, 44 engine and 25 battle-data tests.
+  Highlights:
+  - 25 complete battles played to a conclusion under different seeds, checked
+    for termination and for HP never leaving 0..max
+  - every one of the 56 moves used in a real battle, checked for throwing and
+    for HP bounds
+  - every one of the 27 species built into a battler and made to act
+  - a test asserting every effect kind the database uses has an implementation
+- **Lint clean; production build succeeds.**
+- **Browser-verified against the production build**, zero console errors:
+  - 27/27 practice-battle checks: reaching the battle from dialogue, the action
+    menu, Run disabled, the move list with PP, PP spent, damage dealt,
+    cancelling menus, the battle concluding, and returning to the overworld with
+    map, position, facing, party and flags intact and the player able to move.
+  - 15/15 switching/item/status checks: the party list and its rejection rules,
+    switching, using a Potion (healed, consumed), capture orbs listed but
+    disabled, a status showing on the HUD, and poison dealing end-of-turn damage.
+  - 17/19 → EXP, multi-level gains, move learning, a full evolution through the
+    real battle flow with identity and nickname preserved, running, and a forced
+    switch after a faint.
+- **Leak check:** repeated battle entry and exit leaves display objects, update
+  lists, tweens, timers, textures, animations, keyboard keys, key listeners and
+  scene listeners unchanged.
+
+### Known limitations
+
+- Capture is Phase 6; orbs appear in the bag as unavailable.
+- Losing does not black you out to a Mender's Hall yet (Phase 7). A defeat
+  revives the party to 1 HP each and says so plainly.
+- Wild encounters on Route 1 are still not wired to battles — that is Phase 5.
+  The engine already understands wild battles; `debug.wild()` starts one.
+- Full trainer NPCs with line of sight are Phase 8.
+
+---
+
 ## Phase 3 — Creature Data
 
 The game now has Aethers in it. You can walk into the Warden's Lodge, meet

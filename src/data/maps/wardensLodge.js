@@ -84,10 +84,15 @@ export const wardensLodge = {
       movement: 'lookAround',
       dialogue: [
         {
+          // Once you have a partner, Bly offers a practice bout. It is
+          // repeatable on purpose and awards nothing, so it can never be
+          // farmed — see the note in src/data/battles.js.
           when: 'gotStarter',
+          action: 'practiceBattle',
           pages: [
             'Good pick. They all are, really — that is rather the point.',
-            'Feed it, rest it at the Mender\u2019s Hall, and it will not let you down.',
+            'Care for a practice bout? Nothing at stake, and my Nibbit could use the exercise.',
+            'Come back any time you want another go.',
           ],
         },
         {
@@ -100,6 +105,31 @@ export const wardensLodge = {
           pages: [
             'The Professor is just there. Go on, say hello!',
             'She does not bite. Her research notes might.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'sparringWarden',
+      name: 'Warden Tace',
+      // On the open floor, opposite the shelves.
+      x: 3,
+      y: 6,
+      facing: 'right',
+      sprite: 'villagerAlt',
+      movement: 'lookAround',
+      dialogue: [
+        {
+          when: 'gotStarter',
+          action: 'practiceBattleDouble',
+          pages: [
+            'Two creatures, no stakes. Best way to learn to swap one out mid-fight.',
+            'Ready when you are.',
+          ],
+        },
+        {
+          pages: [
+            'I run the sparring floor. Come back once Wick has set you up with a partner.',
           ],
         },
       ],
