@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aetheria Chronicles</title>
+    <link rel="icon" href="data:," />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #10131a;
+        overflow: hidden;
+        /* A pixel game should never be smoothed when the browser scales it. */
+        image-rendering: pixelated;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+        color: #f4ecd8;
+      }
+      #game {
+        line-height: 0;
+      }
+      #game canvas {
+        display: block;
+        image-rendering: pixelated;
+      }
+      /* Shown only if the game fails to boot, so a blank screen is never a mystery. */
+      #boot-error {
+        display: none;
+        max-width: 640px;
+        padding: 24px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      #boot-error h1 {
+        font-size: 18px;
+        color: #e6685f;
+      }
+      #boot-error pre {
+        white-space: pre-wrap;
+        background: #1b2028;
+        padding: 12px;
+        border-radius: 6px;
+        color: #c9d1d9;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <div id="boot-error">
+      <h1>Aetheria Chronicles failed to start</h1>
+      <p>The details below should say why. Check the browser console for the full stack trace.</p>
+      <pre id="boot-error-message"></pre>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
