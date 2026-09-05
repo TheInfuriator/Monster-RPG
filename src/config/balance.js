@@ -94,3 +94,26 @@ export const CAPTURE = {
   /** How many shake checks a capture attempt performs before succeeding. */
   shakeChecks: 3,
 };
+
+/**
+ * How fast dialogue text types itself out, in milliseconds per character.
+ * The player picks one of these in Settings (Phase 10); the key is stored in
+ * the save file, so adding a speed here is all it takes to offer a new option.
+ */
+export const TEXT_SPEEDS = {
+  slow: 55,
+  normal: 30,
+  fast: 12,
+  instant: 0,
+};
+
+export const DIALOGUE = {
+  /** Which speed a new game starts on. Must be a key of TEXT_SPEEDS. */
+  defaultTextSpeed: 'normal',
+  /**
+   * Ignore advance presses for this long after a page finishes typing. Without
+   * it, holding the confirm key blasts through several pages at once and the
+   * player never reads them.
+   */
+  advanceLockoutMs: 120,
+};

@@ -7,13 +7,25 @@
  * TO ADD A NEW MAP:
  *   1. Create `src/data/maps/yourMap.js` exporting a map definition.
  *   2. Import it below and add it to MAPS.
- * That is the whole process — nothing else needs to change.
+ * That is the whole process — nothing else needs to change. The test suite then
+ * automatically checks your map for ragged rows, unknown tile characters, spawn
+ * points inside walls, and exits that lead nowhere.
  */
 
 import { emberhollow } from './emberhollow.js';
+import { playerHouse } from './playerHouse.js';
+import { wardensLodge } from './wardensLodge.js';
+import { mendersHall } from './mendersHall.js';
+import { supplyPost } from './supplyPost.js';
+import { route1 } from './route1.js';
 
 export const MAPS = {
   emberhollow,
+  playerHouse,
+  wardensLodge,
+  mendersHall,
+  supplyPost,
+  route1,
 };
 
 /**

@@ -4,6 +4,134 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 2 — World
+
+Emberhollow becomes a place you can live in: six connected maps, people to talk
+to, doors that go somewhere, and grass that has something in it.
+
+### Added
+
+**Maps and transitions**
+- Six connected maps: Emberhollow Town, the player's house, the Warden's Lodge,
+  the Mender's Hall, the Supply Post, and Route 1 — Cinderpath (22x30).
+- `TileMap.getExitAt()` and exit handling in `WorldScene`: stepping on an exit
+  tile fades out, loads the target map and places the player at a named spawn.
+- Player position, facing, story flags and bag survive every transition — the
+  location is written to `GameState` *before* the scene restarts.
+- Building doors spawn you on the tile just outside, and interiors spawn you one
+  tile above the mat, so arriving never re-triggers the exit you came through.
+- Emberhollow expanded with a kitchen garden, four NPCs and two signposts.
+
+**NPCs**
+- `Npc` entity with three movement modes: `static`, `lookAround`, and `wander`
+  (which stays within a radius of where it started).
+- `NpcManager` owns the cast for a map and answers the three questions that
+  matter: who is standing here, is this tile free, and clean everything up.
+- NPCs block movement, turn to face you when spoken to, and stand still while
+  a conversation is open.
+- Eight character looks — player, two villagers, elder, child, researcher,
+  mender, shopkeeper — all drawn by one routine from a colour palette, so the
+  cast looks like it belongs to one world. Adding a look is one entry in
+  `CHARACTER_PALETTES`.
+
+**Dialogue**
+- `DialogueBox`: typewriter text at the player's chosen speed, multi-page,
+  speaker name plate, blinking advance arrow. Pressing confirm while typing
+  skips to the full page rather than making an impatient player wait.
+- `DialogueResolver`: dialogue is data. Branches carry `when` / `unless` flag
+  conditions and the first match wins, so NPCs say different things as the story
+  moves. A branch can `setFlags` when its conversation finishes.
+- Talking to Professor Wick sets `metWick`, and NPCs on other maps already react.
+- Text speed is a real setting on `GameState` (`slow`/`normal`/`fast`/`instant`);
+  the menu to change it arrives in Phase 10.
+
+**Interaction**
+- `InteractionSystem`: you interact with whatever is on the tile you face — plus
+  one deliberate extra rule, that facing a counter reaches the person behind it.
+  That is what lets you talk to the shopkeeper and the Mender across their desks.
+- Signs and readable objects on every map.
+- Ground items: they block their tile until taken, go into the bag, and stay
+  collected via a story flag.
+
+**Encounters (infrastructure)**
+- `src/data/encounters.js` — weighted species tables per area.
+- `EncounterSystem` — per-step probability, weighted species pick, level roll,
+  and a cooldown that makes back-to-back ambushes impossible.
+- Wired to tall grass on Route 1 and Emberhollow's northern edge.
+- The encounter itself is real; the battle it should open arrives in Phase 4, so
+  for now the result is reported on screen and says exactly that.
+
+**Items**
+- `src/data/items.js` (7 items) and `InventorySystem` — add, remove, count, list.
+  Used by ground items today; the shop and bag screen in Phase 7 read the same data.
+
+**Tooling**
+- ESLint added with a deliberately small config: it catches unused variables,
+  undefined names and duplicate keys, and stays out of formatting arguments.
+  `npm run lint` was already declared in package.json but had nothing behind it.
+
+**Rendering**
+- Furniture is now a proper object layer: furniture textures are transparent and
+  drawn over whichever floor the map names in `objectBase`. One table texture now
+  looks right on floorboards in a house and on tiles in the shop.
+- The camera centres maps that are smaller than the screen, instead of pinning
+  them to the top-left with a black band down one side.
+
+### Fixed
+
+- **A held key could be silently swallowed.** Phaser's `Key.onUp` clears the flag
+  that `JustDown` reads, so a press and release landing inside a single frame
+  vanished before anything saw it. `InputManager` now latches the `down` event
+  and clears it after the scene updates, so every press is seen exactly once —
+  and a press nothing consumed is discarded rather than firing later.
+- **An NPC was standing inside a table** in the Mender's Hall. Found by a new
+  test that checks every NPC on every map is on a walkable tile.
+- **Furniture carried a baked-in pale floor** that clashed once the wooden floor
+  was redrawn, leaving light squares under every object. Fixed by the object
+  layer above.
+- **The wooden floor read as brickwork** — a grid of seams rather than planks.
+  Redrawn as long horizontal boards with grain.
+- **Small interiors left a black band** down the right of the screen, because
+  Phaser clamps an undersized map to the top-left corner.
+- **The player's house appeared to contain two beds**; it is one bed now.
+
+### Verification
+
+- **217 automated tests** pass (was 60). New coverage: dialogue resolution and
+  flag branching (21), encounter rolling and the anti-ambush cooldown (15),
+  inventory operations (15), interaction targeting including counters (13), plus
+  per-map integrity checks that now validate NPC placement, duplicate ids and
+  tiles, sprite existence, exits pointing at real maps *and* real spawn points,
+  ground-item data, tall grass without an encounter table, and that every NPC
+  has something to say to a brand new player.
+- **Production build** succeeds; every browser check below was run against it.
+- **Browser-verified with Playwright**, zero console errors or warnings:
+  - 34/34 checks: entering and exiting all four buildings, both edge
+    transitions, collision after transitions, NPC dialogue, multi-page paging,
+    speaker plates, talking across a counter, sign reading, movement blocked by
+    NPCs, and position preserved through every transition.
+  - 16/16 checks: ground item pickup (bag, flag, sprite removal, tile freed,
+    still collected after leaving and returning), encounter triggering in tall
+    grass, cooldown, path tiles never triggering, and dialogue changing once a
+    story flag is set — including a different NPC on a different map reacting.
+  - **10/10 keyboard-only playthrough** on the production build: walk into the
+    house, cross the room, talk to Mum, leave, cross town, walk the full length
+    of Route 1, read the signpost, talk to the gate warden, and walk back.
+- **Leak check:** 40 map transitions leave display objects, update list, NPC
+  count, tweens, textures, animations, keyboard keys, key listeners, player
+  event listeners and scene listeners all unchanged; a separate check confirms
+  NPC wander timers do not accumulate across 24 map reloads.
+
+### Known limitations
+
+- Thistlewood is deliberately not built yet — see the Decisions section of
+  TODO.md. Route 1 ends at a closed gate with a warden who explains why.
+- The Mender and the shopkeeper describe their services; performing them needs
+  a party (Phase 3) and the bag/money UI (Phase 7).
+- Saving is Phase 10, so progress is lost on reload.
+
+---
+
 ## Phase 1 — Foundation
 
 The project skeleton and a walkable overworld.

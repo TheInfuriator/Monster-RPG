@@ -37,10 +37,35 @@ springs, storms, and mineral veins. Full planned region (built incrementally):
 
 **Vertical slice (first playable build) = locations 1, 2, and 3.**
 
+**Built so far (Phase 2):** Emberhollow Town and its four interiors, plus Route 1.
+Thistlewood is held back until Beacon Hall 1 exists (Phase 9) — Route 1 ends at a
+closed gate with a warden who explains why, rather than an invisible wall or an
+empty town.
+
 ### Region flavour notes
 - Emberhollow: warm ochre + slate, a small quarry town built on a dormant ember vent.
 - Cinderpath: ash-grey soil, hardy green grass, low stone walls.
 - Thistlewood: overgrown timber town, everything half-swallowed by hedges.
+
+### Emberhollow Town — as built
+30x24. A crossroads town: the main road runs east-west, the north road becomes the
+Cinderpath. Four buildings, each with an interior:
+
+| Building | Who is inside | Role |
+|----------|---------------|------|
+| The player's house | Mum | Opening nudge toward the Lodge |
+| Warden's Lodge | Prof. Wick, an assistant | Starter selection (Phase 3) |
+| Mender's Hall | Mender Ines, a traveller | Free healing (Phase 3+) |
+| Supply Post | Bram | Shop (Phase 7) |
+
+Also: a kitchen garden, two signposts, a pond, and a patch of tall grass on the
+northern edge — a safe first taste of wild encounters within sight of home.
+
+### Route 1 — Cinderpath — as built
+22x30, running north from Emberhollow. The path jogs twice so the route is not a
+straight corridor. Tall grass sits on both sides of the path throughout, so the
+player always chooses between the safe route and the interesting one. A pond
+partway up, two ground items, four NPCs, a signpost, and a shut gate at the top.
 
 ---
 
@@ -195,6 +220,11 @@ These are the deliberate knobs. All live in `src/config/balance.js`.
    ever becomes trivially safe or brutally unfair.
 8. **Gym leaders are ~2 levels above the local trainers** and always have a coherent
    type plan, so they read as a real step up.
+9. **Ground items block their tile.** You have to face one to take it. This is
+   why an item is never something you accidentally walk over and miss.
+10. **NPCs never wander more than a couple of tiles from home**, so a wandering
+    villager can never end up somewhere that makes a corridor impassable, and you
+    can always find someone again where you left them.
 
 ---
 
@@ -214,7 +244,24 @@ off the creature's primary type. This means:
 
 ---
 
-## 12. Controls
+## 12. Story Flags
+
+Progression is tracked with named flags on `GameState`. NPC dialogue branches on
+them, and later phases will gate areas with them.
+
+| Flag | Set by | Effect so far |
+|------|--------|---------------|
+| `metWick` | Talking to Professor Wick | Mum, the town villager and the Lodge assistant all change what they say |
+| `gotStarter` | Choosing a starter (Phase 3) | Branches already written for Mum, Bram and the gate warden |
+| `pickedUpRoute1Potion` | Taking the Route 1 potion | The item stays taken |
+| `pickedUpRoute1Orbs` | Taking the Route 1 orbs | The item stays taken |
+
+Flags are plain strings — add one by using it in a dialogue branch's `setFlags`
+and checking it with `when` / `unless` somewhere else.
+
+---
+
+## 13. Controls
 
 | Input | Action |
 |-------|--------|

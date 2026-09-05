@@ -76,6 +76,47 @@ export class TileMap {
     return Boolean(tile && tile.encounter);
   }
 
+  /**
+   * The exit at a tile, or null. Stepping onto an exit tile moves the player to
+   * another map — see WorldScene.
+   */
+  getExitAt(x, y) {
+    const exits = this.definition.exits || [];
+    return exits.find((exit) => exit.x === x && exit.y === y) || null;
+  }
+
+  /**
+   * The interactable object at a tile, or null. These are the signs, shelves and
+   * ground items the player presses the confirm key at.
+   */
+  getInteractableAt(x, y) {
+    const items = this.definition.interactables || [];
+    return items.find((item) => item.x === x && item.y === y) || null;
+  }
+
+  /** The id of this map's wild-encounter table, or null if it has none. */
+  get encounterTableId() {
+    return this.definition.encounterTable || null;
+  }
+
+  /** True if this map is indoors (no wild encounters, different music later). */
+  get isInterior() {
+    return Boolean(this.definition.interior);
+  }
+
+  /**
+   * The texture drawn underneath furniture tiles, or null.
+   * A map names a floor CHARACTER (`objectBase: 'o'`) and we look up its texture,
+   * so map files stay written in the same tile alphabet as everything else.
+   */
+  get objectBaseTexture() {
+    const char = this.definition.objectBase;
+    if (!char) return null;
+
+    const tile = getTileByChar(char);
+    return tile ? tile.texture : null;
+  }
+
   /** Every tile that should render above the player, as {x, y, tile} objects. */
   getOverheadTiles() {
     const result = [];

@@ -18,7 +18,15 @@
 
 import Phaser from 'phaser';
 import { TILE_SIZE, DEPTHS } from '../config/gameConfig.js';
-import { ASSET_KEYS, PLAYER_FRAME, PLAYER_FRAMES, PLAYER_ANIMS } from '../config/assets.js';
+import {
+  ASSET_KEYS,
+  PLAYER_FRAME,
+  PLAYER_FRAMES,
+  PLAYER_ANIMS,
+  CHARACTER_PALETTES,
+  characterTextureKey,
+  characterAnimKey,
+} from '../config/assets.js';
 import { DIRECTION_VECTORS } from '../config/controls.js';
 import { MOVEMENT } from '../config/balance.js';
 
@@ -49,6 +57,15 @@ export class Player extends Phaser.GameObjects.Sprite {
      * @type {import('../systems/TileMap.js').TileMap | null}
      */
     this.map = null;
+
+    /**
+     * An optional second collision check, set by the scene. The map knows about
+     * walls; this is how everything else that blocks a tile — NPCs standing in
+     * the way, an uncollected item on the ground — gets a say, without the
+     * player needing to know those things exist.
+     * @type {((x: number, y: number) => boolean) | null}
+     */
+    this.extraCollision = null;
 
     // Feet-on-tile alignment: the sprite's bottom edge sits `footPadding`
     // pixels below the bottom of the tile it stands on.
@@ -160,7 +177,9 @@ export class Player extends Phaser.GameObjects.Sprite {
   /** Is this tile free to walk onto? */
   canEnter(tileX, tileY) {
     if (!this.map) return false;
-    return this.map.isWalkable(tileX, tileY);
+    if (!this.map.isWalkable(tileX, tileY)) return false;
+    if (this.extraCollision && this.extraCollision(tileX, tileY)) return false;
+    return true;
   }
 
   /** Turn on the spot, with a short pause so it does not feel twitchy. */
@@ -243,28 +262,42 @@ export class Player extends Phaser.GameObjects.Sprite {
 }
 
 /**
- * Register the four walk animations. Call this once, after the player texture
- * exists (the BootScene does it). Animations are global to the game, not to a
- * scene, so creating them twice would warn — hence the `exists` check.
+ * Register the four walk animations for EVERY character look — the player and
+ * each NPC palette. Call this once, after the textures exist (the BootScene
+ * does it).
+ *
+ * Animations are global to the game rather than per-scene, so creating them
+ * twice would warn — hence the `exists` check.
  *
  * @param {Phaser.Scene} scene
+ * @returns {number} how many animations were created
  */
-export function createPlayerAnimations(scene) {
-  for (const [facing, animKey] of Object.entries(PLAYER_ANIMS)) {
-    if (scene.anims.exists(animKey)) continue;
+export function createCharacterAnimations(scene) {
+  let created = 0;
 
-    const frames = PLAYER_FRAMES[facing];
-    scene.anims.create({
-      key: animKey,
-      // idle -> step A -> idle -> step B gives a natural two-beat walk cycle.
-      frames: [
-        { key: ASSET_KEYS.player, frame: frames.stepA },
-        { key: ASSET_KEYS.player, frame: frames.idle },
-        { key: ASSET_KEYS.player, frame: frames.stepB },
-        { key: ASSET_KEYS.player, frame: frames.idle },
-      ],
-      frameRate: 8,
-      repeat: -1,
-    });
+  for (const name of Object.keys(CHARACTER_PALETTES)) {
+    const textureKey = characterTextureKey(name);
+
+    for (const facing of Object.keys(PLAYER_FRAMES)) {
+      const animKey = characterAnimKey(name, facing);
+      if (scene.anims.exists(animKey)) continue;
+
+      const frames = PLAYER_FRAMES[facing];
+      scene.anims.create({
+        key: animKey,
+        // idle -> step A -> idle -> step B gives a natural two-beat walk cycle.
+        frames: [
+          { key: textureKey, frame: frames.stepA },
+          { key: textureKey, frame: frames.idle },
+          { key: textureKey, frame: frames.stepB },
+          { key: textureKey, frame: frames.idle },
+        ],
+        frameRate: 8,
+        repeat: -1,
+      });
+      created += 1;
+    }
   }
+
+  return created;
 }

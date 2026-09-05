@@ -40,6 +40,27 @@ export const TILE_DEFINITIONS = {
   'F': { id: 'fence', solid: true, texture: 'tile-fence' },
   'o': { id: 'floor', solid: false, texture: 'tile-floor' },
   'L': { id: 'ledge_down', solid: false, ledge: 'down', texture: 'tile-ledge' },
+
+  // --- Interior tiles (houses, the lodge, the Mender's Hall, the shop) ---
+  //
+  // Tiles marked `object: true` are FURNITURE: they are drawn with a see-through
+  // background, on top of whichever floor the map names in its `objectBase`
+  // field. That is what lets the same table look right on floorboards in a house
+  // and on tiles in the shop, without needing two versions of every object.
+  '_': { id: 'interior_wall', solid: true, texture: 'tile-interior-wall' },
+  '|': { id: 'interior_wall_trim', solid: true, texture: 'tile-interior-trim' },
+  'O': { id: 'floor_tiled', solid: false, texture: 'tile-floor-tiled' },
+  'M': { id: 'door_mat', solid: false, object: true, texture: 'tile-door-mat' },
+  // `counter: true` lets the player talk to whoever stands on the far side,
+  // which is how you reach a shopkeeper or a nurse across their desk.
+  'C': { id: 'counter', solid: true, counter: true, object: true, texture: 'tile-counter' },
+  'B': { id: 'bookshelf', solid: true, object: true, texture: 'tile-bookshelf' },
+  'b': { id: 'bed', solid: true, object: true, texture: 'tile-bed' },
+  'A': { id: 'table', solid: true, object: true, texture: 'tile-table' },
+  'P': { id: 'plant', solid: true, object: true, texture: 'tile-plant' },
+  'H': { id: 'healing_machine', solid: true, object: true, texture: 'tile-healing-machine' },
+  'V': { id: 'shop_shelf', solid: true, object: true, texture: 'tile-shop-shelf' },
+  'I': { id: 'interior_window', solid: true, texture: 'tile-interior-window' },
 };
 
 /** The tile used when a map contains a character this file does not define. */

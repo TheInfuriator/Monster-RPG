@@ -64,6 +64,11 @@ export class MapRenderer {
    * @param {(tile: object) => boolean} shouldDraw
    */
   drawLayer(layer, shouldDraw) {
+    // Furniture is drawn with a see-through background so it can sit on any
+    // floor. Where a map names a floor for that (`objectBase`), we stamp the
+    // floor first and the object on top of it.
+    const baseTexture = this.map.objectBaseTexture;
+
     layer.beginDraw();
 
     for (let y = 0; y < this.map.height; y += 1) {
@@ -71,7 +76,11 @@ export class MapRenderer {
         const tile = this.map.getTile(x, y);
         if (!tile || !shouldDraw(tile)) continue;
 
-        layer.batchDraw(tile.texture, x * TILE_SIZE, y * TILE_SIZE);
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
+
+        if (tile.object && baseTexture) layer.batchDraw(baseTexture, px, py);
+        layer.batchDraw(tile.texture, px, py);
       }
     }
 

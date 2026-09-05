@@ -12,7 +12,7 @@
 import Phaser from 'phaser';
 import { SCENES, GAME_WIDTH, GAME_HEIGHT, COLORS, TEXT_STYLES } from '../config/gameConfig.js';
 import { generateAllTextures } from '../systems/TextureFactory.js';
-import { createPlayerAnimations } from '../entities/Player.js';
+import { createCharacterAnimations } from '../entities/Player.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -33,11 +33,11 @@ export class BootScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.ink);
 
     // Build every texture the game uses. Returns how many were newly created.
-    const created = generateAllTextures(this);
-    createPlayerAnimations(this);
+    const textures = generateAllTextures(this);
+    const animations = createCharacterAnimations(this);
 
     console.info(
-      `[Boot] Generated ${created} textures and registered player animations.`
+      `[Boot] Generated ${textures} textures and ${animations} character animations.`
     );
 
     this.scene.start(SCENES.TITLE);

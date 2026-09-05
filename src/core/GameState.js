@@ -15,7 +15,7 @@
  */
 
 import { STARTING_MAP_ID } from '../data/maps/index.js';
-import { ECONOMY } from '../config/balance.js';
+import { ECONOMY, DIALOGUE } from '../config/balance.js';
 
 /**
  * Bumped whenever the shape of saved data changes, so the save system can
@@ -54,6 +54,18 @@ export function createNewGameState() {
     flags: {},
     defeatedTrainers: {},
     creatureIndex: { seen: {}, caught: {} },
+
+    /**
+     * Player preferences. Stored in the save so they survive a reload.
+     * The Settings menu that edits these arrives in Phase 10; the values are
+     * already read by the game today.
+     */
+    settings: {
+      textSpeed: DIALOGUE.defaultTextSpeed,
+      masterVolume: 0.8,
+      musicVolume: 0.7,
+      sfxVolume: 0.8,
+    },
 
     // --- Bookkeeping ---
     playTimeMs: 0,

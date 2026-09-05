@@ -23,6 +23,21 @@ export class InputManager {
     /** action name -> array of Phaser Key objects */
     this.keys = {};
 
+    /**
+     * Actions whose key went down during this frame.
+     *
+     * WHY THIS EXISTS: Phaser's own `JustDown` reads a flag that `Key.onUp`
+     * clears. If a key is pressed AND released inside a single frame — a very
+     * fast tap, or a stutter that makes one frame run long — that flag is gone
+     * before anything reads it, and the press is silently lost.
+     *
+     * Latching the `down` event guarantees every press is visible for exactly
+     * one update. It is cleared again after the scene updates, so a press that
+     * nothing consumed (because a transition was running, say) is discarded
+     * rather than firing unexpectedly later.
+     */
+    this.pressLatch = new Set();
+
     for (const [action, keyNames] of Object.entries(KEY_BINDINGS)) {
       this.keys[action] = keyNames
         .map((name) => {
@@ -39,10 +54,16 @@ export class InputManager {
             return null;
           }
 
-          return scene.input.keyboard.addKey(keyCode, true, false);
+          const key = scene.input.keyboard.addKey(keyCode, true, false);
+          key.on('down', () => this.pressLatch.add(action));
+          return key;
         })
         .filter(Boolean);
     }
+
+    // Clear the latch once the scene has had its chance to read it.
+    this.clearLatch = () => this.pressLatch.clear();
+    scene.events.on(Phaser.Scenes.Events.POST_UPDATE, this.clearLatch);
 
     // Tidy up automatically when the scene ends, so a scene restart cannot
     // stack up duplicate key objects.
@@ -64,12 +85,17 @@ export class InputManager {
   justPressed(action) {
     const keys = this.keys[action];
     if (!keys) return false;
-    // `some` short-circuits, but JustDown must run for every key to clear its
-    // internal flag — otherwise a second bound key can fire a frame later.
-    let pressed = false;
+
+    let pressed = this.pressLatch.has(action);
+
+    // JustDown must still run for every key so it clears its own internal flag,
+    // otherwise a second bound key can fire again a frame later.
     for (const key of keys) {
       if (Phaser.Input.Keyboard.JustDown(key)) pressed = true;
     }
+
+    // Consume the press, so one tap can never be read twice in a frame.
+    if (pressed) this.pressLatch.delete(action);
     return pressed;
   }
 
@@ -90,11 +116,15 @@ export class InputManager {
     if (this.destroyed) return;
     this.destroyed = true;
 
+    this.scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.clearLatch);
+
     for (const keys of Object.values(this.keys)) {
       for (const key of keys) {
+        key.removeAllListeners();
         this.scene.input.keyboard.removeKey(key, true);
       }
     }
     this.keys = {};
+    this.pressLatch.clear();
   }
 }

@@ -2,8 +2,8 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 1 — Foundation** ✅ complete
-Next phase: **Phase 2 — World**
+Current phase: **Phase 2 — World** ✅ complete
+Next phase: **Phase 3 — Creature Data**
 
 ---
 
@@ -26,17 +26,26 @@ Next phase: **Phase 2 — World**
 - [x] Production build verified
 - [x] Browser-verified with Playwright (render + movement + collision)
 
-## Phase 2 — World
-- [ ] Map transition system (doors/edges, preserve state)
-- [ ] Emberhollow interiors: player's house, Warden's Lodge, Mender's Hall, Supply Post
-- [ ] Route 1 — Cinderpath map
-- [ ] Thistlewood town map
-- [ ] NPC entity: position, facing, sprite, optional wander
-- [ ] Dialogue system: box, multi-page, text speed, flag-conditional lines
-- [ ] Signs and interactable objects
-- [ ] Ground items
+## Phase 2 — World ✅
+- [x] Map transition system (doors + map edges, player state preserved)
+- [x] Emberhollow interiors: player's house, Warden's Lodge, Mender's Hall, Supply Post
+- [x] Route 1 — Cinderpath map (22x30, tall grass, pond, gated north end)
+- [x] Emberhollow expanded: 4 NPCs, 2 signs, kitchen garden, encounter edge
+- [x] NPC entity: position, facing, sprite palette, static / lookAround / wander
+- [x] NpcManager: occupancy, collision, lookup, cleanup
+- [x] Dialogue system: typewriter box, multi-page, name plate, text speed setting
+- [x] Flag-conditional dialogue (`when` / `unless` branches, `setFlags` on finish)
+- [x] Talking across counters (shopkeeper / Mender)
+- [x] Signs and interactable objects
+- [x] Ground items (block their tile, go into the bag, stay collected)
+- [x] Encounter-zone infrastructure: tables, weighted rolls, anti-ambush cooldown
+- [x] Furniture object layer (transparent furniture over a per-map floor)
+- [x] Camera centres maps smaller than the screen
+- [x] 8 character sprite palettes generated from one drawing routine
+- [x] 217 automated tests; browser-verified incl. keyboard-only playthrough
+- [ ] Thistlewood town map — **moved to Phase 11** (see Decisions below)
 
-## Phase 3 — Creature Data
+## Phase 3 — Creature Data ← NEXT
 - [ ] Type chart data + `TypeChart` module
 - [ ] Move database (40+)
 - [ ] Creature database (20+ incl. 3 starter families)
@@ -94,11 +103,31 @@ Next phase: **Phase 2 — World**
 
 ---
 
-## Known Issues / Notes
-- Nothing is currently broken. The two bugs found during Phase 1 (invisible player
-  sprite, dead debug key) are fixed and covered by tests — see CHANGELOG.md.
-- Map data supports an `exits` field, but exit handling is intentionally **not** wired up
-  yet — that lands in Phase 2 so it ships tested rather than as dead code.
+## Decisions / Notes
+
+**Deferred deliberately (not forgotten):**
+- **Thistlewood town moved to Phase 11.** It exists to host Beacon Hall 1, which is
+  Phase 9 work. Building the town now would mean shipping an empty shell. Instead
+  Route 1 ends at a **closed gate** with a warden who explains why — a real,
+  story-appropriate block rather than an invisible wall.
+- **Ledge hopping is not implemented**, so no ledges were placed on Route 1.
+  A `ledge_down` tile exists in the tile set, but placing terrain that looks
+  like a one-way hop and does nothing would be worse than leaving it out.
+- **Healing and shopping are described, not performed.** The Mender needs a party
+  to heal (Phase 3) and the shop needs the bag screen and money UI (Phase 7).
+  Both NPCs explain their service rather than pretending to provide it.
+- **Encounters are real but have nowhere to go yet.** The table lookup, weighted
+  species pick, level roll and anti-ambush cooldown are all implemented and
+  tested. Until battles land in Phase 4, a triggered encounter reports the
+  species and level on screen and says so plainly.
+
+**Still outstanding:**
 - Audio is not yet implemented; `AudioSystem` arrives in Phase 10 with silent fallbacks.
 - Placeholder art is procedurally generated. Real sprites can be dropped in later by
   changing only `src/systems/TextureFactory.js` + the asset keys in `src/config/assets.js`.
+- Saving is Phase 10, so progress is lost on reload. Story flags, the bag and
+  position are all already stored on GameState, ready to be serialised.
+
+## Known Issues
+- None currently open. Bugs found during Phases 1-2 are listed in CHANGELOG.md,
+  each with the test that now covers it.

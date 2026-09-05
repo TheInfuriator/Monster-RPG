@@ -15,7 +15,12 @@
  */
 
 import { TILE_SIZE, COLORS } from '../config/gameConfig.js';
-import { ASSET_KEYS, PLAYER_FRAME } from '../config/assets.js';
+import {
+  ASSET_KEYS,
+  PLAYER_FRAME,
+  CHARACTER_PALETTES,
+  characterTextureKey,
+} from '../config/assets.js';
 import { createSeededRandom } from '../utils/rng.js';
 
 /** Convert a 0xRRGGBB number into a '#rrggbb' string the canvas API understands. */
@@ -261,13 +266,25 @@ const TILE_GENERATORS = {
     return canvas;
   },
 
+  // Wooden floorboards. Long horizontal planks with a little grain — the
+  // earlier grid version read as brickwork, which made rooms look like walls.
   'tile-floor': () => {
     const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
-    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, COLORS.floor);
-    rect(ctx, 0, 15, TILE_SIZE, 2, COLORS.pathDark); // floorboard seams
-    rect(ctx, 0, 31, TILE_SIZE, 1, COLORS.pathDark);
-    rect(ctx, 15, 0, 2, 15, COLORS.pathDark);
-    rect(ctx, 7, 17, 2, 15, COLORS.pathDark);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xb08a5e);
+
+    // Three boards, each slightly different so a tiled floor is not too regular.
+    const boards = [
+      { y: 0, h: 10, color: 0xbb9366 },
+      { y: 11, h: 10, color: 0xa8814f },
+      { y: 22, h: 10, color: 0xb58c5c },
+    ];
+    for (const board of boards) {
+      rect(ctx, 0, board.y, TILE_SIZE, board.h, board.color);
+      rect(ctx, 0, board.y + board.h, TILE_SIZE, 1, 0x8a6438); // seam between boards
+      // Grain: a couple of faint lengthways streaks.
+      rect(ctx, 3, board.y + 3, 12, 1, 0x9c7549);
+      rect(ctx, 19, board.y + 6, 9, 1, 0x9c7549);
+    }
     return canvas;
   },
 
@@ -278,6 +295,146 @@ const TILE_GENERATORS = {
     rect(ctx, 0, 16, TILE_SIZE, 10, COLORS.ledge); // the drop face
     rect(ctx, 0, 16, TILE_SIZE, 3, 0xb59b6d);
     rect(ctx, 0, 26, TILE_SIZE, 2, 0x7a6440);
+    return canvas;
+  },
+
+  // ---- Interior tiles -----------------------------------------------------
+
+  'tile-interior-wall': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xd9c9a8);
+    rect(ctx, 0, 0, TILE_SIZE, 4, 0xbfae8f);
+    // Faint vertical panelling.
+    rect(ctx, 10, 4, 1, TILE_SIZE - 4, 0xc8b696);
+    rect(ctx, 21, 4, 1, TILE_SIZE - 4, 0xc8b696);
+    return canvas;
+  },
+
+  'tile-interior-trim': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xd9c9a8);
+    rect(ctx, 0, 0, TILE_SIZE, 4, 0xbfae8f);
+    // A skirting board along the bottom, used for the wall row above the floor.
+    rect(ctx, 0, 24, TILE_SIZE, 8, 0x8a6438);
+    rect(ctx, 0, 24, TILE_SIZE, 2, 0xa87f4c);
+    return canvas;
+  },
+
+  'tile-interior-window': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xd9c9a8);
+    rect(ctx, 0, 0, TILE_SIZE, 4, 0xbfae8f);
+    rect(ctx, 5, 7, 22, 17, 0x8a6438);
+    rect(ctx, 7, 9, 18, 13, 0x8fc4e8);
+    rect(ctx, 7, 9, 8, 6, 0xb4dcf5); // glass highlight
+    rect(ctx, 15, 9, 2, 13, 0x8a6438); // frame
+    rect(ctx, 7, 15, 18, 2, 0x8a6438);
+    return canvas;
+  },
+
+  'tile-floor-tiled': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xe4dcc8);
+    rect(ctx, 0, 0, 16, 16, 0xd3c9b2);
+    rect(ctx, 16, 16, 16, 16, 0xd3c9b2);
+    rect(ctx, 0, 0, TILE_SIZE, 1, 0xc0b69f);
+    rect(ctx, 0, 0, 1, TILE_SIZE, 0xc0b69f);
+    return canvas;
+  },
+
+  // NOTE: furniture textures below are drawn on a TRANSPARENT background.
+  // MapRenderer stamps the map's `objectBase` floor underneath them, so the same
+  // table works on floorboards in a house and on tiles in the shop.
+  'tile-door-mat': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    // The mat itself: this is where you step to leave a building.
+    rect(ctx, 4, 6, 24, 20, 0x8a6438);
+    rect(ctx, 6, 8, 20, 16, 0xb5533f);
+    rect(ctx, 9, 12, 14, 2, 0x8e3f2f);
+    rect(ctx, 9, 17, 14, 2, 0x8e3f2f);
+    return canvas;
+  },
+
+  'tile-counter': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 4, TILE_SIZE, 24, 0x8a6438);
+    rect(ctx, 0, 4, TILE_SIZE, 5, 0xa87f4c);
+    rect(ctx, 0, 24, TILE_SIZE, 4, 0x6b4a2c);
+    return canvas;
+  },
+
+  'tile-bookshelf': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 1, 0, 30, 30, 0x6b4a2c);
+    rect(ctx, 3, 2, 26, 26, 0x8a6438);
+    // Two shelves of books in varied colours.
+    const books = [0xb5533f, 0x4a6a8f, 0x6fbf73, 0xe8a33d, 0x9c4f6a];
+    for (let shelf = 0; shelf < 2; shelf += 1) {
+      const y = 4 + shelf * 12;
+      for (let i = 0; i < 6; i += 1) {
+        rect(ctx, 4 + i * 4, y, 3, 9, books[(i + shelf) % books.length]);
+      }
+      rect(ctx, 3, y + 9, 26, 2, 0x5a3d24); // shelf board
+    }
+    return canvas;
+  },
+
+  'tile-bed': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 3, 1, 26, 30, 0x8a6438); // frame
+    rect(ctx, 5, 3, 22, 26, 0x4a86c4); // blanket
+    rect(ctx, 5, 3, 22, 9, 0xf4ecd8); // pillow end
+    rect(ctx, 5, 18, 22, 2, 0x3a6a9c); // blanket fold
+    return canvas;
+  },
+
+  'tile-table': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 2, 6, 28, 20, 0x8a6438);
+    rect(ctx, 2, 6, 28, 4, 0xa87f4c);
+    rect(ctx, 4, 26, 5, 5, 0x6b4a2c); // legs
+    rect(ctx, 23, 26, 5, 5, 0x6b4a2c);
+    return canvas;
+  },
+
+  'tile-plant': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 10, 22, 12, 9, 0xb5533f); // pot
+    rect(ctx, 9, 21, 14, 3, 0x8e3f2f);
+    rect(ctx, 14, 12, 4, 11, 0x4a7d3f); // stem
+    rect(ctx, 7, 8, 18, 8, COLORS.tree); // foliage
+    rect(ctx, 10, 4, 12, 6, COLORS.tree);
+    rect(ctx, 16, 10, 8, 5, COLORS.treeDark);
+    return canvas;
+  },
+
+  'tile-healing-machine': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 2, 4, 28, 26, 0xb9c0cb); // body
+    rect(ctx, 2, 4, 28, 4, 0x8f97a3);
+    rect(ctx, 5, 11, 22, 12, 0x2b3240); // screen
+    rect(ctx, 7, 13, 18, 8, 0x6fbf73);
+    // Three status lamps.
+    rect(ctx, 6, 25, 4, 3, COLORS.good);
+    rect(ctx, 14, 25, 4, 3, COLORS.accent);
+    rect(ctx, 22, 25, 4, 3, COLORS.danger);
+    return canvas;
+  },
+
+  'tile-shop-shelf': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 1, 2, 30, 28, 0x8a6438);
+    rect(ctx, 3, 4, 26, 24, 0xa87f4c);
+    // Stacked goods on two shelves.
+    const goods = [0xe6685f, 0x6fbf73, 0x4a86c4, 0xe8a33d];
+    for (let shelf = 0; shelf < 2; shelf += 1) {
+      const y = 5 + shelf * 12;
+      for (let i = 0; i < 4; i += 1) {
+        rect(ctx, 5 + i * 6, y, 5, 8, goods[(i + shelf) % goods.length]);
+        rect(ctx, 5 + i * 6, y, 5, 2, 0xf4ecd8);
+      }
+      rect(ctx, 3, y + 8, 26, 2, 0x6b4a2c);
+    }
     return canvas;
   },
 
@@ -296,23 +453,21 @@ const TILE_GENERATORS = {
 // Player sprite sheet
 // ---------------------------------------------------------------------------
 
-const SKIN = 0xe8b88a;
-const SKIN_SHADE = 0xc99465;
-const HAIR = 0x4a3728;
-const TUNIC = 0x3f7fbf;
-const TUNIC_SHADE = 0x2f5f8f;
-const TROUSERS = 0x3a4152;
-const BOOTS = 0x2a2018;
-const SCARF = 0xe8a33d;
-
 /**
- * Draw one player frame.
+ * Draw one character frame using a palette.
+ *
+ * The SAME code draws the player and every NPC — only the colours differ. That
+ * is deliberate: a cast drawn by one function always looks like it belongs to
+ * one world. Palettes live in `src/config/assets.js`.
+ *
  * @param ctx      canvas context, already translated to the frame's origin
+ * @param palette  colours from CHARACTER_PALETTES
  * @param facing   'down' | 'up' | 'left' | 'right'
  * @param step     0 = idle, 1 = left foot forward, 2 = right foot forward
  */
-function drawPlayerFrame(ctx, facing, step) {
+function drawCharacterFrame(ctx, palette, facing, step) {
   const W = PLAYER_FRAME.width;
+  const eye = 0x2a2018;
 
   // Soft shadow on the ground, so the character sits in the world.
   ctx.fillStyle = 'rgba(0,0,0,0.22)';
@@ -322,52 +477,63 @@ function drawPlayerFrame(ctx, facing, step) {
 
   // Legs. The two walk steps swap which leg is forward.
   const legOffset = step === 1 ? 2 : step === 2 ? -2 : 0;
-  rect(ctx, 11, 28 + Math.max(0, legOffset), 4, 6 - Math.abs(legOffset), TROUSERS);
-  rect(ctx, 17, 28 + Math.max(0, -legOffset), 4, 6 - Math.abs(legOffset), TROUSERS);
-  rect(ctx, 11, 33, 4, 3, BOOTS);
-  rect(ctx, 17, 33, 4, 3, BOOTS);
+  rect(ctx, 11, 28 + Math.max(0, legOffset), 4, 6 - Math.abs(legOffset), palette.trousers);
+  rect(ctx, 17, 28 + Math.max(0, -legOffset), 4, 6 - Math.abs(legOffset), palette.trousers);
+  rect(ctx, 11, 33, 4, 3, palette.boots);
+  rect(ctx, 17, 33, 4, 3, palette.boots);
 
   // Torso
-  rect(ctx, 9, 18, 14, 11, TUNIC);
-  rect(ctx, 9, 25, 14, 4, TUNIC_SHADE);
-  rect(ctx, 9, 16, 14, 3, SCARF); // collar / scarf
+  rect(ctx, 9, 18, 14, 11, palette.tunic);
+  rect(ctx, 9, 25, 14, 4, palette.tunicShade);
+  rect(ctx, 9, 16, 14, 3, palette.accent); // collar / scarf
 
   // Arms swing opposite to the legs.
   const armOffset = step === 1 ? -1 : step === 2 ? 1 : 0;
-  rect(ctx, 6, 19 + armOffset, 3, 8, TUNIC);
-  rect(ctx, 23, 19 - armOffset, 3, 8, TUNIC);
-  rect(ctx, 6, 26 + armOffset, 3, 3, SKIN); // hands
-  rect(ctx, 23, 26 - armOffset, 3, 3, SKIN);
+  rect(ctx, 6, 19 + armOffset, 3, 8, palette.tunic);
+  rect(ctx, 23, 19 - armOffset, 3, 8, palette.tunic);
+  rect(ctx, 6, 26 + armOffset, 3, 3, palette.skin); // hands
+  rect(ctx, 23, 26 - armOffset, 3, 3, palette.skin);
 
   // Head
-  rect(ctx, 9, 5, 14, 12, SKIN);
-  rect(ctx, 9, 14, 14, 3, SKIN_SHADE); // chin shading
+  rect(ctx, 9, 5, 14, 12, palette.skin);
+  rect(ctx, 9, 14, 14, 3, palette.skinShade); // chin shading
 
   if (facing === 'down') {
-    rect(ctx, 8, 3, 16, 5, HAIR); // fringe
-    rect(ctx, 8, 3, 3, 10, HAIR); // sideburns
-    rect(ctx, 21, 3, 3, 10, HAIR);
-    rect(ctx, 12, 10, 2, 3, 0x2a2018); // eyes
-    rect(ctx, 18, 10, 2, 3, 0x2a2018);
+    rect(ctx, 8, 3, 16, 5, palette.hair); // fringe
+    rect(ctx, 8, 3, 3, 10, palette.hair); // sideburns
+    rect(ctx, 21, 3, 3, 10, palette.hair);
+    rect(ctx, 12, 10, 2, 3, eye); // eyes
+    rect(ctx, 18, 10, 2, 3, eye);
   } else if (facing === 'up') {
     // Back of the head: all hair, no face.
-    rect(ctx, 8, 3, 16, 13, HAIR);
-    rect(ctx, 10, 5, 5, 4, 0x5c4634); // highlight
+    rect(ctx, 8, 3, 16, 13, palette.hair);
+    rect(ctx, 10, 5, 5, 4, lighten(palette.hair, 0.18)); // highlight
   } else {
     // Profile. Mirroring is handled by the caller for 'left'.
-    rect(ctx, 8, 3, 16, 5, HAIR);
-    rect(ctx, 8, 3, 4, 11, HAIR); // back of the head
-    rect(ctx, 19, 10, 2, 3, 0x2a2018); // single visible eye
-    rect(ctx, 22, 11, 2, 2, SKIN_SHADE); // nose
+    rect(ctx, 8, 3, 16, 5, palette.hair);
+    rect(ctx, 8, 3, 4, 11, palette.hair); // back of the head
+    rect(ctx, 19, 10, 2, 3, eye); // single visible eye
+    rect(ctx, 22, 11, 2, 2, palette.skinShade); // nose
   }
 }
 
-/** Build the whole player sheet: 3 columns (idle, stepA, stepB) x 4 rows. */
-function createPlayerSheet() {
+/** Blend a colour towards white by `amount` (0-1). Used for simple highlights. */
+function lighten(color, amount) {
+  const r = (color >> 16) & 0xff;
+  const g = (color >> 8) & 0xff;
+  const b = color & 0xff;
+  const mix = (channel) => Math.min(255, Math.round(channel + (255 - channel) * amount));
+  return (mix(r) << 16) | (mix(g) << 8) | mix(b);
+}
+
+/**
+ * Build one character's sheet: 3 columns (idle, stepA, stepB) x 4 rows.
+ * Row order must match PLAYER_FRAMES in src/config/assets.js.
+ */
+function createCharacterSheet(palette) {
   const { width: fw, height: fh } = PLAYER_FRAME;
   const { canvas, ctx } = makeCanvas(fw * 3, fh * 4);
 
-  // Row order must match PLAYER_FRAMES in src/config/assets.js.
   const rows = ['down', 'left', 'right', 'up'];
 
   rows.forEach((facing, rowIndex) => {
@@ -379,14 +545,32 @@ function createPlayerSheet() {
         // Draw the right-facing profile and flip it horizontally.
         ctx.translate(fw, 0);
         ctx.scale(-1, 1);
-        drawPlayerFrame(ctx, 'right', step);
+        drawCharacterFrame(ctx, palette, 'right', step);
       } else {
-        drawPlayerFrame(ctx, facing, step);
+        drawCharacterFrame(ctx, palette, facing, step);
       }
 
       ctx.restore();
     }
   });
+
+  return canvas;
+}
+
+/** The orb-shaped bundle that marks an item lying on the ground. */
+function createGroundItem() {
+  const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(16, 26, 8, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  rect(ctx, 10, 8, 12, 16, 0x6b4a2c); // satchel body
+  rect(ctx, 10, 8, 12, 5, 0x8a6438); // flap
+  rect(ctx, 9, 12, 14, 3, COLORS.accent); // strap
+  rect(ctx, 14, 16, 4, 4, COLORS.accentDark); // buckle
+  rect(ctx, 10, 8, 3, 16, 0x7d5733); // highlight edge
 
   return canvas;
 }
@@ -442,9 +626,12 @@ export function generateAllTextures(scene) {
     created += 1;
   }
 
-  // Player sprite sheet
-  if (!scene.textures.exists(ASSET_KEYS.player)) {
-    scene.textures.addSpriteSheet(ASSET_KEYS.player, createPlayerSheet(), {
+  // One sprite sheet per character look (the player plus every NPC palette).
+  for (const [name, palette] of Object.entries(CHARACTER_PALETTES)) {
+    const key = characterTextureKey(name);
+    if (scene.textures.exists(key)) continue;
+
+    scene.textures.addSpriteSheet(key, createCharacterSheet(palette), {
       frameWidth: PLAYER_FRAME.width,
       frameHeight: PLAYER_FRAME.height,
     });
@@ -458,6 +645,12 @@ export function generateAllTextures(scene) {
   }
   if (!scene.textures.exists(ASSET_KEYS.uiCursor)) {
     scene.textures.addCanvas(ASSET_KEYS.uiCursor, createCursor());
+    created += 1;
+  }
+
+  // World objects
+  if (!scene.textures.exists(ASSET_KEYS.groundItem)) {
+    scene.textures.addCanvas(ASSET_KEYS.groundItem, createGroundItem());
     created += 1;
   }
 

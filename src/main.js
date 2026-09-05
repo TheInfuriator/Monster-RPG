@@ -9,6 +9,7 @@
 
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './config/gameConfig.js';
+import { gameState } from './core/GameState.js';
 import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
@@ -42,6 +43,10 @@ const config = {
 try {
   // Exposed for debugging in the browser console, e.g. `game.scene.keys`.
   window.game = new Phaser.Game(config);
+
+  // A console handle on the current playthrough: `__gs()` in devtools shows
+  // your flags, bag and position. Also what the browser test suite reads.
+  window.__gs = () => gameState;
 } catch (error) {
   console.error('[main] The game failed to start:', error);
 
