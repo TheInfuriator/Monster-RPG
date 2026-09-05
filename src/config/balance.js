@@ -44,6 +44,89 @@ export const BATTLE = {
   critMultiplier: 1.5,
   /** A damaging move that connects always does at least this much. */
   minimumDamage: 1,
+
+  /**
+   * Action priorities. Higher goes first, before any move priority is compared.
+   * Switching out and using an item are "free" actions you commit to before the
+   * turn's attacks resolve, which is what makes swapping a real tactical choice
+   * rather than a way to lose a turn.
+   */
+  actionPriority: {
+    run: 6,
+    switch: 5,
+    item: 4,
+    move: 0,
+  },
+
+  /**
+   * The move used when a creature has no usable moves left. Without this a
+   * battle could soft-lock with both sides unable to act.
+   * `null` power means it is defined inline by the engine, not the move database.
+   */
+  struggle: {
+    id: 'struggle',
+    name: 'Struggle',
+    type: 'normal',
+    category: 'physical',
+    power: 40,
+    accuracy: null,
+    priority: 0,
+    /** Fraction of the damage dealt that the user takes back. */
+    recoilFraction: 0.25,
+    description: 'A desperate last resort that hurts the user too.',
+  },
+
+  /** Base chance of escaping a wild battle before speed is taken into account. */
+  baseEscapeChance: 0.5,
+  /** How much faster-than-the-foe helps when running. */
+  escapeSpeedFactor: 0.35,
+};
+
+/**
+ * Stat stages: the temporary buffs and debuffs that only exist inside a battle.
+ *
+ * A stage runs from -6 to +6. Attack-style stats use (2+n)/2 going up and
+ * 2/(2-n) going down, so +1 is x1.5 and -1 is x0.67. Accuracy and evasion use a
+ * gentler curve, because a miss is far more frustrating than a weak hit.
+ */
+export const STAT_STAGES = {
+  min: -6,
+  max: 6,
+  /** Multipliers for stages -6..+6 for Attack, Defense, Sp. Atk, Sp. Def, Speed. */
+  battleStatMultipliers: [
+    0.25, 0.28, 0.33, 0.40, 0.50, 0.66,
+    1,
+    1.5, 2, 2.5, 3, 3.5, 4,
+  ],
+  /** Multipliers for stages -6..+6 for Accuracy and Evasion. */
+  accuracyMultipliers: [
+    0.33, 0.36, 0.43, 0.50, 0.60, 0.75,
+    1,
+    1.33, 1.66, 2, 2.33, 2.66, 3,
+  ],
+};
+
+export const EXPERIENCE = {
+  /**
+   * Experience for defeating one creature:
+   *   floor(baseExp * defeatedLevel / 7) * typeMultiplier
+   *
+   * Dividing by 7 keeps early levels brisk without making the mid-game trivial.
+   */
+  divisor: 7,
+  /** Only creatures that were sent out during the battle share the reward. */
+  participationRule: 'participants',
+};
+
+export const BATTLE_UI = {
+  /** Milliseconds an HP bar takes to slide to its new value. */
+  hpBarDuration: 480,
+  /** How long a hit shake lasts. */
+  hitShakeDuration: 180,
+  /** How long a fainting creature takes to fade out. */
+  faintDuration: 520,
+  /** Pause after a message finishes before the next one appears, in ms. */
+  messagePause: 260,
 };
 
 export const STATUS = {
