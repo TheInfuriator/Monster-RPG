@@ -27,7 +27,11 @@
  *   unless   flag name (or array of names) that must ALL be unset
  *   speaker  name shown above the text
  *   setFlags flag names to set once this dialogue finishes
+ *   action   an event to run once this dialogue finishes, e.g. 'starterSelect'
  *   pages    the lines of text
+ *
+ * `action` is how data triggers gameplay. The map file says WHAT should happen
+ * and WorldScene knows HOW, which keeps story content out of scene code.
  */
 
 /** Normalise `undefined | 'a' | ['a','b']` into an array. */
@@ -54,18 +58,18 @@ export function branchMatches(branch, flags = {}) {
  *
  * @param {string|string[]|object|object[]} dialogue
  * @param {Record<string, boolean>} flags  the player's story flags
- * @returns {{ pages: string[], speaker: string|null, setFlags: string[] }}
+ * @returns {{ pages: string[], speaker: string|null, setFlags: string[], action: string|null }}
  *          `pages` is empty if nothing matched — callers should treat that as
  *          "this thing has nothing to say" rather than showing an empty box.
  */
 export function resolveDialogue(dialogue, flags = {}) {
-  const empty = { pages: [], speaker: null, setFlags: [] };
+  const empty = { pages: [], speaker: null, setFlags: [], action: null };
 
   if (dialogue === undefined || dialogue === null) return empty;
 
   // A bare string is the most common case: one page, no speaker.
   if (typeof dialogue === 'string') {
-    return { pages: [dialogue], speaker: null, setFlags: [] };
+    return { pages: [dialogue], speaker: null, setFlags: [], action: null };
   }
 
   if (Array.isArray(dialogue)) {
@@ -73,7 +77,7 @@ export function resolveDialogue(dialogue, flags = {}) {
 
     // An array of strings is a multi-page block with no conditions.
     if (dialogue.every((entry) => typeof entry === 'string')) {
-      return { pages: [...dialogue], speaker: null, setFlags: [] };
+      return { pages: [...dialogue], speaker: null, setFlags: [], action: null };
     }
 
     // Otherwise it is a list of branches; the first match wins.
@@ -102,13 +106,14 @@ function resolveBranch(branch) {
         'Add a pages array so the player is not shown an empty box.',
       branch
     );
-    return { pages: [], speaker: branch.speaker || null, setFlags: [] };
+    return { pages: [], speaker: branch.speaker || null, setFlags: [], action: null };
   }
 
   return {
     pages: [...pages],
     speaker: branch.speaker || null,
     setFlags: toArray(branch.setFlags),
+    action: branch.action || null,
   };
 }
 

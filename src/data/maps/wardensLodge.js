@@ -43,21 +43,33 @@ export const wardensLodge = {
       movement: 'static',
       dialogue: [
         {
-          when: 'metWick',
+          // After the starter is chosen, Wick has nothing left to hand over.
+          when: 'gotStarter',
           pages: [
-            'The currents run right under this valley, you know.',
-            'Everything an Aether is, it owes to them.',
-            'Rest up. I will have something for you shortly.',
+            'How are the two of you getting on?',
+            'Head north when you are ready. The Cinderpath is gentle enough for a first walk.',
+            'And do come back and tell me what you find. That is half of what a Warden is for.',
           ],
         },
         {
-          // Talking to Wick the first time is what starts the story.
+          // Second visit before choosing: straight back to the cases.
+          when: 'metWick',
+          action: 'starterSelect',
+          pages: [
+            'Back again — good. The cases are open, so take your time.',
+            'Three of them. One is going to suit you better than the others.',
+          ],
+        },
+        {
+          // The first conversation: introduction, then the choice.
           setFlags: 'metWick',
+          action: 'starterSelect',
           pages: [
             'Ah — there you are! I was beginning to think you had slept through it.',
             'I am Wick. I study Aethers: the creatures born from the currents that run beneath Aetheria.',
             'Most folk never see one up close. Wardens do. Wardens walk with them.',
-            'I am going to make you a Warden. But not empty-handed — give me a moment to fetch the cases.',
+            'I am going to make you a Warden. And not empty-handed, either.',
+            'Three young Aethers have been waiting for someone to walk with. Go on — have a proper look.',
           ],
         },
       ],
@@ -71,6 +83,13 @@ export const wardensLodge = {
       sprite: 'villager',
       movement: 'lookAround',
       dialogue: [
+        {
+          when: 'gotStarter',
+          pages: [
+            'Good pick. They all are, really — that is rather the point.',
+            'Feed it, rest it at the Mender\u2019s Hall, and it will not let you down.',
+          ],
+        },
         {
           when: 'metWick',
           pages: [

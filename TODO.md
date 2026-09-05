@@ -2,8 +2,8 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 2 — World** ✅ complete
-Next phase: **Phase 3 — Creature Data**
+Current phase: **Phase 3 — Creature Data** ✅ complete
+Next phase: **Phase 4 — Battles**
 
 ---
 
@@ -45,15 +45,29 @@ Next phase: **Phase 3 — Creature Data**
 - [x] 217 automated tests; browser-verified incl. keyboard-only playthrough
 - [ ] Thistlewood town map — **moved to Phase 11** (see Decisions below)
 
-## Phase 3 — Creature Data ← NEXT
-- [ ] Type chart data + `TypeChart` module
-- [ ] Move database (40+)
-- [ ] Creature database (20+ incl. 3 starter families)
-- [ ] Stat calculation, growth curves, experience tables
-- [ ] `CreatureFactory` (species + level → instance)
-- [ ] Starter selection event
+## Phase 3 — Creature Data ✅
+- [x] All 18 types with names and colours
+- [x] Complete data-driven effectiveness chart (sparse: only non-neutral entries)
+- [x] `TypeChart` module — dual types, immunities, STAB, battle messages
+- [x] Move database — **56 moves** (24 physical / 16 special / 16 status)
+- [x] Structured move effects: status, statChange, heal, drain, recoil, multiHit, flinch
+- [x] Status condition definitions (poison, burn, paralysis, sleep)
+- [x] Creature database — **27 species**, 10 evolutionary families, 4 single-stage
+- [x] All three starter families, 3 stages each, balanced stat totals per stage
+- [x] Base stats, growth rates, catch rates, experience yields
+- [x] `StatCalculator` — stat formula, 3 cubic growth curves, experience thresholds
+- [x] Level-up learnsets with automatic validation
+- [x] Evolution metadata (`{ method, level, to }`) + evolution-graph validation
+- [x] `CreatureFactory` — species + level → individual instance
+- [x] `PartySystem` — add, capacity, active member, storage overflow, reorder
+- [x] Procedural creature artwork: 8 body shapes tinted by primary type
+- [x] Starter selection scene at the Warden's Lodge (browse, confirm, cancel)
+- [x] `action` field on dialogue branches — data triggers gameplay events
+- [x] Duplicate starter prevented at both the dialogue and the scene
+- [x] NPC dialogue reacts to `gotStarter` across 3 maps
+- [x] 1260 automated tests; browser-verified incl. all three starters
 
-## Phase 4 — Battles
+## Phase 4 — Battles ← NEXT
 - [ ] Battle scene + UI (HP bars, names, levels, message log)
 - [ ] Action menu: Fight / Party / Bag / Run
 - [ ] `DamageCalculator` (STAB, effectiveness, crits, variance)
@@ -120,6 +134,20 @@ Next phase: **Phase 3 — Creature Data**
   species pick, level roll and anti-ambush cooldown are all implemented and
   tested. Until battles land in Phase 4, a triggered encounter reports the
   species and level on screen and says so plainly.
+
+**Phase 3 deferrals:**
+- **Ice, Psychic, Dragon and Fairy have no creatures yet** — only 14 of the 18
+  types are represented in the roster. The type CHART covers all 18, and those
+  four are reserved for the later regions (Mistvault Cavern onward) rather than
+  padded into Route 1 just to tick a box.
+- **No individual variance (IVs).** Two creatures of the same species and level
+  have identical stats. That is a deliberate simplicity choice; the stat formula
+  has an obvious place to add variance later.
+- **Party and creature-detail SCREENS are Phase 6.** Phase 3 ships only the
+  party data foundation. The debug overlay (backtick) shows the party meanwhile.
+- **Evolution is described, not performed.** The metadata and
+  `getPendingEvolution()` are complete and tested; actually evolving needs the
+  level-up flow, which belongs with battles in Phase 4.
 
 **Still outstanding:**
 - Audio is not yet implemented; `AudioSystem` arrives in Phase 10 with silent fallbacks.

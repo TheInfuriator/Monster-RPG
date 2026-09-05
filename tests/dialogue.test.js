@@ -17,6 +17,7 @@ describe('simple dialogue shapes', () => {
       pages: ['Hello there.'],
       speaker: null,
       setFlags: [],
+      action: null,
     });
   });
 
@@ -110,6 +111,40 @@ describe('choosing between branches', () => {
     expect(resolveDialogue([{ pages: ['x'], setFlags: 'oneFlag' }], {}).setFlags).toEqual([
       'oneFlag',
     ]);
+  });
+});
+
+describe('dialogue actions', () => {
+  it('is null unless a branch declares one', () => {
+    expect(resolveDialogue('Just talking.').action).toBeNull();
+    expect(resolveDialogue(['a', 'b']).action).toBeNull();
+    expect(resolveDialogue([{ pages: ['x'] }], {}).action).toBeNull();
+  });
+
+  it('carries the action from the matched branch', () => {
+    const result = resolveDialogue(
+      [{ pages: ['Have a look.'], action: 'starterSelect' }],
+      {}
+    );
+    expect(result.action).toBe('starterSelect');
+  });
+
+  it('only returns the action of the branch that actually matched', () => {
+    const dialogue = [
+      { when: 'gotStarter', pages: ['Nothing left to give.'] },
+      { pages: ['Choose one.'], action: 'starterSelect' },
+    ];
+    expect(resolveDialogue(dialogue, {}).action).toBe('starterSelect');
+    expect(resolveDialogue(dialogue, { gotStarter: true }).action).toBeNull();
+  });
+
+  it('can combine an action with flags', () => {
+    const result = resolveDialogue(
+      [{ pages: ['Welcome.'], setFlags: 'metWick', action: 'starterSelect' }],
+      {}
+    );
+    expect(result.setFlags).toEqual(['metWick']);
+    expect(result.action).toBe('starterSelect');
   });
 });
 

@@ -19,8 +19,12 @@ import {
   ASSET_KEYS,
   PLAYER_FRAME,
   CHARACTER_PALETTES,
+  CREATURE_SPRITE_SIZE,
   characterTextureKey,
+  creatureTextureKey,
 } from '../config/assets.js';
+import { CREATURES } from '../data/creatures.js';
+import { getTypeColor, getTypeDarkColor } from './TypeChart.js';
 import { createSeededRandom } from '../utils/rng.js';
 
 /** Convert a 0xRRGGBB number into a '#rrggbb' string the canvas API understands. */
@@ -576,6 +580,204 @@ function createGroundItem() {
 }
 
 // ---------------------------------------------------------------------------
+// Creature artwork
+// ---------------------------------------------------------------------------
+
+/**
+ * Creatures are drawn from a handful of BODY SHAPES, tinted with the colours of
+ * their primary type. Twenty-seven species from eight drawing routines keeps the
+ * whole cast looking like it belongs to one world, and means adding a species is
+ * a data change rather than an art commission.
+ *
+ * Every shape receives the same palette object:
+ *   main    the type's colour        dark  its shaded version
+ *   light   a highlight              eye   near-black
+ */
+
+const EYE = 0x241f1a;
+const EYE_SHINE = 0xffffff;
+
+/** Two eyes with a highlight dot, used by most bodies. */
+function drawEyes(ctx, leftX, rightX, y, size = 5) {
+  rect(ctx, leftX, y, size, size + 1, EYE);
+  rect(ctx, rightX, y, size, size + 1, EYE);
+  rect(ctx, leftX + 1, y + 1, 2, 2, EYE_SHINE);
+  rect(ctx, rightX + 1, y + 1, 2, 2, EYE_SHINE);
+}
+
+/** A soft contact shadow so a creature sits on the ground rather than floating. */
+function drawShadow(ctx, centerX, y, radiusX) {
+  ctx.fillStyle = 'rgba(0,0,0,0.20)';
+  ctx.beginPath();
+  ctx.ellipse(centerX, y, radiusX, radiusX * 0.32, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+const CREATURE_BODY_DRAWERS = {
+  /** Four legs, a snout and a tail: ferrets, rodents, big cats. */
+  quadruped: (ctx, p) => {
+    drawShadow(ctx, 32, 55, 20);
+    rect(ctx, 14, 42, 7, 12, p.dark); // legs
+    rect(ctx, 24, 42, 7, 12, p.dark);
+    rect(ctx, 36, 42, 7, 12, p.dark);
+    rect(ctx, 45, 42, 7, 12, p.dark);
+    rect(ctx, 12, 28, 42, 18, p.main); // body
+    rect(ctx, 12, 40, 42, 6, p.dark); // underside shading
+    rect(ctx, 50, 20, 8, 14, p.light); // tail
+    rect(ctx, 52, 14, 7, 10, p.main);
+    rect(ctx, 8, 18, 24, 20, p.main); // head
+    rect(ctx, 6, 12, 8, 9, p.dark); // ears
+    rect(ctx, 20, 12, 8, 9, p.dark);
+    rect(ctx, 4, 28, 10, 8, p.light); // snout
+    drawEyes(ctx, 12, 23, 24, 4);
+    rect(ctx, 5, 30, 4, 3, EYE); // nose
+  },
+
+  /** A round, soft body: amphibians, droplets, cheerful lumps. */
+  blob: (ctx, p) => {
+    drawShadow(ctx, 32, 55, 20);
+    rect(ctx, 14, 46, 10, 8, p.dark); // feet
+    rect(ctx, 40, 46, 10, 8, p.dark);
+    rect(ctx, 12, 18, 40, 32, p.main); // body
+    rect(ctx, 8, 24, 48, 20, p.main);
+    rect(ctx, 12, 40, 40, 10, p.dark); // underside
+    rect(ctx, 16, 20, 16, 10, p.light); // highlight
+    rect(ctx, 26, 8, 12, 12, p.light); // the bead it carries
+    rect(ctx, 28, 10, 6, 6, EYE_SHINE);
+    drawEyes(ctx, 19, 37, 28, 6);
+    rect(ctx, 28, 40, 8, 3, p.dark); // mouth
+  },
+
+  /** A long coiling body: sea serpents and river spirits. */
+  serpent: (ctx, p) => {
+    drawShadow(ctx, 32, 56, 22);
+    rect(ctx, 10, 44, 44, 10, p.dark); // lower coil
+    rect(ctx, 16, 34, 36, 12, p.main); // middle coil
+    rect(ctx, 22, 24, 30, 12, p.main);
+    rect(ctx, 16, 40, 36, 5, p.dark);
+    rect(ctx, 14, 8, 26, 20, p.main); // head
+    rect(ctx, 14, 22, 26, 6, p.dark);
+    rect(ctx, 8, 4, 10, 10, p.light); // fins
+    rect(ctx, 36, 4, 10, 10, p.light);
+    drawEyes(ctx, 19, 30, 14, 5);
+    rect(ctx, 20, 24, 14, 3, p.dark); // mouth
+  },
+
+  /** A seed-pod or bulb with leaves: the growing things. */
+  plant: (ctx, p) => {
+    drawShadow(ctx, 32, 55, 19);
+    rect(ctx, 18, 46, 9, 8, p.dark); // stubby feet
+    rect(ctx, 37, 46, 9, 8, p.dark);
+    rect(ctx, 14, 20, 36, 30, p.main); // pod
+    rect(ctx, 14, 40, 36, 10, p.dark);
+    rect(ctx, 18, 23, 12, 9, p.light); // highlight
+    rect(ctx, 4, 10, 20, 10, p.dark); // leaves
+    rect(ctx, 8, 4, 16, 9, p.main);
+    rect(ctx, 40, 10, 20, 10, p.dark);
+    rect(ctx, 40, 4, 16, 9, p.main);
+    rect(ctx, 29, 2, 6, 20, p.dark); // stem
+    drawEyes(ctx, 21, 37, 30, 5);
+    rect(ctx, 29, 40, 7, 3, p.dark); // mouth
+  },
+
+  /** Wings, beak and tail feathers. */
+  bird: (ctx, p) => {
+    drawShadow(ctx, 32, 55, 17);
+    rect(ctx, 24, 46, 5, 9, p.dark); // legs
+    rect(ctx, 35, 46, 5, 9, p.dark);
+    rect(ctx, 18, 24, 28, 24, p.main); // body
+    rect(ctx, 18, 40, 28, 8, p.dark);
+    rect(ctx, 4, 26, 18, 14, p.light); // wing
+    rect(ctx, 6, 30, 14, 4, p.dark);
+    rect(ctx, 44, 20, 16, 10, p.dark); // tail
+    rect(ctx, 48, 14, 14, 9, p.light);
+    rect(ctx, 20, 8, 22, 20, p.main); // head
+    rect(ctx, 24, 4, 10, 6, p.light); // crest
+    rect(ctx, 8, 18, 14, 8, 0xe8a33d); // beak
+    rect(ctx, 8, 22, 12, 3, 0xb87c22);
+    drawEyes(ctx, 24, 34, 14, 5);
+  },
+
+  /** Segments, plating and antennae. */
+  bug: (ctx, p) => {
+    drawShadow(ctx, 32, 55, 19);
+    rect(ctx, 8, 34, 10, 5, p.dark); // legs
+    rect(ctx, 46, 34, 10, 5, p.dark);
+    rect(ctx, 10, 44, 10, 5, p.dark);
+    rect(ctx, 44, 44, 10, 5, p.dark);
+    rect(ctx, 16, 22, 32, 30, p.main); // segmented body
+    for (let i = 0; i < 3; i += 1) rect(ctx, 16, 30 + i * 8, 32, 3, p.dark);
+    rect(ctx, 20, 25, 12, 6, p.light); // shell highlight
+    rect(ctx, 18, 6, 28, 20, p.main); // head
+    rect(ctx, 18, 20, 28, 6, p.dark);
+    rect(ctx, 12, 0, 5, 10, p.dark); // antennae
+    rect(ctx, 47, 0, 5, 10, p.dark);
+    drawEyes(ctx, 23, 35, 12, 6);
+  },
+
+  /** Angular, chipped, and heavier than it looks. */
+  rock: (ctx, p) => {
+    drawShadow(ctx, 32, 55, 21);
+    rect(ctx, 12, 24, 40, 28, p.main); // main mass
+    rect(ctx, 18, 16, 28, 12, p.main);
+    rect(ctx, 8, 34, 48, 18, p.main);
+    rect(ctx, 8, 44, 48, 8, p.dark); // base shading
+    rect(ctx, 20, 18, 12, 8, p.light); // facets
+    rect(ctx, 40, 28, 10, 8, p.dark);
+    rect(ctx, 14, 30, 8, 6, p.dark);
+    drawEyes(ctx, 20, 36, 32, 6);
+    rect(ctx, 26, 44, 12, 3, p.dark); // mouth crack
+  },
+
+  /** A flame or spirit: no legs, and a trailing tail. */
+  wisp: (ctx, p) => {
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.beginPath();
+    ctx.ellipse(32, 58, 14, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    rect(ctx, 24, 44, 16, 10, p.dark); // trailing wisp
+    rect(ctx, 28, 50, 8, 8, p.dark);
+    rect(ctx, 14, 16, 36, 32, p.main); // body
+    rect(ctx, 10, 22, 44, 20, p.main);
+    rect(ctx, 20, 8, 24, 12, p.main); // flame tip
+    rect(ctx, 26, 2, 12, 10, p.light);
+    rect(ctx, 18, 20, 12, 8, p.light); // inner glow
+    drawEyes(ctx, 21, 37, 28, 6);
+  },
+};
+
+/**
+ * Build one species' artwork.
+ * @param {object} species a species definition from src/data/creatures.js
+ */
+function createCreatureSprite(species) {
+  const size = CREATURE_SPRITE_SIZE;
+  const { canvas, ctx } = makeCanvas(size, size);
+
+  const drawer = CREATURE_BODY_DRAWERS[species.appearance.body];
+  if (!drawer) {
+    console.warn(
+      `[TextureFactory] Species "${species.id}" wants body "${species.appearance.body}", ` +
+        `which has no drawing routine. Drawing a placeholder blob instead.`
+    );
+  }
+
+  // Colours come from the primary type unless the species overrides them.
+  const primaryType = species.types[0];
+  const main = species.appearance.main ?? getTypeColor(primaryType);
+  const dark = species.appearance.dark ?? getTypeDarkColor(primaryType);
+
+  (drawer || CREATURE_BODY_DRAWERS.blob)(ctx, {
+    main,
+    dark,
+    light: lighten(main, 0.28),
+  });
+
+  return canvas;
+}
+
+// ---------------------------------------------------------------------------
 // UI textures
 // ---------------------------------------------------------------------------
 
@@ -654,8 +856,20 @@ export function generateAllTextures(scene) {
     created += 1;
   }
 
+  // One sprite per creature species.
+  for (const species of Object.values(CREATURES)) {
+    const key = creatureTextureKey(species.id);
+    if (scene.textures.exists(key)) continue;
+
+    scene.textures.addCanvas(key, createCreatureSprite(species));
+    created += 1;
+  }
+
   return created;
 }
 
 /** Exported for tests and for anyone adding a new tile. */
 export const TILE_TEXTURE_KEYS = Object.keys(TILE_GENERATORS);
+
+/** Exported so tests can check every species' body shape can actually be drawn. */
+export const CREATURE_BODY_DRAWER_NAMES = Object.keys(CREATURE_BODY_DRAWERS);

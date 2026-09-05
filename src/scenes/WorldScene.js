@@ -36,12 +36,15 @@ import { EncounterSystem } from '../systems/EncounterSystem.js';
 import { findInteractionTarget } from '../systems/InteractionSystem.js';
 import { resolveDialogue } from '../systems/DialogueResolver.js';
 import { addItem } from '../systems/InventorySystem.js';
+import { describeParty } from '../systems/PartySystem.js';
 import { getItem } from '../data/items.js';
 import { getMapDefinition } from '../data/maps/index.js';
 import { ASSET_KEYS } from '../config/assets.js';
 import { Player } from '../entities/Player.js';
 import { DebugOverlay } from '../ui/DebugOverlay.js';
 import { DialogueBox } from '../ui/DialogueBox.js';
+import { getSpecies } from '../data/creatures.js';
+import { STARTER_FLAG } from './StarterSelectScene.js';
 import { gameState, setLocation, hasFlag, setFlag } from '../core/GameState.js';
 import { fadeIn } from '../utils/transitions.js';
 
@@ -266,6 +269,7 @@ export class WorldScene extends Phaser.Scene {
         `npcs   ${this.npcManager.npcs.length}` +
           `   encounters ${this.encounters.isActive ? 'on' : 'off'}` +
           ` (cd ${this.encounters.cooldown})`,
+        `party  ${describeParty(gameState)}`,
         `fps    ${Math.round(this.game.loop.actualFps)}`,
       ];
     });
@@ -350,6 +354,10 @@ export class WorldScene extends Phaser.Scene {
   // -------------------------------------------------------------------------
 
   handleInteract() {
+    // A frozen player is mid-cutscene, mid-dialogue or mid-transition. They
+    // should not be able to start a conversation on top of whatever is running.
+    if (this.player.inputLocked) return;
+
     const target = findInteractionTarget({
       map: this.map,
       getNpcAt: (x, y) => this.npcManager.getNpcAt(x, y),
@@ -392,6 +400,7 @@ export class WorldScene extends Phaser.Scene {
       // Flags are set when the conversation ENDS, so dialogue that depends on
       // them cannot change halfway through being read.
       setFlags: resolved.setFlags,
+      action: resolved.action,
     });
   }
 
@@ -406,12 +415,89 @@ export class WorldScene extends Phaser.Scene {
       onComplete: () => {
         for (const flag of options.setFlags || []) setFlag(flag);
 
+        // An action runs INSTEAD of handing control back, because it usually
+        // opens something of its own (a chooser, a battle) that will return
+        // control when it finishes.
+        if (options.action) {
+          this.runDialogueAction(options.action);
+          return;
+        }
+
         // Do not hand control back mid-transition, or the player could walk
         // away from a doorway they are already going through.
         if (!this.isTransitioning) {
           this.player.inputLocked = false;
           this.npcManager.setAllBusy(false);
         }
+      },
+    });
+  }
+
+  /**
+   * Run an `action` declared in dialogue data.
+   *
+   * This is the seam between CONTENT and CODE: a map file says
+   * `action: 'starterSelect'` and this decides what that means. Phase 4 adds
+   * battle actions here in the same way.
+   */
+  runDialogueAction(action) {
+    switch (action) {
+      case 'starterSelect':
+        this.openStarterSelect();
+        break;
+
+      default:
+        console.warn(
+          `[World] Dialogue asked for unknown action "${action}". ` +
+            `Add it to runDialogueAction() in WorldScene.`
+        );
+        this.releasePlayer();
+    }
+  }
+
+  /** Hand control back to the player after a dialogue or event finishes. */
+  releasePlayer() {
+    if (this.isTransitioning) return;
+    this.player.inputLocked = false;
+    this.npcManager.setAllBusy(false);
+  }
+
+  /**
+   * Open the starter chooser as an overlay scene.
+   * The world keeps running underneath but the player stays frozen, so their
+   * position and the Lodge behind them are exactly as they left them.
+   */
+  openStarterSelect() {
+    if (hasFlag(STARTER_FLAG)) {
+      // Already has one; nothing to choose. Should not happen — Wick's dialogue
+      // branches on the same flag — but a duplicate starter would be a real bug.
+      this.releasePlayer();
+      return;
+    }
+
+    // PAUSE the overworld while the chooser is up. Without this the overworld
+    // keeps reading the keyboard underneath the overlay, so the same key press
+    // that confirms a choice also re-triggers "talk to the NPC in front of you"
+    // — leaving a stray dialogue box open behind the chooser.
+    this.scene.pause();
+
+    this.scene.launch(SCENES.STARTER_SELECT, {
+      onFinished: (speciesId) => {
+        this.scene.resume();
+
+        if (speciesId) {
+          const species = getSpecies(speciesId);
+          // Wick's closing line, shown once the chooser has closed.
+          this.startDialogue(
+            [
+              `${species.name} and you are partners now.`,
+              'Take good care of each other out there, Warden.',
+            ],
+            { speaker: 'Prof. Wick' }
+          );
+          return;
+        }
+        this.releasePlayer();
       },
     });
   }

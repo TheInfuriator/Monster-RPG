@@ -4,6 +4,130 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 3 — Creature Data
+
+The game now has Aethers in it. You can walk into the Warden's Lodge, meet
+Professor Wick, and leave with a partner of your own.
+
+### Added
+
+**Types**
+- All 18 types with display names and colours, and the complete effectiveness
+  chart as a sparse table — only non-neutral matchups are written down, so the
+  whole thing fits on a screen and stays readable.
+- `TypeChart` module: single and dual-type effectiveness, immunities, STAB, and
+  the wording used for battle messages. Nothing else in the game contains a
+  type matchup.
+- Type colours do double duty as the default palette for creature artwork.
+
+**Moves — 56 of them**
+- 24 physical, 16 special, 16 status, spread across 14 types.
+- Structured effect metadata (`status`, `statChange`, `heal`, `drain`, `recoil`,
+  `multiHit`, `flinch`) so Phase 4 can handle each KIND once instead of growing
+  a switch statement over individual move names.
+- Deliberately covers everything battles will need: a priority move, healing,
+  draining, recoil, multi-hit, accuracy modification, stat buffs and debuffs,
+  and at least one move for each of the four status conditions.
+
+**Creatures — 27 species**
+- 10 evolutionary families and 4 single-stage species, each with base stats,
+  growth rate, catch rate, experience yield, evolution data, a level-up
+  learnset and an artwork body shape.
+- The three starter lines — Pyrret/Cindraw/Emberax (Fire), Drizzle/Puddlurk/
+  Torrentine (Water), Sproutle/Bramblit/Thornmane (Grass) — share identical stat
+  TOTALS at every stage (307 / 396 / 500) spread differently, so no starter is
+  objectively the right pick. A test enforces this.
+- Creature artwork is generated from 8 body shapes tinted by primary type, so
+  27 species come from 8 drawing routines and still look like one world.
+
+**Maths**
+- `StatCalculator`: the stat formula, three cubic growth curves (fast/medium/
+  slow), experience thresholds, level-from-experience and progress helpers.
+- `CreatureFactory`: species + level becomes an individual with a unique
+  instance id, cached stats, full-PP moves and the right starting experience.
+- `PartySystem`: add, capacity, active member, storage overflow, reordering.
+  Everything is plain data that serialises straight into a save file.
+
+**Starter selection**
+- A real scene at the Warden's Lodge: three cards with artwork, name, type
+  badges and description; arrow keys to browse, a yes/no confirm step so nobody
+  picks by accident, and cancel at both levels.
+- The chosen creature is built by `CreatureFactory`, joins the party, and sets
+  the `gotStarter` flag that Phase 2 had already written dialogue for. Wick, her
+  assistant, a villager, the shopkeeper and the gate warden all change what they
+  say — across three different maps.
+- Choosing twice is prevented at both the dialogue level (Wick's branches) and
+  inside the scene itself, because a duplicate starter would be a real
+  progression bug.
+
+**Architecture**
+- Dialogue branches gained an `action` field. A map file says
+  `action: 'starterSelect'` and `WorldScene.runDialogueAction()` knows what that
+  means — the seam that keeps story content out of scene code. Phase 4 adds
+  battle actions the same way.
+
+### Fixed
+
+- **The overworld kept reading the keyboard underneath the starter chooser.**
+  The same Space press that confirmed a choice also re-triggered "talk to the
+  NPC in front of you", leaving a stray dialogue box open behind the overlay —
+  which then blocked movement once the chooser closed. `WorldScene` now pauses
+  while an overlay scene owns the screen, `handleInteract()` refuses to run
+  while the player is frozen, and `InputManager` clears its press latch on
+  resume so nothing fires as a phantom input on the way back in.
+- **Starters reached level 5 with no move of their own type**, so the Fire /
+  Water / Grass triangle would not have mattered in the rival battle. Each
+  starter now learns its signature move at level 1.
+- **Thorn Guard's description promised two stat boosts** but its effect applied
+  only one.
+- **`clampLevel` treated `Infinity` as the level cap.** It now falls back to
+  level 1 for any non-finite input: a stray level 1 creature is harmless, a
+  stray level 100 one would wreck the game's balance. Documented and tested.
+
+### Verification
+
+- **1260 automated tests** pass (was 217). Most are generated over the data
+  itself, so new content is validated without new test code:
+  - every move: type, category, PP, priority, accuracy, power-vs-category, and
+    a shape check per effect kind
+  - every species: types, stats, growth rate, catch rate, learnset moves,
+    level ordering, a damaging move at level 1, and evolution targets
+  - the evolution graph: no loops, no shared targets, evolutions always
+    stronger, and later stages evolving later
+  - the type chart: every row present, no unknown ids, only legal multipliers,
+    and a brute-force check that all 5832 dual-type combinations equal the
+    product of their parts
+  - all three starters, checked for balance, three stages and a usable
+    same-type attack at the level they are handed over
+- **Lint clean; production build succeeds.** Every browser check below ran
+  against the production build.
+- **Browser-verified with Playwright**, zero console errors or warnings:
+  - 22/22 chooser checks: opening after Wick's dialogue, browsing with arrows,
+    wrap-around, the confirm step, cancelling the confirm, backing out entirely,
+    and that backing out grants nothing and returns control.
+  - 60/60 selection checks: each of the three starters chosen in a genuinely
+    fresh game, verifying species, level, full health, signature move, unique
+    instance id, `metAt`, the `gotStarter` flag, Wick's closing line, that the
+    chooser will not reopen, and that a second NPC reacts to the flag.
+  - Phase 2 regression: map transitions, party surviving a map change, and
+    ground-item pickup all still work.
+- **Leak check:** 11 open/close cycles of the chooser leave display objects,
+  update list, tweens, timers, textures, animations, keyboard keys, key
+  listeners and scene listeners all unchanged.
+
+### Known limitations
+
+- Only 14 of the 18 types have creatures. Ice, Psychic, Dragon and Fairy are
+  reserved for later regions rather than padded into Route 1 to hit a number.
+- No individual variance: two creatures of the same species and level have
+  identical stats. A deliberate simplicity choice.
+- Evolution metadata is complete and tested, but nothing evolves yet — that
+  needs the level-up flow, which belongs with battles in Phase 4.
+- The party and creature-detail screens are Phase 6. The debug overlay
+  (backtick) shows your party in the meantime.
+
+---
+
 ## Phase 2 — World
 
 Emberhollow becomes a place you can live in: six connected maps, people to talk

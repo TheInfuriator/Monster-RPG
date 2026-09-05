@@ -18,6 +18,9 @@ import {
   characterTextureKey,
 } from '../src/config/assets.js';
 import { ENCOUNTER_TABLES } from '../src/data/encounters.js';
+import { CREATURES } from '../src/data/creatures.js';
+import { CREATURE_BODY_SET, creatureTextureKey } from '../src/config/assets.js';
+import { CREATURE_BODY_DRAWER_NAMES } from '../src/systems/TextureFactory.js';
 import { ITEMS } from '../src/data/items.js';
 import { collectAllPages, resolveDialogue } from '../src/systems/DialogueResolver.js';
 import { KEY_BINDINGS, DIRECTION_VECTORS, DIRECTIONS } from '../src/config/controls.js';
@@ -259,6 +262,40 @@ describe('tile artwork', () => {
 
   it('keeps the fallback tile solid so a typo never opens a hole in a wall', () => {
     expect(FALLBACK_TILE.solid).toBe(true);
+  });
+});
+
+describe('creature artwork', () => {
+  it('has a drawing routine for every body shape the config allows', () => {
+    const drawers = new Set(CREATURE_BODY_DRAWER_NAMES);
+    const missing = [...CREATURE_BODY_SET].filter((body) => !drawers.has(body));
+    expect(missing, 'body shapes with no drawing routine').toEqual([]);
+  });
+
+  it('has no drawing routines for shapes the config does not list', () => {
+    const extra = CREATURE_BODY_DRAWER_NAMES.filter((name) => !CREATURE_BODY_SET.has(name));
+    expect(extra).toEqual([]);
+  });
+
+  it('gives every species a body shape that can actually be drawn', () => {
+    const drawers = new Set(CREATURE_BODY_DRAWER_NAMES);
+    for (const species of Object.values(CREATURES)) {
+      expect(
+        drawers.has(species.appearance.body),
+        `"${species.id}" wants body "${species.appearance.body}", which has no routine`
+      ).toBe(true);
+    }
+  });
+
+  it('gives every species a unique texture key', () => {
+    const keys = Object.keys(CREATURES).map(creatureTextureKey);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('uses every body shape at least once, so none is dead code', () => {
+    const used = new Set(Object.values(CREATURES).map((s) => s.appearance.body));
+    const unused = CREATURE_BODY_DRAWER_NAMES.filter((name) => !used.has(name));
+    expect(unused, 'body shapes no species uses').toEqual([]);
   });
 });
 

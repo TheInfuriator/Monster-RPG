@@ -13,6 +13,7 @@ import { gameState } from './core/GameState.js';
 import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
+import { StarterSelectScene } from './scenes/StarterSelectScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -36,7 +37,7 @@ const config = {
   // Arcade physics is not used yet (movement is grid-based and tween-driven),
   // but it costs nothing to leave off until a system actually needs it.
 
-  scene: [BootScene, TitleScene, WorldScene],
+  scene: [BootScene, TitleScene, WorldScene, StarterSelectScene],
 };
 
 // Surface a boot failure on the page instead of leaving a black screen behind.

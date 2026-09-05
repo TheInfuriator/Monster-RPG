@@ -78,16 +78,29 @@ each with a distinct stat identity and a 3-stage evolution line.
 - **Concept:** a ferret-like creature with a coal-black coat and glowing seams along its spine.
 - **Identity:** fast physical attacker. High Speed / Attack, low Defense.
 - **Evolves:** Pyrret → Cindraw (L16) → Emberax (L34)
+- **Built:** base stats 45/62/40/50/42/68. Learns Ember at level 1.
 
 ### Water — **Drizzle** → **Puddlurk** → **Torrentine**
 - **Concept:** a round amphibian that carries a bead of water on its head like a lantern.
 - **Identity:** bulky special attacker. High Sp. Def / HP, low Speed.
 - **Evolves:** Drizzle → Puddlurk (L16) → Torrentine (L34)
+- **Built:** base stats 55/44/52/60/62/34. Learns Water Jet at level 1.
 
 ### Grass — **Sproutle** → **Bramblit** → **Thornmane** *(Grass/Fighting at final stage)*
 - **Concept:** a stout seed-pod creature that grows a mane of thorned vines.
 - **Identity:** balanced bruiser. High Attack / Defense, average Speed.
 - **Evolves:** Sproutle → Bramblit (L16) → Thornmane (L34)
+- **Built:** base stats 50/58/58/44/48/49. Learns Leaf Dart at level 1.
+
+### The balance rule
+All three lines share **identical stat totals at every stage** — 307 at stage 1,
+396 at stage 2, 500 at stage 3 — spread differently. No starter is objectively
+the right pick; they simply play differently. A test enforces this, so the rule
+cannot quietly rot as stats are retuned.
+
+Each starter is handed over at **level 5** knowing three moves, including a
+damaging move of its own type — otherwise the Fire/Water/Grass triangle would
+not matter in the first rival battle.
 
 **Rival's choice:** the rival always picks the starter **strong against** the player's,
 guaranteeing an interesting first fight.
@@ -115,7 +128,62 @@ Beyond the starters, the slice ships these wild Aethers. IDs are lowercase slugs
 | 022 | **Dampling** | Water | A droplet with a shy face; clings to reeds. | Route 1 pond edge |
 | 023 | **Zaplet** | Electric | A static-charged tuft of fur. | Route 2 |
 
+### Built roster (Phase 3): 27 species
+
+10 evolutionary families plus 4 single-stage species.
+
+| Family | Line | Types |
+|--------|------|-------|
+| Fire starter | Pyrret → Cindraw (16) → Emberax (34) | Fire |
+| Water starter | Drizzle → Puddlurk (16) → Torrentine (34) | Water |
+| Grass starter | Sproutle → Bramblit (16) → Thornmane (34) | Grass, then Grass/Fighting |
+| Rodent | Nibbit → Chompkin (18) | Normal |
+| Bird | Flittle → Gustwing (20) | Normal/Flying |
+| Vine | Vinelet → Ivorn (22) | Grass, then Grass/Poison |
+| Grub | Grubbit → Carapex (20) | Bug, then Bug/Steel |
+| Stone | Pebblit → Cragmaw (24) | Rock, then Rock/Ground |
+| Water pond | Dampling → Brookel (20) | Water |
+| Static | Zaplet → Voltmane (24) | Electric |
+| *(single)* | Puffcap | Grass/Poison |
+| *(single)* | Emberfly | Fire/Bug |
+| *(single)* | Wispel | Ghost |
+| *(single)* | Umbrat | Dark |
+
+**Types represented: 14 of 18.** Ice, Psychic, Dragon and Fairy are deliberately
+held back for the later regions rather than padded into Route 1 to hit a number.
+The type CHART covers all 18 regardless.
+
 Full game target: **30+** creatures across ~12 evolutionary families.
+
+---
+
+## 4b. Moves — 56 built
+
+24 physical, 16 special, 16 status, across 14 types. Effects are declared as
+KINDS (`status`, `statChange`, `heal`, `drain`, `recoil`, `multiHit`, `flinch`)
+rather than per-move code, so the battle engine handles each behaviour once.
+
+The set deliberately covers everything a battle system needs on day one: weak
+and strong attacks, a priority move, healing, draining, recoil, multi-hit,
+accuracy modification, stat buffs and debuffs, and at least one move that
+inflicts each of the four status conditions.
+
+---
+
+## 4c. Stats, levels and experience
+
+```
+HP     = floor(2 * base * level / 100) + level + 10
+others = floor(2 * base * level / 100) + 5
+```
+
+Three cubic experience curves — `fast` (0.8 x n³), `medium` (n³) and
+`slow` (1.25 x n³). Three curves rather than six makes balance far easier to
+reason about.
+
+**No individual variance.** Two creatures of the same species and level have
+identical stats. Hidden per-creature values are a lot of complexity for a player
+to reason about; the formula has an obvious place to add them later.
 
 ---
 
@@ -252,7 +320,7 @@ them, and later phases will gate areas with them.
 | Flag | Set by | Effect so far |
 |------|--------|---------------|
 | `metWick` | Talking to Professor Wick | Mum, the town villager and the Lodge assistant all change what they say |
-| `gotStarter` | Choosing a starter (Phase 3) | Branches already written for Mum, Bram and the gate warden |
+| `gotStarter` | Choosing a starter at the Lodge | Wick, her assistant, Mum, Bram and the gate warden all react — across three maps |
 | `pickedUpRoute1Potion` | Taking the Route 1 potion | The item stays taken |
 | `pickedUpRoute1Orbs` | Taking the Route 1 orbs | The item stays taken |
 

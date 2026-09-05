@@ -65,6 +65,11 @@ export class InputManager {
     this.clearLatch = () => this.pressLatch.clear();
     scene.events.on(Phaser.Scenes.Events.POST_UPDATE, this.clearLatch);
 
+    // A paused scene stops updating, so anything latched at the moment it
+    // paused would still be sitting there when it woke up and would fire as a
+    // phantom key press. Clear it on the way back in.
+    scene.events.on(Phaser.Scenes.Events.RESUME, this.clearLatch);
+
     // Tidy up automatically when the scene ends, so a scene restart cannot
     // stack up duplicate key objects.
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
@@ -117,6 +122,7 @@ export class InputManager {
     this.destroyed = true;
 
     this.scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.clearLatch);
+    this.scene.events.off(Phaser.Scenes.Events.RESUME, this.clearLatch);
 
     for (const keys of Object.values(this.keys)) {
       for (const key of keys) {

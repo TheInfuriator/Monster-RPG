@@ -118,6 +118,36 @@ export const CHARACTER_PALETTES = {
   },
 };
 
+/**
+ * Creature artwork.
+ *
+ * Every species is drawn from one of a handful of BODY SHAPES, tinted with its
+ * primary type's colours (see TYPE_INFO in src/data/types.js). That is what lets
+ * 27 creatures — and the 30+ planned — look like they belong to one world
+ * without hand-drawing each one.
+ *
+ * A species picks its shape with `appearance: { body: 'quadruped' }`.
+ */
+export const CREATURE_SPRITE_SIZE = 64;
+
+export const CREATURE_BODIES = [
+  'quadruped',
+  'blob',
+  'serpent',
+  'plant',
+  'bird',
+  'bug',
+  'rock',
+  'wisp',
+];
+
+export const CREATURE_BODY_SET = new Set(CREATURE_BODIES);
+
+/** Texture key for one species' artwork. */
+export function creatureTextureKey(speciesId) {
+  return `creature-${speciesId}`;
+}
+
 /** Texture key for a character look. `player` keeps its short historical key. */
 export function characterTextureKey(name) {
   return name === 'player' ? ASSET_KEYS.player : `char-${name}`;

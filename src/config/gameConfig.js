@@ -26,6 +26,7 @@ export const SCENES = {
   BOOT: 'BootScene',
   TITLE: 'TitleScene',
   WORLD: 'WorldScene',
+  STARTER_SELECT: 'StarterSelectScene',
 };
 
 /**
