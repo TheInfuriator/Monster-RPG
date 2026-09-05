@@ -89,7 +89,7 @@ Next phase: **Phase 5 — Wild Encounters**
 - [x] Animated HP bars, hit shake, faint fade, switch pop
 - [x] Practice battles at the Warden's Lodge via the dialogue `action` seam
 - [x] `debug.*` battle tools (wild/trainer battles, HP, status, level, EXP, PP)
-- [x] 1449 automated tests; browser-verified end to end
+- [x] 1451 automated tests; browser-verified end to end
 
 ## Phase 5 — Wild Encounters ← NEXT
 - [ ] Encounter tables per zone

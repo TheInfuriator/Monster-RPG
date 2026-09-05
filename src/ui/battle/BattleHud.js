@@ -68,9 +68,11 @@ export class BattleHud {
     const barX = PANEL_WIDTH - BAR_WIDTH - 10;
     const barY = 24;
 
-    scene.add.text(barX - 22, barY + 3, 'HP', {
-      fontFamily: FONT_FAMILY, fontSize: '10px', color: CSS_COLORS.accent, fontStyle: 'bold',
-    }).setOrigin(0, 0.5);
+    const hpLabel = scene.add
+      .text(barX - 22, barY + 3, 'HP', {
+        fontFamily: FONT_FAMILY, fontSize: '10px', color: CSS_COLORS.accent, fontStyle: 'bold',
+      })
+      .setOrigin(0, 0.5);
 
     this.barBack = scene.add
       .rectangle(barX, barY, BAR_WIDTH, BAR_HEIGHT, COLORS.inkLight)
@@ -80,8 +82,11 @@ export class BattleHud {
       .rectangle(barX + 1, barY + 1, BAR_WIDTH - 2, BAR_HEIGHT - 2, COLORS.good)
       .setOrigin(0, 0);
 
+    // Everything MUST go in the container. An object left out of it is
+    // positioned in world coordinates instead of relative to the panel, and
+    // ends up floating in the corner of the screen.
     this.container.add([
-      border, fill, this.nameText, this.levelText,
+      border, fill, this.nameText, this.levelText, hpLabel,
       this.barBack, this.barFill, this.statusBg, this.statusText,
     ]);
 

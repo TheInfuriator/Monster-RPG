@@ -251,6 +251,52 @@ describe('fainting', () => {
     expect(battle.isOver()).toBe(false);
   });
 
+  it('asks only once, however many checks the turn makes', () => {
+    // The end of a turn re-checks who is standing, so a second request is easy
+    // to emit by accident. On screen that reopens the prompt on top of itself
+    // and swallows the key press the player just made on the first one.
+    const party = [createCreature('pyrret', 5), createCreature('drizzle', 20)];
+    party[0].currentHp = 1;
+
+    const battle = makeBattle({
+      playerParty: party,
+      opponentParty: [createCreature('cragmaw', 40)],
+      random: seeded(11),
+    });
+    battle.start();
+    const events = battle.submitPlayerAction(useMove(battle, 'ember'));
+
+    expect(events.filter((e) => e.type === 'requestSwitch')).toHaveLength(1);
+  });
+
+  it('asks again for the next faint, not just the first', () => {
+    const party = [
+      createCreature('pyrret', 5), createCreature('drizzle', 5), createCreature('sproutle', 20),
+    ];
+    party[0].currentHp = 1;
+
+    const battle = makeBattle({
+      playerParty: party,
+      opponentParty: [createCreature('cragmaw', 40)],
+      random: seeded(11),
+    });
+    battle.start();
+    battle.submitPlayerAction(useMove(battle, 'ember'));
+    battle.sendOutAfterFaint(1);
+    expect(battle.awaitingPlayerSwitch).toBe(false);
+
+    // The opponent may spend a turn on a status move, so keep taking turns
+    // (with the replacement always one hit from fainting) until it goes down.
+    let again = [];
+    for (let turn = 0; turn < 10 && !battle.awaitingPlayerSwitch; turn += 1) {
+      battle.player.creature.currentHp = 1;
+      again = battle.submitPlayerAction(useMove(battle, 'ember'));
+    }
+
+    expect(battle.awaitingPlayerSwitch).toBe(true);
+    expect(again.filter((e) => e.type === 'requestSwitch')).toHaveLength(1);
+  });
+
   it('will not take another turn until the replacement is chosen', () => {
     const party = [createCreature('pyrret', 5), createCreature('drizzle', 20)];
     party[0].currentHp = 1;

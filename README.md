@@ -45,7 +45,11 @@ Then open the URL it prints (usually <http://localhost:5173>).
 | `` ` `` (backtick) | Toggle the debug overlay |
 
 In the browser console, `__gs()` returns the current playthrough — your position,
-story flags and bag.
+story flags and bag, and `debug.help()` lists the developer tools.
+
+**To see a battle:** talk to Professor Wick and choose a starter, then talk to
+Assistant Bly or Warden Tace in the Warden's Lodge — both offer a repeatable
+practice bout. Or type `debug.wild('nibbit', 5)` in the console.
 
 Tapping a direction you are **not** already facing turns you on the spot rather
 than moving. That is deliberate — it is how you face something to interact with it.
@@ -599,7 +603,7 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-1449 tests covering map parsing, collision, spawn fallbacks, map validation, game
+1451 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, encounter rolling and its
 anti-ambush cooldown, inventory operations, interaction targeting, type
 effectiveness, the move and creature databases, stat and experience maths, the

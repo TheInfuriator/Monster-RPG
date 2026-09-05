@@ -569,6 +569,8 @@ export class BattleScene extends Phaser.Scene {
     if (item.value.kind === 'switch') {
       if (this.phase === 'forcedSwitch') {
         this.hideMenus();
+        // The choice is made; the replacement arriving is narration, not a menu.
+        this.phase = 'busy';
         this.playEvents(this.engine.sendOutAfterFaint(item.value.index))
           .then(() => this.resolveForcedSwitch());
         return;
@@ -770,16 +772,21 @@ export class BattleScene extends Phaser.Scene {
 
       this.listMenu.setItems(items);
       this.listMenu.setVisible(true);
-      // Cancelling is the same as declining, so the player can never be stuck.
-      this.listMenu.onCancel = () => {
-        this.listMenu.setVisible(false);
-        resolve(null);
-      };
-      this.listMenu.onSelect = (item) => {
+
+      // Closing the prompt must ALWAYS put the shared list menu back the way it
+      // was and hand the phase back, whichever way the player leaves. Leaving
+      // the phase on 'learnMove' would keep feeding key presses to a hidden
+      // menu while the rest of the level-up is still being narrated.
+      const close = (slot) => {
         this.listMenu.setVisible(false);
         this.restoreListHandlers();
-        resolve(item.value.slot);
+        this.phase = 'busy';
+        resolve(slot);
       };
+
+      // Cancelling is the same as declining, so the player can never be stuck.
+      this.listMenu.onCancel = () => close(null);
+      this.listMenu.onSelect = (item) => close(item.value.slot);
     });
   }
 
@@ -796,25 +803,34 @@ export class BattleScene extends Phaser.Scene {
     const outcome = evolveCreature(creature, targetSpeciesId);
     if (!outcome.evolved) return;
 
-    // A brief flash and a swap, so evolution is something you watch happen.
-    this.playerSprite.setTexture(creatureTextureKey(creature.speciesId));
-    await new Promise((resolve) => {
-      this.tweens.add({
-        targets: this.playerSprite,
-        scale: LAYOUT.creatureScale * 1.35,
-        alpha: 0.25,
-        duration: 320,
-        yoyo: true,
-        repeat: 1,
-        ease: 'Sine.easeInOut',
-        onComplete: () => {
-          this.playerSprite.setScale(LAYOUT.creatureScale).setAlpha(1);
-          resolve();
-        },
-      });
-    });
+    // Experience is shared, so the creature that evolves is not always the one
+    // standing on the field. Only redraw the field for the creature that is
+    // actually there — otherwise a benched party member would hijack the
+    // sprite and the HP bar.
+    const onField = creature === this.engine.player.creature;
 
-    this.playerHud.setCreature(creature);
+    if (onField) {
+      // A brief flash and a swap, so evolution is something you watch happen.
+      this.playerSprite.setTexture(creatureTextureKey(creature.speciesId));
+      await new Promise((resolve) => {
+        this.tweens.add({
+          targets: this.playerSprite,
+          scale: LAYOUT.creatureScale * 1.35,
+          alpha: 0.25,
+          duration: 320,
+          yoyo: true,
+          repeat: 1,
+          ease: 'Sine.easeInOut',
+          onComplete: () => {
+            this.playerSprite.setScale(LAYOUT.creatureScale).setAlpha(1);
+            resolve();
+          },
+        });
+      });
+
+      this.playerHud.setCreature(creature);
+    }
+
     await this.showMessage(outcome.message);
   }
 

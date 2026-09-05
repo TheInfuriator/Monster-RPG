@@ -80,11 +80,32 @@ whole battle can be fought inside a unit test.
   re-opening the dialogue of whoever the player was standing in front of.
   `InputManager.clearPending()` now discards in-flight presses when control
   returns from any overlay scene.
+- **The action menu was drawn behind the message box** and could not be seen.
+  Depth is now `DEPTHS.dialogue + 10` rather than `DEPTHS.ui + 5`.
+- **The HP label floated in the corner of the screen.** It was created but never
+  added to the panel's container, so it was positioned in world coordinates
+  instead of relative to the panel.
+- **A replacement was asked for twice after a faint.** The end of a turn
+  re-checks who is standing, and the second check pushed another
+  `requestSwitch`: on screen the prompt reopened on top of itself and swallowed
+  the key press the player had just made on the first one, so the game looked
+  frozen at "Choose your next creature!". The engine now asks once per faint.
+- **A hidden menu still reacted to key presses.** The scene's phase can still
+  say `party` or `learnMove` for a moment after the list has been put away while
+  the outcome is narrated, and a stray press could re-run a choice that had
+  already been made. `BattleMenu.update()` now ignores input while invisible,
+  and the prompts hand the phase back as soon as they close.
+- **Declining to learn a move left the shared list menu rewired.** Cancelling
+  the prompt skipped `restoreListHandlers()`, so the next party or bag list
+  still carried the learn-move handlers. Both exits now go through one `close()`.
+- **A creature that evolved from the bench hijacked the battlefield.**
+  Experience is shared, so the creature that evolves is not always the one
+  standing there; the sprite and HP bar are only redrawn when it is.
 
 ### Verification
 
-- **1449 automated tests** pass (was 1260). New: 46 battle-math, 41
-  status/effect, 33 experience/evolution, 44 engine and 25 battle-data tests.
+- **1451 automated tests** pass (was 1260). New: 46 battle-math, 41
+  status/effect, 33 experience/evolution, 46 engine and 25 battle-data tests.
   Highlights:
   - 25 complete battles played to a conclusion under different seeds, checked
     for termination and for HP never leaving 0..max
@@ -101,12 +122,20 @@ whole battle can be fought inside a unit test.
   - 15/15 switching/item/status checks: the party list and its rejection rules,
     switching, using a Potion (healed, consumed), capture orbs listed but
     disabled, a status showing on the HUD, and poison dealing end-of-turn damage.
-  - 17/19 → EXP, multi-level gains, move learning, a full evolution through the
-    real battle flow with identity and nickname preserved, running, and a forced
-    switch after a faint.
-- **Leak check:** repeated battle entry and exit leaves display objects, update
-  lists, tweens, timers, textures, animations, keyboard keys, key listeners and
-  scene listeners unchanged.
+  - 33/33 progression checks: experience awarded and shared, a reward crossing
+    thirteen levels at once, the "forget which move?" prompt with all four moves
+    and a way out, the replacement actually taking the chosen slot, a full
+    evolution through the real battle flow with identity and nickname preserved,
+    running away, and a forced switch after a faint bringing out a healthy
+    creature.
+- **Leak check:** eight battles entered and left in a row leave display objects,
+  update lists, tweens, timers, textures, animations, keyboard keys, key
+  listeners and scene listeners unchanged, with the game still at ~36 fps and
+  still able to start another battle.
+- **Phases 1-3 re-verified** against the same build: the keyboard playthrough
+  (10/10), world and NPC systems (34/34), items, encounters and flags (16/16),
+  the map-transition leak check, the starter chooser (22/22) and choosing each
+  starter for real (60/60).
 
 ### Known limitations
 

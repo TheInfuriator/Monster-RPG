@@ -397,3 +397,27 @@ and checking it with `when` / `unless` somewhere else.
 | Escape / X | Menu, cancel, back |
 | Shift (held) | Run |
 | ` (backtick) | Toggle debug overlay (dev builds only) |
+
+---
+
+## 15. Battle architecture at a glance
+
+```
+BattleScene            draws, animates, reads the keyboard
+     |  events                          ^  player choices
+     v                                  |
+BattleEngine           battle state, turn orchestration
+     |
+     +-- TurnResolver        who goes first
+     +-- DamageCalculator    how much it hurts
+     +-- StatStages          temporary buffs and debuffs
+     +-- StatusSystem        poison, burn, paralysis, sleep
+     +-- MoveEffectRunner    what a move does, by effect KIND
+     +-- ExperienceSystem    rewards, levels, moves, evolution
+     +-- BattleAI            what the opponent picks
+```
+
+Nothing below `BattleEngine` knows about Phaser, and `BattleEngine` reports
+everything as events rather than drawing. That is why an entire battle can be
+fought in a unit test, and why the same engine serves wild battles, trainer
+battles and practice bouts without a separate code path for each.

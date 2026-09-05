@@ -187,6 +187,11 @@ export class BattleMenu {
   /** @param {import('../../core/InputManager.js').InputManager} input */
   update(input) {
     if (this.locked) return;
+    // A hidden menu must never react to keys. The scene's phase can still say
+    // "party" or "learnMove" for a moment after the list has been put away
+    // while the results are narrated, and a stray press must not re-run the
+    // choice that was already made.
+    if (!this.container.visible) return;
 
     if (input.justPressed('left')) this.move(-1, 0);
     if (input.justPressed('right')) this.move(1, 0);

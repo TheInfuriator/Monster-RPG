@@ -555,8 +555,13 @@ export class BattleEngine {
     // --- Player down ---
     if (isFainted(this.player.creature)) {
       if (this.hasHealthyReserves()) {
-        this.awaitingPlayerSwitch = true;
-        events.push({ type: 'requestSwitch' });
+        // Ask ONCE. This runs again after end-of-turn effects, and a second
+        // request would re-open the prompt on top of itself and eat the key
+        // press the player made on the first one.
+        if (!this.awaitingPlayerSwitch) {
+          this.awaitingPlayerSwitch = true;
+          events.push({ type: 'requestSwitch' });
+        }
         return false;
       }
 
