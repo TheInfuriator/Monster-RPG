@@ -12,6 +12,7 @@
 
 import { gameState, setFlag } from '../core/GameState.js';
 import { createCreature, fullyHeal, recalculateStats } from './CreatureFactory.js';
+import { createWildBattleConfig } from './WildBattle.js';
 import { giveCreature, describeParty } from './PartySystem.js';
 import { addItem } from './InventorySystem.js';
 import { grantExperience } from './battle/ExperienceSystem.js';
@@ -26,6 +27,16 @@ import { SCENES } from '../config/gameConfig.js';
 function world(game) {
   const scene = game.scene.getScene(SCENES.WORLD);
   return scene && game.scene.isActive(SCENES.WORLD) ? scene : null;
+}
+
+/** The running overworld's encounter system, or null with a helpful note. */
+function encounters(game) {
+  const scene = world(game);
+  if (!scene) {
+    console.warn('[debug] the overworld is not running.');
+    return null;
+  }
+  return scene.encounters;
 }
 
 /** The active party creature, or null with a helpful note. */
@@ -56,6 +67,10 @@ export function installDebugTools(game) {
           '  debug.money(amount)             add coins',
           '  debug.flag(name, value=true)    set a story flag',
           '  debug.wild(species, level)      start a wild battle',
+          '  debug.encounter()               force the next grass step to ambush you',
+          '  debug.encountersOff(true/false) turn wild encounters off / on',
+          '  debug.encounterRate(0..1)       set the chance per step',
+          '  debug.encounterInfo()           table, rate and cooldown for this map',
           '  debug.trainer(id)               start a scripted battle',
           '  debug.teleport(mapId, spawn)    change map',
           '  debug.species()                 list every species id',
@@ -166,24 +181,63 @@ export function installDebugTools(game) {
       }
       if (!active()) return null;
 
-      const opponent = createCreature(species, level);
-      if (!opponent) return null;
+      // Built through the same pipeline a real ambush uses, so what you test
+      // here is what the grass does.
+      const config = createWildBattleConfig({ species, level }, gameState.party);
+      if (!config) return null;
 
-      scene.scene.pause();
-      scene.scene.launch(SCENES.BATTLE, {
-        config: {
-          playerParty: gameState.party,
-          opponentParty: [opponent],
-          battleType: 'wild',
-          canRun: true,
-        },
-        onFinished: (result) => {
-          scene.scene.resume();
-          scene.onBattleFinished(result);
-          console.info('[debug] battle result:', result);
-        },
-      });
-      return opponent;
+      scene.launchBattle(config);
+      return config.opponentParty[0];
+    },
+
+    // --- Encounters ----------------------------------------------------
+    /** Make the next eligible step in encounter terrain definitely trigger. */
+    encounter(on = true) {
+      const system = encounters(game);
+      if (!system) return null;
+      system.forceNext = Boolean(on);
+      console.info(`[debug] next eligible step will ${on ? 'ambush you' : 'roll normally'}`);
+      return system.forceNext;
+    },
+
+    /** Turn wild encounters off (or back on) for this map. */
+    encountersOff(off = true) {
+      const system = encounters(game);
+      if (!system) return null;
+      system.disabled = Boolean(off);
+      console.info(`[debug] encounters ${system.disabled ? 'disabled' : 'enabled'}`);
+      return !system.disabled;
+    },
+
+    /** Set the chance per step, 0..1. */
+    encounterRate(rate = 1) {
+      const system = encounters(game);
+      if (!system) return null;
+      system.rate = Math.min(1, Math.max(0, Number(rate) || 0));
+      console.info(`[debug] encounter rate -> ${system.rate}`);
+      return system.rate;
+    },
+
+    /** Everything this map's encounters are currently doing. */
+    encounterInfo() {
+      const system = encounters(game);
+      if (!system) return null;
+
+      const info = {
+        map: world(game).map.id,
+        table: system.tableId,
+        active: system.isActive,
+        disabled: system.disabled,
+        forceNext: system.forceNext,
+        rate: system.rate,
+        cooldown: system.cooldown,
+        cooldownSteps: system.cooldownSteps,
+        entries: (system.table || []).map(
+          (e) => `${e.species} Lv${e.minLevel}-${e.maxLevel} (weight ${e.weight})`
+        ),
+      };
+      console.info('[debug] encounters:', info);
+      return info;
     },
 
     trainer(id = 'lodgePractice') {

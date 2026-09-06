@@ -46,9 +46,17 @@ import { DialogueBox } from '../ui/DialogueBox.js';
 import { getSpecies } from '../data/creatures.js';
 import { getScriptedBattle } from '../data/battles.js';
 import { createCreature } from '../systems/CreatureFactory.js';
+import { createWildBattleConfig } from '../systems/WildBattle.js';
 import { STARTER_FLAG } from './StarterSelectScene.js';
 import { gameState, setLocation, hasFlag, setFlag } from '../core/GameState.js';
 import { fadeIn } from '../utils/transitions.js';
+
+/**
+ * The wild-encounter cue. Short on purpose: it should read as "something just
+ * jumped out", not as a cutscene the player has to sit through.
+ */
+const ENCOUNTER_FLASH_MS = 160;
+const ENCOUNTER_FADE_MS = 260;
 
 export class WorldScene extends Phaser.Scene {
   constructor() {
@@ -65,6 +73,12 @@ export class WorldScene extends Phaser.Scene {
     // Reset every frame-to-frame flag here rather than in create(), because
     // `init` runs on every restart and guarantees a clean slate.
     this.isTransitioning = false;
+    /**
+     * True from the moment a battle is decided until the battle scene has
+     * finished. It is what stops one step, or one impatient key press, opening
+     * two battles.
+     */
+    this.isEnteringBattle = false;
   }
 
   create() {
@@ -80,7 +94,9 @@ export class WorldScene extends Phaser.Scene {
     this.dialogueBox = new DialogueBox(this);
     this.createDebugOverlay();
 
-    this.encounters = new EncounterSystem(this.map.encounterTableId);
+    // Rate, cooldown and terrain all come from the map's own data — see
+    // `encounters` in src/data/encounters.js for the shape.
+    this.encounters = new EncounterSystem(this.map.encounterConfig);
 
     // Release everything this scene created when it shuts down. Without this,
     // moving between maps would leak render textures, NPCs and timers.
@@ -269,8 +285,10 @@ export class WorldScene extends Phaser.Scene {
         `facing ${this.player.facing} -> ${facingTile.x},${facingTile.y}` +
           ` (${this.player.canEnter(facingTile.x, facingTile.y) ? 'open' : 'blocked'})`,
         `npcs   ${this.npcManager.npcs.length}` +
-          `   encounters ${this.encounters.isActive ? 'on' : 'off'}` +
-          ` (cd ${this.encounters.cooldown})`,
+          `   encounters ${this.encounters.isActive && !this.encounters.disabled ? 'on' : 'off'}` +
+          ` ${this.encounters.tableId || '-'}` +
+          ` rate ${this.encounters.rate}` +
+          ` cd ${this.encounters.cooldown}`,
         `party  ${describeParty(gameState)}`,
         `fps    ${Math.round(this.game.loop.actualFps)}`,
       ];
@@ -329,26 +347,95 @@ export class WorldScene extends Phaser.Scene {
   // Wild encounters
   // -------------------------------------------------------------------------
 
+  /**
+   * The ONE place a step is offered to the encounter system.
+   *
+   * This scene reports facts; `EncounterSystem` applies the rules. Every reason
+   * an encounter must not happen — dialogue, a menu, a map change, a battle
+   * already running — is checked there, so this stays a single call and each
+   * completed step produces at most one roll.
+   */
   checkForEncounter(x, y) {
-    const encounter = this.encounters.step(this.map.hasEncounters(x, y));
+    const encounter = this.encounters.step({
+      onEncounterTile: this.map.hasEncounters(x, y),
+      dialogueOpen: this.dialogueBox.isOpen,
+      transitioning: this.isTransitioning,
+      battleActive: this.isEnteringBattle || this.scene.isActive(SCENES.BATTLE),
+      overlayActive: this.scene.isActive(SCENES.STARTER_SELECT),
+      inputLocked: this.player.inputLocked,
+    });
+
     if (!encounter) return;
 
-    // PHASE 2 NOTE: the encounter itself is real — species and level come from
-    // this map's table in src/data/encounters.js. What is missing is the battle
-    // to hand it to, which arrives in Phase 4. Until then we report it on screen
-    // so the system is visible and verifiable.
+    this.startWildBattle(encounter);
+  }
+
+  /**
+   * Drop into a wild battle.
+   *
+   * The overworld is PAUSED rather than restarted, which is what preserves the
+   * map, the exact tile, the facing and everything else for free — there is no
+   * "put the player back" code to get wrong.
+   */
+  startWildBattle(encounter) {
+    if (this.isEnteringBattle || this.scene.isActive(SCENES.BATTLE)) return;
+
+    if (gameState.party.length === 0) {
+      // Nothing to fight with. Say so rather than opening a battle with no team.
+      this.startDialogue([
+        'Something rustles in the grass — but you have nothing to send out.',
+        'Best find a partner before wading in any deeper.',
+      ]);
+      return;
+    }
+
+    const config = createWildBattleConfig(encounter, gameState.party);
+    if (!config) {
+      console.error(
+        `[World] Could not build a wild battle for "${encounter.species}".`
+      );
+      return;
+    }
+
     console.info(
       `[Encounter] ${encounter.species} (level ${encounter.level}) on ${this.map.id}`
     );
 
-    this.startDialogue(
-      [
-        'The tall grass rustles!',
-        `A wild ${encounter.species} (Lv ${encounter.level}) watches you, then slips away.`,
-        '(Battles arrive in Phase 4 — the encounter system itself is live.)',
-      ],
-      { speaker: null }
-    );
+    this.isEnteringBattle = true;
+    this.player.inputLocked = true;
+    this.player.stopMovement();
+    this.npcManager.setAllBusy(true);
+
+    // A short cue so an ambush is felt: the screen flashes, then fades into the
+    // fight. Both are camera effects, so nothing is left behind to clean up.
+    this.cameras.main.flash(ENCOUNTER_FLASH_MS, 255, 255, 255);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FLASH_COMPLETE, () => {
+      this.cameras.main.fadeOut(ENCOUNTER_FADE_MS, 0, 0, 0);
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        this.launchBattle(config, { fadeBackIn: true });
+      });
+    });
+  }
+
+  /**
+   * Pause the overworld and hand a battle configuration to BattleScene.
+   *
+   * Wild, scripted and debug battles all come through here, so there is exactly
+   * one place that knows how to enter and leave a fight.
+   */
+  launchBattle(config, { fadeBackIn = false } = {}) {
+    this.isEnteringBattle = true;
+
+    this.scene.pause();
+    this.scene.launch(SCENES.BATTLE, {
+      config,
+      onFinished: (result) => {
+        this.scene.resume();
+        this.isEnteringBattle = false;
+        if (fadeBackIn) fadeIn(this);
+        this.onBattleFinished(result);
+      },
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -550,21 +637,14 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    this.scene.pause();
-    this.scene.launch(SCENES.BATTLE, {
-      config: {
-        playerParty: gameState.party,
-        opponentParty,
-        battleType: definition.battleType,
-        opponentName: definition.opponentName,
-        canRun: definition.canRun,
-        awardExperience: definition.awardExperience,
-        rewardMoney: definition.rewardMoney,
-      },
-      onFinished: (result) => {
-        this.scene.resume();
-        this.onBattleFinished(result);
-      },
+    this.launchBattle({
+      playerParty: gameState.party,
+      opponentParty,
+      battleType: definition.battleType,
+      opponentName: definition.opponentName,
+      canRun: definition.canRun,
+      awardExperience: definition.awardExperience,
+      rewardMoney: definition.rewardMoney,
     });
   }
 
@@ -576,6 +656,12 @@ export class WorldScene extends Phaser.Scene {
    * one HP each so the game stays playable, and the result is reported plainly.
    */
   onBattleFinished(result) {
+    // Renew the safe steps whatever the outcome. The player is usually standing
+    // in the same patch of grass they were ambushed in, and walking out of one
+    // fight straight into another reads as a bug rather than bad luck. Harmless
+    // indoors, where the encounter system is inactive anyway.
+    this.encounters.applyCooldown();
+
     const lines = [];
 
     if (result.outcome === 'loss') {

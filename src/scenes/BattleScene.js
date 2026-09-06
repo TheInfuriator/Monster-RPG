@@ -38,6 +38,7 @@ import { getTypeColor } from '../systems/TypeChart.js';
 import { getStatus } from '../data/statuses.js';
 import { removeItem, getItemCount } from '../systems/InventorySystem.js';
 import { healCreature } from '../systems/battle/MoveEffectRunner.js';
+import { isItemUsableInBattle } from '../systems/battle/BattleItems.js';
 import { BattleHud } from '../ui/battle/BattleHud.js';
 import { BattleMenu } from '../ui/battle/BattleMenu.js';
 
@@ -522,7 +523,7 @@ export class BattleScene extends Phaser.Scene {
       .filter((entry) => entry.item && entry.quantity > 0);
 
     const items = entries.map(({ item, quantity }) => {
-      const usable = this.isItemUsableInBattle(item);
+      const usable = isItemUsableInBattle(item);
       return {
         label: item.name,
         detail: `x${quantity}`,
@@ -542,21 +543,6 @@ export class BattleScene extends Phaser.Scene {
     this.messageText.setText('Use which item?');
   }
 
-  /**
-   * Which items may be used in a battle right now.
-   * Capture orbs are shown but disabled: catching arrives in Phase 6, and a
-   * half-implemented capture would be worse than an honest "not yet".
-   */
-  isItemUsableInBattle(item) {
-    if (item.category === 'capture') {
-      return { ok: false, reason: 'Catching arrives in a later update.' };
-    }
-    if (item.category === 'key') {
-      return { ok: false, reason: 'This cannot be used in battle.' };
-    }
-    if (!item.effect) return { ok: false, reason: 'This cannot be used in battle.' };
-    return { ok: true, reason: null };
-  }
 
   handleListCancel() {
     if (this.phase === 'forcedSwitch') return; // no backing out of a forced switch

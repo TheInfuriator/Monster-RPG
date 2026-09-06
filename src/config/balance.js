@@ -22,14 +22,31 @@ export const MOVEMENT = {
   turnDelay: 90,
 };
 
+/**
+ * Wild encounters.
+ *
+ * These are the DEFAULTS. A map may override `chancePerStep` and
+ * `cooldownSteps` for itself (see `encounters` in a map definition), but the
+ * numbers only ever live here and in map data — never inside a scene.
+ */
 export const ENCOUNTERS = {
-  /** Chance per step taken in tall grass that an encounter starts. */
+  /** Chance per step taken on encounter terrain that an encounter starts. */
   chancePerStep: 0.11,
   /**
-   * Steps of guaranteed safety after an encounter ends. Without this you can be
-   * ambushed on two consecutive tiles, which feels unfair rather than random.
+   * Steps of guaranteed safety after an encounter starts. Without this you can
+   * be ambushed on two consecutive tiles, which feels unfair rather than random.
    */
   cooldownSteps: 3,
+  /**
+   * Steps of safety re-applied when any battle ENDS. Walking out of a fight
+   * straight into another one reads as a bug, so the protection is renewed at
+   * one documented point rather than relying on the original roll's cooldown
+   * still being there.
+   */
+  cooldownAfterBattle: 3,
+  /** A map's own rate is clamped to this range, so a typo cannot break the game. */
+  minChancePerStep: 0,
+  maxChancePerStep: 1,
 };
 
 export const BATTLE = {

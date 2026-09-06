@@ -9,6 +9,7 @@
  */
 
 import { getTileByChar } from '../data/tiles.js';
+import { getEncounterConfig } from '../data/encounters.js';
 import { TILE_SIZE } from '../config/gameConfig.js';
 
 export class TileMap {
@@ -35,6 +36,12 @@ export class TileMap {
     this.grid = this.rows.map((row) =>
       Array.from(row, (char) => getTileByChar(char))
     );
+
+    /**
+     * This map's wild-encounter settings, or null. Read once here so a step
+     * check stays a cheap lookup rather than re-parsing the definition.
+     */
+    this.encounterConfig = getEncounterConfig(definition);
   }
 
   /** Map width/height in pixels. Used to clamp the camera. */
@@ -70,10 +77,22 @@ export class TileMap {
     return !tile.solid;
   }
 
-  /** True if stepping on this tile can start a wild encounter. */
+  /**
+   * True if stepping on this tile can start a wild encounter.
+   *
+   * Two things have to agree: the TILE has to be encounter terrain (tall grass
+   * is, in src/data/tiles.js), and the MAP has to allow encounters. A map may
+   * also narrow which encounter tiles count with `encounters.terrain`, so a
+   * future cave can have wild creatures in its floor but not its puddles.
+   */
   hasEncounters(x, y) {
     const tile = this.getTile(x, y);
-    return Boolean(tile && tile.encounter);
+    if (!tile || !tile.encounter) return false;
+
+    const terrain = this.encounterConfig?.terrain;
+    if (terrain) return terrain.includes(tile.id);
+
+    return true;
   }
 
   /**
@@ -96,7 +115,7 @@ export class TileMap {
 
   /** The id of this map's wild-encounter table, or null if it has none. */
   get encounterTableId() {
-    return this.definition.encounterTable || null;
+    return this.encounterConfig?.tableId || null;
   }
 
   /** True if this map is indoors (no wild encounters, different music later). */
