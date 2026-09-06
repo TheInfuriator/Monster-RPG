@@ -327,8 +327,12 @@ of the vertical slice so the opening stays about exploration.
 
 These are the deliberate knobs. All live in `src/config/balance.js`.
 
-1. **Encounter rate:** ~11% per step in grass, with a **3-step cooldown** after an
-   encounter so the player can never be chain-ambushed on consecutive tiles.
+1. **Encounter rate:** ~11% per step on encounter terrain, with a **3-step
+   cooldown** after an encounter and **3 more when any battle ends**, so the
+   player can never be chain-ambushed on consecutive tiles or walk out of one
+   fight into the next. A map may override both. The cooldown is counted in
+   STEPS rather than seconds: deterministic, easy to test, and impossible to
+   desync from the frame rate.
 2. **Damage variance:** 85%–100% (a 15% band) — enough to feel alive, not enough to
    make a plan fail.
 3. **Critical hit rate:** 1/16, dealing 1.5x. No crit-stage system in v1 (kept simple).
@@ -421,3 +425,68 @@ Nothing below `BattleEngine` knows about Phaser, and `BattleEngine` reports
 everything as events rather than drawing. That is why an entire battle can be
 fought in a unit test, and why the same engine serves wild battles, trainer
 battles and practice bouts without a separate code path for each.
+
+
+---
+
+## 16. Encounter architecture at a glance
+
+```
+Player 'step' event          only fires after a move actually completes
+      |
+      v
+WorldScene.checkForEncounter()      reports FACTS, decides nothing
+      |   { onEncounterTile, dialogueOpen, transitioning,
+      |     battleActive, overlayActive, inputLocked }
+      v
+EncounterSystem.step()              every encounter rule lives here
+      |   +-- findEncounterBlocker()   when a step must be ignored
+      |   +-- cooldown                 safe steps, counted in steps
+      |   +-- chance(rate)             the roll
+      |   +-- roll()                   weighted species, level in range
+      v
+createWildBattleConfig()            what a wild fight IS
+      |   canRun, awardExperience, rewardMoney: 0, the LIVE party
+      v
+WorldScene.launchBattle()           pause the overworld, launch BattleScene
+      |
+      v
+BattleScene / BattleEngine          the same engine trainers and practice use
+      |
+      v
+onFinished -> resume + applyCooldown + releasePlayer
+```
+
+**How a map turns encounters on.** Either the short form or the long one:
+
+```js
+encounterTable: 'route1',
+
+encounters: {
+  table: 'route1',
+  rate: 0.11,                 // optional
+  cooldownSteps: 3,           // optional
+  terrain: ['tall_grass'],    // optional: narrow the eligible tiles
+}
+```
+
+Encounter terrain comes from tile data (`encounter: true` in `tiles.js`), so
+tall grass qualifies everywhere; `terrain` narrows it for one map. Adding a
+species to an area is one row in `src/data/encounters.js` — no scene, system or
+test changes, because the data tests iterate over every table and every
+encounter-enabled map.
+
+**Why the overworld is PAUSED rather than restarted.** A wild battle preserves
+the map, the exact tile, the facing, the party, HP, PP, statuses, experience,
+levels, learned moves, evolutions, inventory, money and story flags — not
+because anything restores them, but because nothing tears them down. There is no
+"put the player back" code to get wrong. The party array handed to the engine is
+the live one from `GameState`, so everything a battle changes is already in the
+right place when it ends.
+
+**What Phase 5 deliberately did not do.** Capture is Phase 6: orbs are listed in
+the bag as unavailable, are never consumed, and no probability is rolled — the
+rule sits in `BattleItems.js` on the item's own category, so catching can be
+added there without touching this pipeline. Defeat keeps its Phase 4 behaviour
+(party revived to 1 HP with a plain message); the Mender's Hall blackout is
+Phase 7.

@@ -2,8 +2,8 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 4 — Battles** ✅ complete
-Next phase: **Phase 5 — Wild Encounters**
+Current phase: **Phase 5 — Wild Encounters** ✅ complete
+Next phase: **Phase 6 — Capture + Party**
 
 ---
 
@@ -91,12 +91,25 @@ Next phase: **Phase 5 — Wild Encounters**
 - [x] `debug.*` battle tools (wild/trainer battles, HP, status, level, EXP, PP)
 - [x] 1451 automated tests; browser-verified end to end
 
-## Phase 5 — Wild Encounters ← NEXT
-- [ ] Encounter tables per zone
-- [ ] Grass step-based triggering with cooldown
-- [ ] Wild battle entry + escape
+## Phase 5 — Wild Encounters ✅
+- [x] Encounter tables per zone, validated automatically (species, levels, weights)
+- [x] Maps enable encounters with `encounterTable`, or an `encounters` block for
+      rate, cooldown and terrain — no scene change needed
+- [x] Encounter terrain read from tile data (`encounter: true`), narrowable per map
+- [x] Grass step-based triggering: one completed step, at most one roll
+- [x] Every suppression rule in one testable place — dialogue, menus, map
+      changes, a battle already running, the player not in control
+- [x] Movement-step cooldown, renewed whenever a battle ends
+- [x] Wild battle entry through the shared `BattleEngine` / `BattleScene`
+- [x] Flash-and-fade encounter cue, with no way to open two battles
+- [x] Return to the exact overworld state — the world is paused, never restarted
+- [x] Run works from real encounters and awards nothing
+- [x] Wild wins award EXP, level-ups, new moves and evolutions; never money
+- [x] `debug.encounter/encountersOff/encounterRate/encounterInfo`
+- [x] 1554 automated tests; browser-verified end to end; leak-tested over
+      repeated encounter cycles
 
-## Phase 6 — Capture + Party
+## Phase 6 — Capture + Party ← NEXT
 - [ ] Capture orbs and capture probability
 - [ ] Party screen, creature detail screen
 - [ ] Storage box for overflow
@@ -145,10 +158,23 @@ Next phase: **Phase 5 — Wild Encounters**
 - **Healing and shopping are described, not performed.** The Mender needs a party
   to heal (Phase 3) and the shop needs the bag screen and money UI (Phase 7).
   Both NPCs explain their service rather than pretending to provide it.
-- **Encounters are real but have nowhere to go yet.** The table lookup, weighted
-  species pick, level roll and anti-ambush cooldown are all implemented and
-  tested. Until battles land in Phase 4, a triggered encounter reports the
-  species and level on screen and says so plainly.
+- **Encounters were real but had nowhere to go until Phase 5.** The table
+  lookup, weighted species pick, level roll and anti-ambush cooldown shipped in
+  Phase 2; Phase 5 handed the result to the battle engine. ✅
+
+**Phase 5 deferrals:**
+- **Capture is still Phase 6.** Orbs appear in the wild-battle bag listed as
+  unavailable, are never consumed, and no probability is rolled. The rule lives
+  in `BattleItems.js` on the item's own category, so Phase 6 can add catching
+  without touching the encounter pipeline.
+- **Defeat keeps its Phase 4 behaviour**, unchanged: the party is revived to one
+  HP each with a plain message. The Mender's Hall blackout is Phase 7, and
+  moving it forward quietly would have been worse than leaving it visible.
+- **Emberhollow's edge grass is live too**, using the smaller `emberhollowEdge`
+  table. It is a two-species taste of the mechanic within sight of home.
+- **Encounter modifiers** (repels, weather, time of day) are not implemented.
+  The map's `encounters` block is the seam they would hang off, and it takes
+  `rate` and `cooldownSteps` overrides today.
 
 **Phase 4 deferrals:**
 - **Capture is not implemented** — it belongs to Phase 6. Capture orbs appear in
@@ -157,8 +183,7 @@ Next phase: **Phase 5 — Wild Encounters**
 - **Losing does not black you out to a Mender's Hall yet.** That flow needs the
   healing centre, which is Phase 7. For now a defeat revives the party to 1 HP
   each and says so plainly, so the game stays playable.
-- **Wild encounters are still not wired to battles** — Phase 5's job. The engine
-  already understands wild battles, and `debug.wild()` starts one.
+- ~~**Wild encounters are still not wired to battles**~~ — done in Phase 5. ✅
 - **No full trainer NPCs or line of sight** (Phase 8). The Lodge practice bouts
   use the same engine and are launched from dialogue data.
 - **Practice battles award nothing.** They are repeatable so they can be used

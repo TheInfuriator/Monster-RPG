@@ -6,11 +6,13 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 4 (Battles) complete.**
+> **Status: Phase 5 (Wild Encounters) complete.**
 > Start a new game, explore Emberhollow, choose your first Aether from Professor
-> Wick, then **fight a real turn-based battle** at the Warden's Lodge — type
-> matchups, status conditions, switching, items, experience, level-ups, new moves
-> and evolution all work. Wild encounters are next — see [TODO.md](TODO.md).
+> Wick, then head north to Route 1 and **walk into the tall grass**. Wild Aethers
+> ambush you for real: type matchups, status conditions, switching, items,
+> running, experience, level-ups, new moves and evolution all work, and when the
+> fight ends you are put back on the exact tile you left. Catching them is next —
+> see [TODO.md](TODO.md).
 
 ---
 
@@ -96,7 +98,8 @@ src/
     NpcManager.js      Owns the NPCs on a map
     DialogueResolver.js Picks which lines an NPC says right now
     InteractionSystem.js What the player is pressing the button at
-    EncounterSystem.js Whether tall grass turns something up
+    EncounterSystem.js Every rule about whether a step turns something up
+    WildBattle.js      Turning an encounter into a battle configuration
     InventorySystem.js The bag
     TypeChart.js       How much a move type hurts a creature type
     StatCalculator.js  Stats, growth curves and experience thresholds
@@ -279,8 +282,45 @@ route2: [
 encounterTable: 'route2',
 ```
 
-Weights are relative, not percentages. Any map with tall grass (`"`) must name a
-table — a test will tell you if you forget.
+Weights are relative, not percentages: weight 40 turns up four times as often as
+weight 10. Adding a species is one row — no scene, system or test changes,
+because the data tests iterate over every table and every map that uses one.
+They will tell you if a species does not exist, a level range is backwards or
+out of bounds, a weight is not positive, a table is empty, or a map enables
+encounters with no encounter terrain on it.
+
+**Tuning one map.** The long form takes optional overrides:
+
+```js
+// route2.js
+encounters: {
+  table: 'route2',
+  rate: 0.16,                  // chance per step; defaults to balance.js
+  cooldownSteps: 4,            // safe steps after an encounter
+  terrain: ['tall_grass'],     // which encounter tiles count here
+}
+```
+
+**How an encounter actually happens.** The player finishes a step; `WorldScene`
+reports what is true at that moment (the tile, whether dialogue is open, whether
+the map is changing, whether a battle is running); `EncounterSystem` applies
+every rule and either returns a species and level or nothing. One completed step
+is one roll. Standing still and walking into a wall produce no roll at all,
+because the player only announces a step after actually moving.
+
+If a roll succeeds, `createWildBattleConfig()` builds the fight — running
+allowed, experience awarded, no money — and the overworld is **paused** while
+`BattleScene` runs. Pausing rather than restarting is what puts you back on the
+exact tile, facing the same way, with your party, bag and flags untouched.
+
+Encounters are also protected by a **step-based cooldown**: three safe steps
+after an encounter, and three more whenever a battle ends, so you can never be
+chain-ambushed or walk out of one fight into the next.
+
+To poke at it from the browser console: `debug.encounter()` arms the next grass
+step, `debug.encounterRate(1)` makes every step certain, `debug.encountersOff()`
+switches them off, and `debug.encounterInfo()` prints the table, rate and
+cooldown for the map you are standing on.
 
 ### Add a tile type
 
@@ -603,13 +643,15 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-1451 tests covering map parsing, collision, spawn fallbacks, map validation, game
-state, story flags, random helpers, dialogue branching, encounter rolling and its
-anti-ambush cooldown, inventory operations, interaction targeting, type
-effectiveness, the move and creature databases, stat and experience maths, the
-creature factory, the party, the starter-selection rules, and the whole battle
-system — damage, accuracy, crits, turn order, stat stages, status conditions,
-every move effect, experience, level-ups, move learning and evolution.
+1554 tests covering map parsing, collision, spawn fallbacks, map validation, game
+state, story flags, random helpers, dialogue branching, inventory operations,
+interaction targeting, type effectiveness, the move and creature databases, stat
+and experience maths, the creature factory, the party, the starter-selection
+rules, the whole battle system — damage, accuracy, crits, turn order, stat
+stages, status conditions, every move effect, experience, level-ups, move
+learning and evolution — and the whole wild-encounter pipeline: the rate, the
+weighted tables, the level ranges, the step-based cooldown, every situation that
+suppresses an encounter, and the battle a successful roll produces.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -620,7 +662,10 @@ every map you add. They catch, without you writing a line of test code:
 - spawn points inside walls, on NPCs, or on exit tiles
 - exits pointing at a map that does not exist, or a spawn point it does not define
 - ground items that are unreachable or missing their flag
-- tall grass on a map with no encounter table
+- tall grass on a map with no encounter table, or a table with no grass to use it
+- an encounter table naming a species that does not exist
+- a level range that is backwards, fractional or outside the game's bounds
+- an encounter weight that is zero or negative, or an empty table
 - an NPC with nothing to say to a brand new player
 - a tile with no artwork, or a key binding Phaser does not recognise
 - a move with an unknown type, impossible accuracy or malformed effect

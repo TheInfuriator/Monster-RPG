@@ -4,6 +4,154 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 5 — Wild Encounters
+
+The grass bites back. Walking through tall grass on Route 1 now drops you into a
+real battle, and walking out of it puts you back exactly where you were.
+
+### Added
+
+**The encounter pipeline**
+
+    a completed step -> EncounterSystem -> createWildBattleConfig
+    -> BattleScene -> the overworld, exactly as it was
+
+- `EncounterSystem` is now the ONE place every encounter rule lives: the
+  terrain result, the rate, the cooldown, and every situation where an
+  encounter must not happen. `WorldScene` reports facts — "dialogue is open",
+  "the map is changing", "a battle is running", "the player is not in control" —
+  and the system decides. `findEncounterBlocker()` is exported and pure, so each
+  rule is one test rather than a scene walkthrough.
+- A step is offered exactly once. The player only announces a step after
+  actually finishing a move onto a new tile, so standing still and walking into
+  a tree produce no roll at all rather than a roll that is thrown away.
+- `WildBattle.createWildBattleConfig()` is the only thing that knows what a wild
+  fight is: running allowed, experience awarded, no money. It hands the LIVE
+  party to the engine, so damage, spent PP, levels, new moves and evolutions
+  land on the real team.
+
+**Maps decide their own encounters, without touching any scene**
+
+```js
+encounterTable: 'route1',              // the short form
+
+encounters: {                          // ...or the long form
+  table: 'route1',
+  rate: 0.11,                          // optional, defaults to balance.js
+  cooldownSteps: 3,                    // optional
+  terrain: ['tall_grass'],             // optional: narrow the eligible tiles
+}
+```
+
+- Encounter terrain comes from tile data (`encounter: true`), which a map may
+  narrow further. A future cave can have wild creatures in its floor but not
+  its puddles without a line of scene code changing.
+- `findEncounterTableProblems()` validates a table — species exists, levels are
+  whole numbers in range and the right way round, weights positive, table not
+  empty. The data tests run it over every table AND every encounter-enabled map
+  automatically, so a new area is checked the moment it is added.
+
+**Route 1 is a complete encounter area**
+
+| Species  | Levels | Weight | Roughly |
+|----------|--------|--------|---------|
+| Nibbit   | 2–4    | 30     | 30%     |
+| Flittle  | 2–4    | 25     | 25%     |
+| Vinelet  | 3–5    | 20     | 20%     |
+| Grubbit  | 2–4    | 15     | 15%     |
+| Puffcap  | 3–5    | 7      | 7%      |
+| Emberfly | 4–6    | 3      | 3%      |
+
+Balanced around a level 5 starter: nothing here can flatten you, everything is
+worth beating, and Emberfly is rare enough that finding one is a small event.
+
+**Presentation**
+- A short flash-and-fade cue when something jumps out — camera effects only, so
+  there is nothing left behind to clean up.
+- The battle uses the real creature: species, level, stats, moves, HP and
+  artwork, straight from `CreatureFactory`. The engine's own opening line does
+  the announcing ("A wild Nibbit appeared!").
+
+**Debug** — `debug.encounter()` arms the next grass step, `debug.encountersOff()`
+switches encounters off, `debug.encounterRate()` sets the chance per step, and
+`debug.encounterInfo()` prints the table, rate and cooldown. Normal play never
+reads any of them.
+
+### Changed
+
+- **Wild, trainer and practice battles now enter and leave through one
+  function.** `WorldScene.launchBattle()` pauses the overworld, launches the
+  battle and hands control back; `debug.wild()` goes through it too, so what you
+  test from the console is what the grass does.
+- **The battle bag rule moved to `BattleItems.js`** so it can be tested without
+  a browser. Behaviour is unchanged.
+- **The encounter cooldown is renewed whenever a battle ends**, not only when
+  one starts. Returning to the overworld standing in the same patch of grass can
+  never drop you straight into another fight.
+
+### Rules chosen and documented
+
+- **Rate:** 11% per step on encounter terrain, from `balance.js`; a map may
+  override it. Nothing else in the codebase holds an encounter constant.
+- **Cooldown is counted in STEPS, not seconds** — deterministic, easy to test
+  and impossible to desync from the frame rate. Three safe steps after an
+  encounter, three more when any battle ends, and safe ground burns the
+  cooldown down too, so crossing a path between two patches does not carry a
+  stale grace period.
+- **A step that happens while something else owns the screen does not count at
+  all** — not for an encounter, and not against the cooldown.
+- **Exits beat encounters.** Standing in a doorway always takes you through it.
+- **Escape** uses the Phase 4 engine formula unchanged: a speed-based roll that
+  gets easier with each attempt, and a failed escape costs the turn.
+- **A wild win pays no money.** Coins come from trainers.
+- **An encounter with no party is refused with a message**, not with an empty
+  battle.
+
+### Fixed
+
+- **Two suites were pinned to the dev server** rather than the URL they were
+  given, so they could not run against a production build.
+
+### Verification
+
+- **1554 automated tests** pass (was 1451). New: 78 encounter tests and 40
+  wild-encounter pipeline tests, including a walker driven over the real Route 1
+  map so "standing still" and "walking into a tree" genuinely produce no roll.
+- **Lint clean; production build succeeds.**
+- **Browser-verified against the production build**, zero console errors:
+  - 41/41 encounter checks: reaching Route 1, the path staying safe, a real
+    ambush in tall grass, exactly one battle scene, the creature and level
+    coming from the table, capture orbs disabled, PP spent, EXP awarded, no
+    money, returning to the exact tile and facing with inventory and flags
+    intact, the cooldown protecting the return, movement resuming, a second
+    encounter after the cooldown, Run escaping and awarding nothing, no
+    encounter while dialogue owns the input, and encounters switchable off.
+  - 13/13 controlled-state checks: both ends of every level range, all six
+    species reachable, the rare Emberfly met and fought for real, a level-up
+    earned from wild experience, and an evolution earned from wild experience
+    with the individual preserved.
+- **Stress test:** eight overworld → wild battle → overworld cycles leave
+  display objects, update lists, tweens, timers, textures, animations, keyboard
+  keys, key listeners, camera fade/flash listeners, player step listeners and
+  scene instances unchanged, at ~35 fps, still able to be ambushed afterwards.
+- **Phases 1–4 re-verified** on the same build: keyboard playthrough (10/10),
+  world and NPC systems (34/34), items, encounters and flags (18/18), the
+  map-transition leak check, the starter chooser (22/22), choosing each starter
+  (60/60), practice battles (27/27), switching, items and status (15/15),
+  progression, evolution and forced switches (33/33), and the battle leak check.
+
+### Known limitations
+
+- Capture is Phase 6. Orbs are listed in the wild-battle bag as unavailable,
+  are never consumed, and no probability is rolled.
+- Defeat keeps its Phase 4 behaviour: the party is revived to 1 HP each with a
+  plain message. The Mender's Hall blackout belongs to Phase 7.
+- No encounter modifiers yet (repels, weather, time of day). The map's
+  `encounters` block is the seam they would hang off.
+- Full trainer NPCs with line of sight are Phase 8.
+
+---
+
 ## Phase 4 — Battles
 
 The game has fights in it. Real turn-based battles with type matchups, status
