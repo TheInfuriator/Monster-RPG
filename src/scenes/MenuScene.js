@@ -9,10 +9,14 @@
  * press back into the overworld. One scene means one owner of the keyboard and
  * one place that hands control back.
  *
- *   root     Party / Index / Close
- *   party    the team, with Move for reordering
- *   summary  one creature in full
- *   index    what has been seen and caught
+ *   root      Party / Bag / Index / Storage / Close
+ *   party     the team, with Move for reordering
+ *   summary   one creature in full
+ *   bag       what you are carrying, by category
+ *   bagTarget who to use the selected item on
+ *   index     what has been seen and caught
+ *   storage   what is waiting back home
+ *   shop      buying and selling, opened straight into by a shopkeeper
  *
  * Runs ON TOP of a paused overworld, so the map and the player's position are
  * exactly as they were left.
@@ -42,6 +46,17 @@ import { getTypeName } from '../data/types.js';
 import { getStatus } from '../data/statuses.js';
 import { getMove } from '../data/moves.js';
 import { getSpecies } from '../data/creatures.js';
+import { getItem } from '../data/items.js';
+import { getShop } from '../data/shops.js';
+import { getItemCount, removeItem, listInventory } from '../systems/InventorySystem.js';
+import {
+  applyItemToCreature, getItemUsage, needsCreatureTarget,
+} from '../systems/ItemEffects.js';
+import { getMoney } from '../systems/EconomySystem.js';
+import {
+  getBuyList, getSellList, buyItem, sellItem, getBuyTotal, getSellTotal,
+  getMaxAffordable,
+} from '../systems/ShopSystem.js';
 
 const PANEL = { x: 8, y: 8, width: GAME_WIDTH - 16, height: GAME_HEIGHT - 16 };
 const ROW = { x: 18, y: 44, height: 40, width: GAME_WIDTH - 36 };
@@ -59,13 +74,35 @@ export class MenuScene extends Phaser.Scene {
   init(data) {
     this.onFinished = data?.onFinished || null;
 
-    this.view = 'root';
+    /**
+     * 'menu' is the pause menu; 'shop' is a shopkeeper's counter, opened
+     * straight into the shop and closing back to the world rather than to a
+     * menu the player never asked for.
+     */
+    this.mode = data?.mode === 'shop' ? 'shop' : 'menu';
+    this.shopId = data?.shopId || null;
+
+    this.view = this.mode === 'shop' ? 'shop' : 'root';
     this.rootIndex = 0;
     this.partyIndex = 0;
     /** The slot being moved, or null when not reordering. */
     this.movingFrom = null;
     this.indexOffset = 0;
     this.indexCursor = 0;
+
+    // Bag
+    this.bagCategory = 0;
+    this.bagIndex = 0;
+    this.bagTargetIndex = 0;
+    this.pendingItemId = null;
+    this.bagMessage = '';
+
+    // Shop
+    this.shopRootIndex = 0;
+    this.shopListIndex = 0;
+    this.shopQuantity = 1;
+    this.shopMessage = '';
+
     this.closing = false;
   }
 
@@ -103,7 +140,8 @@ export class MenuScene extends Phaser.Scene {
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
 
-    this.showRoot();
+    if (this.mode === 'shop') this.showShop();
+    else this.showRoot();
   }
 
   // -------------------------------------------------------------------------
@@ -159,6 +197,11 @@ export class MenuScene extends Phaser.Scene {
     const stored = getStorageCount(gameState);
     this.rootItems = [
       { label: 'Party', detail: `${gameState.party.length} with you`, action: () => this.showParty() },
+      {
+        label: 'Bag',
+        detail: `${getMoney(gameState)} coins`,
+        action: () => this.showBag(),
+      },
       {
         label: 'Index',
         detail: `${countCaught()} caught of ${countSpecies()}`,
@@ -441,6 +484,490 @@ export class MenuScene extends Phaser.Scene {
   }
 
   // -------------------------------------------------------------------------
+  // The bag
+  // -------------------------------------------------------------------------
+
+  /**
+   * The bag, one category at a time.
+   *
+   * Categories are tabs rather than one long list so that orbs never get in the
+   * way of finding a Potion mid-crisis. The order matches the battle bag.
+   */
+  showBag() {
+    this.view = 'bag';
+    this.bagMessage = '';
+    this.pendingItemId = null;
+    this.drawBag();
+  }
+
+  /** The categories that exist, and what is in each of them right now. */
+  bagCategories() {
+    const held = listInventory(gameState.inventory);
+    const order = [
+      { id: 'healing', label: 'Medicine' },
+      { id: 'capture', label: 'Orbs' },
+      { id: 'battle', label: 'Battle' },
+      { id: 'key', label: 'Key' },
+    ];
+
+    return order.map((category) => ({
+      ...category,
+      entries: held.filter((entry) => entry.item.category === category.id),
+    }));
+  }
+
+  drawBag() {
+    this.clearBody();
+    this.title.setText(`BAG                                   ${getMoney(gameState)} coins`);
+    this.hint.setText('Left/Right  category      Up/Down  choose      Confirm  use      Cancel  back');
+
+    const categories = this.bagCategories();
+    this.bagCategory = Math.max(0, Math.min(this.bagCategory, categories.length - 1));
+    const current = categories[this.bagCategory];
+
+    // --- Category tabs ---
+    let tabX = ROW.x;
+    categories.forEach((category, i) => {
+      const selected = i === this.bagCategory;
+      const width = 74;
+      this.box(tabX, 36, width, 16, selected ? COLORS.accentDark : COLORS.inkLight);
+      this.text(tabX + width / 2, 39, `${category.label} ${category.entries.length}`, {
+        fontSize: '9px',
+        color: selected ? CSS_COLORS.parchment : CSS_COLORS.parchmentDim,
+      }).setOrigin(0.5, 0);
+      tabX += width + 4;
+    });
+
+    const entries = current.entries;
+    this.bagIndex = entries.length === 0 ? 0 : Math.min(this.bagIndex, entries.length - 1);
+
+    if (entries.length === 0) {
+      this.text(ROW.x, 74, `No ${current.label.toLowerCase()} in the bag.`, { fontSize: '11px' });
+      if (this.bagMessage) {
+        this.text(ROW.x, 250, this.bagMessage, { color: CSS_COLORS.accent, fontSize: '11px' });
+      }
+      return;
+    }
+
+    entries.slice(0, 7).forEach((entry, i) => {
+      const y = 66 + i * 22;
+      const selected = i === this.bagIndex;
+      const usable = this.canUseHere(entry.item);
+
+      if (selected) this.box(ROW.x - 6, y - 3, ROW.width, 20, COLORS.inkLight);
+
+      this.text(ROW.x, y, entry.item.name, {
+        fontSize: '11px',
+        color: selected ? CSS_COLORS.accent
+          : usable.ok ? CSS_COLORS.parchment : CSS_COLORS.parchmentDim,
+      });
+      this.text(ROW.x + 190, y + 1, `x${entry.quantity}`, { color: CSS_COLORS.parchmentDim });
+
+      if (!usable.ok) {
+        this.text(ROW.x + 240, y + 1, usable.reason, {
+          fontSize: '9px', color: CSS_COLORS.parchmentDim,
+        });
+      }
+    });
+
+    // --- The selected item, in full ---
+    const chosen = entries[this.bagIndex];
+    if (chosen) {
+      this.box(ROW.x - 6, 232, ROW.width, 44, COLORS.inkLight, 0.4);
+      this.text(ROW.x, 236, chosen.item.description, {
+        fontSize: '10px', wordWrap: { width: ROW.width - 20 },
+      });
+    }
+    if (this.bagMessage) {
+      this.text(ROW.x, 262, this.bagMessage, { color: CSS_COLORS.accent, fontSize: '10px' });
+    }
+  }
+
+  /**
+   * Whether an item can be used from the overworld bag, and why not.
+   * ItemEffects owns the rule; this only phrases the refusal for a menu.
+   */
+  canUseHere(item) {
+    const usage = getItemUsage(item);
+    if (usage.field) return { ok: true, reason: '' };
+    if (usage.battle) return { ok: false, reason: 'in battle only' };
+    return { ok: false, reason: 'cannot be used' };
+  }
+
+  updateBag() {
+    const categories = this.bagCategories();
+    const entries = categories[this.bagCategory].entries;
+
+    if (this.controls.justPressed('cancel')) {
+      if (this.mode === 'shop') this.showShop();
+      else this.showRoot();
+      return;
+    }
+
+    if (this.controls.justPressed('left')) {
+      this.bagCategory = (this.bagCategory - 1 + categories.length) % categories.length;
+      this.bagIndex = 0;
+      this.bagMessage = '';
+      this.drawBag();
+      return;
+    }
+    if (this.controls.justPressed('right')) {
+      this.bagCategory = (this.bagCategory + 1) % categories.length;
+      this.bagIndex = 0;
+      this.bagMessage = '';
+      this.drawBag();
+      return;
+    }
+
+    if (entries.length === 0) return;
+
+    if (this.controls.justPressed('up')) {
+      this.bagIndex = (this.bagIndex - 1 + entries.length) % entries.length;
+      this.drawBag();
+    }
+    if (this.controls.justPressed('down')) {
+      this.bagIndex = (this.bagIndex + 1) % entries.length;
+      this.drawBag();
+    }
+
+    if (this.controls.justPressed('confirm')) {
+      const chosen = entries[this.bagIndex];
+      const usable = this.canUseHere(chosen.item);
+
+      if (!usable.ok) {
+        // Say why, and do NOT spend anything.
+        this.bagMessage = usable.reason === 'in battle only'
+          ? `The ${chosen.item.name} is only any use in a battle.`
+          : `The ${chosen.item.name} cannot be used here.`;
+        this.drawBag();
+        return;
+      }
+
+      if (needsCreatureTarget(chosen.item)) {
+        this.pendingItemId = chosen.item.id;
+        this.showBagTarget();
+        return;
+      }
+
+      this.bagMessage = `Nothing happened.`;
+      this.drawBag();
+    }
+  }
+
+  // --- Choosing who to use it on -------------------------------------------
+
+  showBagTarget() {
+    this.view = 'bagTarget';
+    this.bagTargetIndex = 0;
+    this.drawBagTarget();
+  }
+
+  drawBagTarget() {
+    this.clearBody();
+
+    const item = getItem(this.pendingItemId);
+    this.title.setText(`USE ${item ? item.name.toUpperCase() : 'ITEM'}`);
+    this.hint.setText('Up/Down  choose      Confirm  use it      Cancel  back to the bag');
+
+    if (gameState.party.length === 0) {
+      this.text(ROW.x, ROW.y, 'You have no Aethers with you.', { fontSize: '12px' });
+      return;
+    }
+
+    // Deliberately the same shape as the party list, so choosing a target reads
+    // like the screen the player already knows.
+    gameState.party.forEach((creature, i) => {
+      const y = ROW.y + i * 34;
+      const selected = i === this.bagTargetIndex;
+      if (selected) this.box(ROW.x - 6, y - 4, ROW.width, 30, COLORS.inkLight);
+
+      this.body.add(
+        this.add.image(ROW.x + 16, y + 12, creatureTextureKey(creature.speciesId)).setScale(0.36)
+      );
+      this.text(ROW.x + 36, y, getDisplayName(creature), {
+        fontSize: '11px', color: selected ? CSS_COLORS.accent : CSS_COLORS.parchment,
+      });
+      this.text(ROW.x + 36, y + 13, `Lv ${creature.level}`, { color: CSS_COLORS.parchmentDim });
+
+      this.text(ROW.x + 150, y, `${creature.currentHp}/${creature.stats.hp}`, { fontSize: '10px' });
+      this.hpBar(ROW.x + 150, y + 14, 100, creature);
+
+      const status = getStatus(creature.status);
+      if (status) {
+        this.box(ROW.x + 270, y, 34, 12, COLORS.danger);
+        this.text(ROW.x + 287, y + 2, status.tag, { fontSize: '8px', color: CSS_COLORS.ink })
+          .setOrigin(0.5, 0);
+      }
+    });
+
+    if (this.bagMessage) {
+      this.text(ROW.x, 262, this.bagMessage, { color: CSS_COLORS.accent, fontSize: '11px' });
+    }
+  }
+
+  updateBagTarget() {
+    const count = gameState.party.length;
+
+    if (this.controls.justPressed('cancel')) {
+      this.pendingItemId = null;
+      this.bagMessage = '';
+      this.showBag();
+      return;
+    }
+    if (count === 0) return;
+
+    if (this.controls.justPressed('up')) {
+      this.bagTargetIndex = (this.bagTargetIndex - 1 + count) % count;
+      this.drawBagTarget();
+    }
+    if (this.controls.justPressed('down')) {
+      this.bagTargetIndex = (this.bagTargetIndex + 1) % count;
+      this.drawBagTarget();
+    }
+
+    if (this.controls.justPressed('confirm')) this.useHeldItem();
+  }
+
+  /**
+   * Use the held item on the highlighted creature.
+   *
+   * ItemEffects decides what happens; this only spends the item when it says
+   * the item was actually consumed, so a refusal costs nothing.
+   */
+  useHeldItem() {
+    const item = getItem(this.pendingItemId);
+    const target = gameState.party[this.bagTargetIndex];
+
+    if (!item || getItemCount(gameState.inventory, item.id) <= 0) {
+      this.bagMessage = 'You have none of those!';
+      this.pendingItemId = null;
+      this.showBag();
+      return;
+    }
+
+    const result = applyItemToCreature(item, target, { where: 'field' });
+
+    if (result.consumed) removeItem(gameState.inventory, item.id, 1);
+    this.bagMessage = result.message;
+
+    // Stay on the target list after a use, so a player patching up a whole
+    // party does not have to walk back in for every Potion. If the last one is
+    // gone there is nothing to stay for.
+    if (getItemCount(gameState.inventory, item.id) <= 0) {
+      this.pendingItemId = null;
+      this.showBag();
+      return;
+    }
+    this.drawBagTarget();
+  }
+
+  // -------------------------------------------------------------------------
+  // The shop
+  // -------------------------------------------------------------------------
+
+  showShop() {
+    this.view = 'shop';
+    this.shopMessage = '';
+    this.drawShop();
+  }
+
+  drawShop() {
+    this.clearBody();
+
+    const shop = getShop(this.shopId);
+    this.title.setText(`${(shop?.name || 'SHOP').toUpperCase()}                     ${getMoney(gameState)} coins`);
+    this.hint.setText('Up/Down  choose      Confirm  open      Cancel  leave');
+
+    if (shop?.greeting) {
+      this.text(ROW.x, 36, `"${shop.greeting}"`, { color: CSS_COLORS.parchmentDim });
+    }
+
+    this.shopRootItems = [
+      { label: 'Buy', action: () => this.showShopList('buy') },
+      { label: 'Sell', action: () => this.showShopList('sell') },
+      { label: 'Bag', action: () => this.showBag() },
+      { label: 'Exit', action: () => this.close() },
+    ];
+
+    this.shopRootIndex = Math.min(this.shopRootIndex, this.shopRootItems.length - 1);
+
+    this.shopRootItems.forEach((entry, i) => {
+      const y = 68 + i * 30;
+      const selected = i === this.shopRootIndex;
+      if (selected) this.box(ROW.x - 6, y - 4, ROW.width, 24, COLORS.inkLight);
+      this.text(ROW.x, y, entry.label, {
+        fontSize: '13px',
+        color: selected ? CSS_COLORS.accent : CSS_COLORS.parchment,
+      });
+    });
+
+    if (this.shopMessage) {
+      this.text(ROW.x, 250, this.shopMessage, { color: CSS_COLORS.accent, fontSize: '11px' });
+    }
+  }
+
+  updateShop() {
+    const count = this.shopRootItems.length;
+
+    if (this.controls.justPressed('up')) {
+      this.shopRootIndex = (this.shopRootIndex - 1 + count) % count;
+      this.drawShop();
+    }
+    if (this.controls.justPressed('down')) {
+      this.shopRootIndex = (this.shopRootIndex + 1) % count;
+      this.drawShop();
+    }
+    if (this.controls.justPressed('confirm')) this.shopRootItems[this.shopRootIndex].action();
+    if (this.controls.justPressed('cancel')) this.close();
+  }
+
+  // --- Buying and selling ---------------------------------------------------
+
+  showShopList(kind) {
+    this.view = 'shopList';
+    this.shopKind = kind;
+    this.shopListIndex = 0;
+    this.shopQuantity = 1;
+    this.shopMessage = '';
+    this.drawShopList();
+  }
+
+  shopRows() {
+    return this.shopKind === 'buy'
+      ? getBuyList(this.shopId, gameState)
+      : getSellList(gameState);
+  }
+
+  drawShopList() {
+    this.clearBody();
+
+    const rows = this.shopRows();
+    this.shopListIndex = rows.length === 0 ? 0 : Math.min(this.shopListIndex, rows.length - 1);
+
+    const buying = this.shopKind === 'buy';
+    this.title.setText(
+      `${buying ? 'BUY' : 'SELL'}                                  ${getMoney(gameState)} coins`
+    );
+    this.hint.setText(
+      'Up/Down  choose      Left/Right  how many      Confirm  agree      Cancel  back'
+    );
+
+    if (rows.length === 0) {
+      this.text(ROW.x, 74, buying ? 'The shelves are bare today.' : 'You have nothing I could take.', {
+        fontSize: '11px',
+      });
+      return;
+    }
+
+    rows.slice(0, 7).forEach((row, i) => {
+      const y = 60 + i * 22;
+      const selected = i === this.shopListIndex;
+      if (selected) this.box(ROW.x - 6, y - 3, ROW.width, 20, COLORS.inkLight);
+
+      this.text(ROW.x, y, row.item.name, {
+        fontSize: '11px', color: selected ? CSS_COLORS.accent : CSS_COLORS.parchment,
+      });
+      this.text(ROW.x + 180, y + 1, `${row.price} coins`, { color: CSS_COLORS.parchmentDim });
+      this.text(ROW.x + 280, y + 1, `have ${row.owned}`, { color: CSS_COLORS.parchmentDim });
+    });
+
+    // --- The deal on the table ---
+    const chosen = rows[this.shopListIndex];
+    const max = this.maxQuantity(chosen);
+    this.shopQuantity = Math.max(1, Math.min(this.shopQuantity, Math.max(1, max)));
+
+    const total = buying
+      ? getBuyTotal(chosen.item, this.shopQuantity)
+      : getSellTotal(chosen.item, this.shopQuantity);
+
+    this.box(ROW.x - 6, 226, ROW.width, 50, COLORS.inkLight, 0.4);
+    this.text(ROW.x, 230, chosen.item.description, {
+      fontSize: '9px', color: CSS_COLORS.parchmentDim, wordWrap: { width: ROW.width - 20 },
+    });
+
+    const affordable = !buying || total <= getMoney(gameState);
+    this.text(ROW.x, 252, `Quantity  ${this.shopQuantity}`, { fontSize: '12px' });
+    this.text(ROW.x + 130, 252, `${buying ? 'Total' : 'Value'}  ${total} coins`, {
+      fontSize: '12px',
+      color: affordable ? CSS_COLORS.parchment : CSS_COLORS.danger,
+    });
+
+    if (max === 0) {
+      this.text(ROW.x + 300, 252, buying ? 'too dear' : 'none held', {
+        fontSize: '10px', color: CSS_COLORS.danger,
+      });
+    }
+
+    if (this.shopMessage) {
+      this.text(ROW.x, 266, this.shopMessage, { fontSize: '10px', color: CSS_COLORS.accent });
+    }
+  }
+
+  /** The most of this the player could actually trade right now. */
+  maxQuantity(row) {
+    if (!row) return 0;
+    return this.shopKind === 'buy'
+      ? getMaxAffordable(row.item, gameState)
+      : row.owned;
+  }
+
+  updateShopList() {
+    const rows = this.shopRows();
+
+    if (this.controls.justPressed('cancel')) {
+      this.showShop();
+      return;
+    }
+    if (rows.length === 0) return;
+
+    if (this.controls.justPressed('up')) {
+      this.shopListIndex = (this.shopListIndex - 1 + rows.length) % rows.length;
+      this.shopQuantity = 1;
+      this.shopMessage = '';
+      this.drawShopList();
+    }
+    if (this.controls.justPressed('down')) {
+      this.shopListIndex = (this.shopListIndex + 1) % rows.length;
+      this.shopQuantity = 1;
+      this.shopMessage = '';
+      this.drawShopList();
+    }
+
+    const max = this.maxQuantity(rows[this.shopListIndex]);
+    if (this.controls.justPressed('left') && this.shopQuantity > 1) {
+      this.shopQuantity -= 1;
+      this.drawShopList();
+    }
+    if (this.controls.justPressed('right') && this.shopQuantity < max) {
+      this.shopQuantity += 1;
+      this.drawShopList();
+    }
+
+    if (this.controls.justPressed('confirm')) this.confirmTransaction(rows[this.shopListIndex]);
+  }
+
+  /**
+   * Do the deal.
+   *
+   * ShopSystem is atomic, so there is no half-finished state to guard against
+   * here. `justPressed` means one press is one transaction — holding Confirm
+   * cannot buy a shelf-full.
+   */
+  confirmTransaction(row) {
+    if (!row) return;
+
+    const result = this.shopKind === 'buy'
+      ? buyItem(gameState, this.shopId, row.item.id, this.shopQuantity)
+      : sellItem(gameState, row.item.id, this.shopQuantity);
+
+    this.shopMessage = result.message;
+    // Back to one after any deal, so a second press cannot repeat a big order
+    // the player has already paid for.
+    this.shopQuantity = 1;
+    this.drawShopList();
+  }
+
+  // -------------------------------------------------------------------------
   // The Aether Index
   // -------------------------------------------------------------------------
 
@@ -588,6 +1115,10 @@ export class MenuScene extends Phaser.Scene {
       case 'root': this.updateRoot(); break;
       case 'party': this.updateParty(); break;
       case 'summary': this.updateSummary(); break;
+      case 'bag': this.updateBag(); break;
+      case 'bagTarget': this.updateBagTarget(); break;
+      case 'shop': this.updateShop(); break;
+      case 'shopList': this.updateShopList(); break;
       case 'index': this.updateIndex(); break;
       case 'storage': this.updateStorage(); break;
       default: break;
@@ -601,5 +1132,6 @@ export class MenuScene extends Phaser.Scene {
     }
     this.rows = null;
     this.rootItems = null;
+    this.shopRootItems = null;
   }
 }
