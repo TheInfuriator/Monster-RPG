@@ -2,8 +2,8 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 7 — Inventory + Economy + Healing** ✅ complete
-Next phase: **Phase 8 — Trainers**
+Current phase: **Phase 8 — Trainers** ✅ complete
+Next phase: **Phase 9 — Thistlewood + First Gym**
 
 ---
 
@@ -147,7 +147,27 @@ Next phase: **Phase 8 — Trainers**
 - [x] 1791 automated tests; browser-verified end to end; leak-tested over
       repeated bag, shop and blackout cycles
 
-## Phase 8 — Trainers ← NEXT
+## Phase 8 — Trainers ✅
+- [x] `src/data/trainers.js` — trainer database, validated automatically
+- [x] `TrainerSystem` — party construction through CreatureFactory, battle
+      configuration, and who has been beaten
+- [x] `SightSystem` — pure line-of-sight with tested range and blocker boundaries
+- [x] One completed step triggers at most one trainer, chosen deterministically
+- [x] "!" alert, straight-line approach stopping one tile short, both turning
+      to face each other
+- [x] Pre-battle dialogue, then the battle — one pipeline for sight and for
+      walking up and talking
+- [x] No running, no capture, trainer EXP multiplier, prize money
+- [x] Victory marks the trainer beaten; defeat does not
+- [x] Post-defeat dialogue through ordinary `when: 'trainer:<id>'` conditions
+- [x] A trainer loss uses the Phase 7 blackout; practice bouts stay free
+- [x] Precedence: exit, then trainer, then wild encounter
+- [x] Three Route 1 trainers with distinct parties, lanes and dialogue
+- [x] `debug.trainers/trainerBattle/beatTrainer/resetTrainers/sight`
+- [x] 1900 automated tests; browser-verified end to end; leak-tested over
+      repeated trainer wins and blackouts
+
+## Phase 9 — Thistlewood + First Gym ← NEXT
 
 ## Phase 7 — Inventory + Economy
 - [ ] Item database, inventory with quantities
@@ -196,6 +216,25 @@ Next phase: **Phase 8 — Trainers**
 - **Encounters were real but had nowhere to go until Phase 5.** The table
   lookup, weighted species pick, level roll and anti-ambush cooldown shipped in
   Phase 2; Phase 5 handed the result to the battle engine. ✅
+
+**Phase 8 deferrals:**
+- **Trainers walk in a straight line, not around corners.** They saw the player
+  down an unobstructed lane, so walking back along it needs no pathfinding.
+  Adding A* for a feature that cannot need it would be cost with no benefit.
+- **No AI profiles.** Every trainer uses the existing `BattleAI`, which already
+  picks legal moves and never wastes empty PP. Phase 8 needed reliable trainer
+  battles, not a competitive opponent; profiles can hang off trainer data later
+  without changing anything else.
+- **No voluntary switching.** A trainer sends out their next creature when one
+  faints, through the existing forced-switch pipeline. Switching for advantage
+  mid-battle is a strategy problem, not a Phase 8 one.
+- **No rematches.** The trainer data has room for rematch metadata; nothing
+  reads it yet.
+- **A trainer who walks over to challenge you stays where they stopped** until
+  the map is reloaded, when they return to their map-defined tile. Persisting a
+  walked-to position would put scene state into the save for no gain.
+- **The recurring rival is not implemented.** Phase 8 built the machinery a
+  rival would use; the character belongs with the story phases.
 
 **Phase 7 deferrals:**
 - **No PP-restoring consumable.** The Mender restores PP, which is what the

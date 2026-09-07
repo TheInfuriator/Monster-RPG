@@ -65,7 +65,8 @@ northern edge — a safe first taste of wild encounters within sight of home.
 22x30, running north from Emberhollow. The path jogs twice so the route is not a
 straight corridor. Tall grass sits on both sides of the path throughout, so the
 player always chooses between the safe route and the interesting one. A pond
-partway up, two ground items, four NPCs, a signpost, and a shut gate at the top.
+partway up, two ground items, seven NPCs — four travellers and three trainers —
+a signpost, and a shut gate at the top.
 
 ---
 
@@ -292,7 +293,9 @@ Wake up in Emberhollow
 - **Puzzle:** three **root switches**. Stepping on a switch retracts one hedge wall and
   extends another. The player must reach the Leader by toggling switches in the right
   order. Simple, readable, no timers.
-- **Trainers:** 2 Gardeners (2 creatures each, L8–10).
+- **Trainers:** 2 Gardeners (2 creatures each, L8–10). Ordinary Phase 8
+  trainers — entries in `trainers.js` and NPCs with `trainer:` and `sightRange`,
+  no new code.
 - **Leader:** **Fern**, calm and rather smug about her hedges.
   - Vinelet L11, Puffcap L11, **Ivorn L13** (ace, Grass/Poison)
 - **Reward:** **Verdant Sigil**, 1200 coins, and the Hall's TM-equivalent later.
@@ -353,6 +356,18 @@ These are the deliberate knobs. All live in `src/config/balance.js`.
 10. **NPCs never wander more than a couple of tiles from home**, so a wandering
     villager can never end up somewhere that makes a corridor impassable, and you
     can always find someone again where you left them.
+11. **A trainer's sight is a straight line along their facing only** — four tiles
+    on Route 1 — and anything solid in between stops it. One axis, no cones and
+    no diagonals: the player can always tell by looking whether they are about to
+    be seen, and every boundary is a unit test rather than a feeling.
+12. **Exactly one trainer challenges per step**, the nearest, ties broken by id.
+    Nothing random picks it, so the same step always has the same consequence.
+13. **Trainers beat wild encounters** on the same step, and exits beat both.
+    A trainer standing in tall grass is never lost to a random Aether.
+14. **Route 1's trainers sit just above its wild band** (L6, then two at L7, then
+    L8-9 against wild 2-6 and a L5 starter), and the three together pay 980
+    coins — four or five Potions. Enough to matter, not enough to skip the route
+    economy.
 
 ---
 
@@ -384,11 +399,17 @@ them, and later phases will gate areas with them.
 | `pickedUpRoute1Potion` | Taking the Route 1 potion | The item stays taken |
 | `pickedUpRoute1Orbs` | Taking the Route 1 orbs | The item stays taken |
 
+Beaten trainers are not flags — they live in `GameState.defeatedTrainers`, keyed
+by trainer id — but they are *readable* as flags. `getDialogueConditions()` folds
+each one in as `trainer:<id>`, so dialogue branches on a beaten trainer exactly
+the way it branches on a story flag. See section 19.
+
 ### Practice battles
 Assistant Bly and Warden Tace at the Warden's Lodge offer repeatable practice
 bouts once you have a starter. They award **no experience and no money** on
 purpose: a repeatable fight that paid out would be an infinite progression
-exploit. Real, once-only trainer battles with real rewards arrive in Phase 8.
+exploit. Real, once-only trainer battles with real rewards arrived in Phase 8 —
+see section 19.
 
 Flags are plain strings — add one by using it in a dialogue branch's `setFlags`
 and checking it with `when` / `unless` somewhere else.
@@ -694,3 +715,187 @@ lose, but never leaving the player stranded with a fainted team.
 | Choosing a target | Up/Down choose · Confirm use it · Cancel back to the bag |
 | Shop | Up/Down choose · Confirm open · Cancel leave |
 | Buy / Sell | Up/Down item · Left/Right how many · Confirm agree · Cancel back |
+
+---
+
+## 19. Trainers (Phase 8)
+
+### A trainer is data
+
+```js
+// src/data/trainers.js
+route1Scout: {
+  id: 'route1Scout',           // stable key; also what `defeatedTrainers` records
+  name: 'Wren',
+  title: 'Pathfinder',         // shown before the name: "Pathfinder Wren"
+  rewardMoney: 240,
+  party: [{ species: 'nibbit', level: 6 }],   // built by CreatureFactory
+  intro: ['You walk like someone with a partner. Let me see it!'],
+  outro: ['Ha! Straight down the Cinderpath with you, then.'],
+}
+```
+
+Their party is `{ species, level, nickname? }` entries built through the ordinary
+`createCreature()`, so a trainer's Aether has the same stats, learnset moves and
+full PP as a wild one — there is no separate "trainer creature". It is rebuilt
+fresh for every battle, so a rematch after a blackout is never fought against a
+half-dead team.
+
+**The id is the identity.** Defeat is recorded by id, never by position or map,
+so a trainer who is moved in a later update — or who has walked over to
+challenge you — stays beaten.
+
+### A trainer NPC is an ordinary NPC
+
+```js
+// src/data/maps/route1.js
+{
+  id: 'route1Scout', name: 'Wren', x: 13, y: 27,
+  facing: 'left', sprite: 'villager', movement: 'static',
+  trainer: 'route1Scout',       // which trainer this is
+  sightRange: 4,                // how far up their facing they watch
+  dialogue: [
+    { when: 'trainer:route1Scout', pages: ['Straight up the path, then.'] },
+    { pages: ['Ready when you are!'], action: 'trainer:route1Scout' },
+  ],
+}
+```
+
+Two fields (`trainer`, `sightRange`) and ordinary dialogue. **To add a trainer:**
+one entry in `trainers.js` and one NPC anywhere. No code either way.
+
+### Sight
+
+`SightSystem` is pure geometry — no Phaser, no game state — so every boundary is
+a unit test rather than a walk around the map hoping to notice.
+
+- A trainer sees **only along the one direction they face**. No diagonals, no
+  peripheral vision, nothing behind them.
+- `sightRange: 4` means distances **1, 2, 3 and 4 are seen and 5 is not**.
+  Distance 0 is never a sighting.
+- **Blockers:** anything solid strictly between the two — walls, trees,
+  furniture — and another person standing in the lane. Ground items do **not**
+  block: a Potion lying in the grass is not a screen.
+- The tile the **player** stands on is never tested. They are standing on it.
+
+### Who challenges, and when
+
+A completed step is offered to three things in this order, and the first to
+claim it stops the others:
+
+    exit  →  trainer  →  wild encounter
+
+So a trainer standing in tall grass always wins over the grass, and a doorway
+always wins over both.
+
+When several trainers can see the player at once, **exactly one** challenges,
+chosen with nothing random: the **nearest**, and on a tie the one whose **id
+sorts first**. Everyone else waits until the player walks into their lane. The
+same step always produces the same challenger.
+
+A challenge only starts when the moment allows it — not mid-transition, not with
+dialogue open, not with a battle or menu running, not while input is locked, and
+never from a trainer who is mid-step (their tile and facing are both unreliable
+then) or already beaten.
+
+### The approach
+
+1. `this.trainerChallenge` is claimed **first** and held until the battle is
+   over. That one field is what stops a second trainer, a second step or an
+   impatient key press starting any of this twice.
+2. A "!" pops above their head for ~0.6s.
+3. They **walk down the lane** one tile at a time through the ordinary movement
+   code, stopping **one tile short** — never onto the player. No pathfinding is
+   needed: the sighting already proved the line was clear.
+4. Both turn to face each other, and the intro plays with the full title on the
+   name plate.
+
+Every delayed step re-checks that the challenge is still theirs, so a map change
+mid-approach cancels the sequence rather than firing into a dead scene.
+
+### Two ways in, one pipeline
+
+Being spotted and **walking up and talking to them** both end at
+`startTrainerBattle()`, because the map file's challenge branch uses the ordinary
+`action: 'trainer:<id>'` dialogue seam. One path to get right, not two that can
+drift apart.
+
+### The battle
+
+Everything that makes a trainer battle different is one config object from
+`createTrainerBattleConfig()`. Nothing downstream checks a name:
+
+| Field | Value | Why |
+|-------|-------|-----|
+| `canRun` | `false` | you do not walk away from someone who challenged you |
+| `allowCapture` | `false` | their Aethers are not yours to catch |
+| `awardExperience` | `true` | with the x1.5 trainer multiplier |
+| `rewardMoney` | from the trainer | paid once, through `addMoney()` |
+| `blackoutOnDefeat` | `true` | an ordinary Phase 7 loss |
+| `trainerId` | the id | carried into the result so the win handler knows who |
+
+They send out their creatures in the declared order, one after another, and the
+battle ends when their last one faints.
+
+### Winning and losing
+
+**Winning** marks `defeatedTrainers[id]` — but only *after* `BattleScene` has
+finished narrating experience, level-ups, new moves and evolutions, so a trainer
+is never marked beaten before the win is fully resolved. Then their outro plays
+and control returns.
+
+**Losing** is the Phase 7 blackout, unchanged: 5% of your coins, a full heal, and
+waking at the last Mender's Hall. The trainer is **not** marked beaten, so they
+are still standing there when you walk back up the route.
+
+**A beaten trainer never challenges again.** They are skipped by the sight check
+entirely, and walking up to them gets their post-defeat lines instead of a
+rematch.
+
+### Post-defeat dialogue is ordinary dialogue
+
+`getDialogueConditions()` folds every beaten trainer into the flags as
+`trainer:<id>`, so a map file writes
+
+```js
+{ when: 'trainer:route1Scout', pages: ['Straight up the path, then.'] },
+```
+
+and **no scene anywhere contains `if (defeatedTrainers[id])`**. It is the same
+machinery as `when: 'gotStarter'`.
+
+### Route 1 roster
+
+| Trainer | Where | Party | Coins |
+|---------|-------|-------|-------|
+| **Pathfinder Wren** | low on the route, watching west | Nibbit L6 | 240 |
+| **Grass-Treader Osrin** | the western jog | Grubbit L7, Vinelet L7 | 320 |
+| **Warden Aspirant Halla** | by the shut gate | Flittle L8, Emberfly L9 | 420 |
+
+All three watch 4 tiles. The player arrives with a Lv 5 starter against wild
+Aethers at 2-6, so the trainers sit just above that and rise as the route does.
+Wren is one creature with no type advantage over any starter — a fight you are
+meant to win, teaching what the "!" means. Osrin is the first trainer to send out
+a replacement. Halla is the last thing before the north.
+
+Clearing all three pays 980 coins — four or five Potions. Useful, not a shopping
+spree.
+
+### How the Gym reuses all of this
+
+Phase 9's Gym trainers and the Gym Leader are meant to be exactly this, with a
+bigger party: entries in `trainers.js`, NPCs with `trainer:` and `sightRange` in
+the Gym map, a `when: 'trainer:<id>'` branch each. The Leader additionally sets
+`sigil_verdant` from their post-battle dialogue's `setFlags`, which is ordinary
+dialogue too. Nothing in `TrainerSystem`, `SightSystem` or `WorldScene` should
+need to change.
+
+### Debug
+
+```js
+debug.trainers()               // every trainer, their party, and who is beaten
+debug.trainerBattle('route1Scout')  // start one from anywhere
+debug.beatTrainer('route1Scout')    // mark beaten (false to un-beat)
+debug.resetTrainers()          // clear every defeat
+debug.sight()                  // what each trainer on this map can see right now
+```

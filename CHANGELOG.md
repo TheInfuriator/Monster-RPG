@@ -4,6 +4,155 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 8 — Trainers
+
+The route stops being empty. Three people on Route 1 look up when you walk into
+their line, march over, and make you fight them.
+
+### Added
+
+**Trainers are data** (`src/data/trainers.js`) — id, name, title, party,
+prize money, and the lines they say before and after. A trainer NPC on a map
+carries only a REFERENCE (`trainer: 'route1Scout'`) and a `sightRange`, so a
+trainer can be rebalanced without touching a map and moved without touching
+their party. Adding one is an entry here plus an NPC anywhere; no code either
+way. `findTrainerProblems()` is exported so the tests validate every trainer
+that will ever exist, not the three that exist today.
+
+**Line of sight is pure geometry** (`SightSystem`) — no Phaser, no game state.
+It is handed a position, a facing, a range and a way to ask "does this tile
+block a view", and it answers. That is what makes every boundary a unit test
+instead of a walk around the map hoping to notice:
+
+- A trainer sees only along the **one direction they face**. No diagonals, no
+  peripheral vision, nothing behind them.
+- `sightRange: 4` means distances 1, 2, 3 and 4 are seen and 5 is not.
+  Distance 0 is never a sighting.
+- Anything **solid between** the two blocks it — walls, trees, furniture, and
+  another person standing in the lane. The tile the player is standing on is
+  never tested; they are standing on it. Ground items do not block: a Potion
+  lying in the grass is not a screen.
+
+**Exactly one trainer challenges per step**, chosen with nothing random:
+`findChallenger()` takes the **nearest**, and on a tie the one whose id sorts
+first. Everyone else simply waits until the player walks into their lane. The
+same step always produces the same challenger, so a test can rely on it.
+
+**The challenge** — a "!" pops over their head, then they walk down the lane
+they saw you along and stop **one tile short**, never onto the player. No
+pathfinding is needed, because the line was established as unobstructed by the
+sighting itself. Both then turn to face each other and their intro plays with
+their full title on the plate.
+
+**`this.trainerChallenge` is claimed before anything is drawn** and held until
+the battle is over. That one field is what stops a second trainer, a second
+step, or an impatient key press starting any of it twice — and every delayed
+step re-checks it, so a map change mid-approach cancels the whole sequence
+rather than firing into a dead scene.
+
+**One pipeline, two ways in.** Being spotted and walking up and talking to
+someone both end at `startTrainerBattle()`, because the map file's challenge
+dialogue uses the ordinary `action: 'trainer:<id>'` seam. There is one path to
+get right rather than two that can drift.
+
+**What a trainer battle is, is configuration** (`TrainerSystem`), not a
+question about which NPC you fought: `canRun: false`, `allowCapture: false`,
+`awardExperience: true`, `rewardMoney`, `blackoutOnDefeat: true`. Nothing
+downstream checks a name to work any of that out, and the party is built fresh
+through `CreatureFactory` every time — so a trainer's Aethers have the ordinary
+stats, learnsets and PP, and a rematch after a blackout starts at full health.
+
+**Beating one is remembered by id** (`defeatedTrainers`), never by position or
+map, so a trainer who is moved in a later update stays beaten. It is marked
+**only after a win** and only once `BattleScene` has finished narrating
+experience, level-ups, new moves and evolutions — never before the win is fully
+resolved, and never at all on a loss.
+
+**Post-defeat dialogue is ordinary conditional dialogue.**
+`getDialogueConditions()` folds every beaten trainer into the flags as
+`trainer:<id>`, so a map file writes
+`{ when: 'trainer:route1Scout', pages: [...] }` and no scene anywhere contains
+`if (defeatedTrainers[id])`.
+
+**Losing to a trainer is the Phase 7 blackout**, unchanged and unforked: 5% of
+your coins, a full heal, and waking at the last Mender's Hall. The trainer is
+*not* marked beaten, so they are still standing there when you come back.
+
+**Route 1 is populated** — Pathfinder Wren (one Lv 6), Grass-Treader Osrin (two
+at Lv 7) and Warden Aspirant Halla (Lv 8 and 9, by the gate), for 240 / 320 /
+420 coins. Levels sit just above the route's wild 2-6, and clearing all three
+funds four or five Potions: useful, not a shopping spree.
+
+**Debug commands** — `debug.trainers()` lists every trainer with their party and
+whether they are beaten, `debug.trainerBattle(id)` starts one anywhere,
+`debug.beatTrainer(id, true|false)` sets the flag, `debug.resetTrainers()`
+clears them all, and `debug.sight()` prints what every trainer on this map can
+currently see.
+
+### Changed
+
+- `Npc` gained `walkLine(direction, steps, onComplete)`, which steps one tile at
+  a time through the ordinary movement code and refuses a blocked tile — an
+  approach is real walking, not a teleport with a tween on it.
+- `Npc.startMove()` and `Player` gained an arrival callback and `faceTowards()`
+  respectively.
+- `BattleEngine` carries `trainerId` from the config into its result, which is
+  how the win handler knows who to mark without the scene remembering.
+- `BattleScene` now pays prize money through `addMoney()` rather than assigning
+  to `gameState.money`, so the Phase 7 rule ("never negative, always whole")
+  covers trainer rewards too.
+- A completed step is offered to **exits, then trainers, then wild encounters**,
+  and the first one to claim it stops the others. A trainer standing in tall
+  grass therefore always wins over the grass.
+
+### Verification
+
+- **1900 automated tests** pass (was 1791). New: 109 covering sight geometry and
+  every boundary, blockers and corners, challenger selection and its
+  determinism, the trainer database (auto-generated over every trainer), trainer
+  NPC metadata on every map, battle configuration, multi-creature progression,
+  defeated state and prize money.
+- **Lint clean; production build succeeds.**
+- **Browser-verified against the production build**, 59/59 checks, zero console
+  errors: being spotted at range and one tile beyond it, a blocked lane, walking
+  behind a trainer, the alert and the approach, the intro plate, Run refused,
+  orbs refused, both creatures of a two-creature trainer, experience and exactly
+  the right prize money, the defeated flag, the post-defeat lines, a manual
+  challenge, a beaten trainer never re-challenging, and losing on purpose to
+  confirm the blackout leaves the trainer unbeaten.
+- **Screens inspected:** the "!" sits above the right NPC, the approach ends
+  adjacent with the correct speaker name, the battle shows the trainer's first
+  creature with Run greyed out, and the route is walkable end to end afterwards.
+- **Stress test:** five win cycles and five loss/blackout cycles leave display
+  objects, update lists, tweens, timers, textures, animations, keyboard keys,
+  listeners and scene instances unchanged, NPCs stable at 7, no stray alert
+  objects and no lingering approach tweens, at ~31 fps, still able to be
+  challenged, talk and meet wild Aethers afterwards.
+- **Phases 1–7 re-verified** on the same build: playthrough 10/10, world 34/34,
+  items and flags 18/18, starter chooser 22/22, starters 60/60, practice battles
+  27/27, switching and status 15/15, progression 33/33, encounters 41/41,
+  controlled encounters 13/13, capture and menus 65/65, economy 85/85, and every
+  earlier leak check.
+
+### Fixed
+
+- The dialogue-action data test rejected the new `trainer:` actions and was
+  taught about them properly — it now validates that `trainer:<id>` names a
+  trainer that really exists, in the same shape as the Phase 7 `shop:<id>` check.
+
+### Known limitations
+
+- The approach walks a straight line, because sight only ever produces one.
+  A trainer who needs to come round a corner would need pathfinding.
+- No AI profiles yet: every trainer uses the same `BattleAI` as a wild Aether,
+  and never switches voluntarily.
+- No rematches. A beaten trainer stays beaten for the playthrough.
+- A trainer mid-approach when the map changes goes back to their map-defined
+  tile, since nothing persists an NPC's position yet.
+- Save/load remains Phase 10; `defeatedTrainers` is plain serialisable data.
+
+---
+
 ## Phase 7 — Inventory, Economy and Healing
 
 Money means something, the bag opens, the shop trades, the Mender heals, and

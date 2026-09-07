@@ -6,13 +6,14 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 7 (Inventory + Economy + Healing) complete.**
+> **Status: Phase 8 (Trainers) complete.**
 > Take a starter, buy supplies at the Supply Post, walk into Route 1's tall
 > grass, catch something, patch your team up from the Bag, get healed at the
-> Mender's Hall — and if it all goes wrong, black out, lose a few coins and wake
-> up restored. Battles, status, switching, running, experience, level-ups, new
-> moves, evolution, catching, storage, the Aether Index, money, shopping and
-> healing all work. Trainers are next — see [TODO.md](TODO.md).
+> Mender's Hall — and walk into a trainer's line of sight and have to fight your
+> way up the route. Battles, status, switching, running, experience, level-ups,
+> new moves, evolution, catching, storage, the Aether Index, money, shopping,
+> healing, blacking out and trainers all work. Thistlewood and the first Beacon
+> Hall are next — see [TODO.md](TODO.md).
 
 ---
 
@@ -82,6 +83,7 @@ src/
     items.js           Every item in the game
     encounters.js      Which wild Aethers live where
     shops.js           What each shop sells
+    trainers.js        Every trainer: party, prize money and what they say
     maps/              One file per map, plus the map registry
   entities/
     Player.js          The player character and grid movement
@@ -105,6 +107,8 @@ src/
     ShopSystem.js      Buying and selling, atomically
     BlackoutSystem.js  What losing costs
     EncounterSystem.js Every rule about whether a step turns something up
+    SightSystem.js     Whether a trainer can see you, and which one challenges
+    TrainerSystem.js   What a trainer battle is, and who has been beaten
     WildBattle.js      Turning an encounter into a battle, and taking delivery
                        of anything caught
     CreatureIndex.js   What has been seen and what has been caught
@@ -158,6 +162,8 @@ main.js
                     ├── DialogueResolver   which lines to show
                     ├── InteractionSystem  what you are facing
                     ├── EncounterSystem    wild Aethers in tall grass
+                    ├── SightSystem        who can see you
+                    ├── TrainerSystem      what their battle is
                     ├── InputManager       keys → actions
                     └── DebugOverlay
 ```
@@ -724,6 +730,11 @@ debug.exp(500)                // grant experience
 debug.status('burn')          // inflict a status
 debug.hp(5)                   // set current HP
 debug.heal()                  // full heal
+debug.trainers()              // every trainer, their party, and who is beaten
+debug.trainerBattle('route1Scout')  // start a trainer battle from anywhere
+debug.beatTrainer('route1Scout')    // mark beaten (pass false to un-beat)
+debug.resetTrainers()         // clear every defeat
+debug.sight()                 // what each trainer here can currently see
 ```
 
 Nothing in the game imports `DebugTools.js` — it only reaches in, so deleting it
@@ -744,12 +755,99 @@ baker: {
 The sprite sheet and all four walk animations are generated for you. The key
 (`baker`) is what you put in an NPC's `sprite` field.
 
-### Trainers and battles
+### Add a trainer
 
-These do not exist yet. They arrive in Phases 4 and 8; see [TODO.md](TODO.md) for
-the plan. They will follow the same pattern as everything above: a data file in
-`src/data/`, a registry function that fails loudly on a bad id, and validation
-tests that run over the whole file.
+Two steps, no code.
+
+**1. Describe them** in `src/data/trainers.js`:
+
+```js
+route1Scout: {
+  id: 'route1Scout',           // stable key; also what "beaten" is recorded under
+  name: 'Wren',
+  title: 'Pathfinder',         // shown before the name: "Pathfinder Wren"
+  rewardMoney: 240,
+  party: [{ species: 'nibbit', level: 6 }],   // built by CreatureFactory
+  intro: ['You walk like someone with a partner. Let me see it!'],
+  outro: ['Ha! Straight down the Cinderpath with you, then.'],
+},
+```
+
+The party is built through the ordinary `createCreature()`, so a trainer's Aether
+has the same stats, learnset moves and full PP as a wild one — and it is rebuilt
+fresh every battle, so a rematch after a blackout is never against a half-dead
+team. Several entries means several creatures, sent out in the order written.
+
+**2. Stand them somewhere** — an ordinary NPC with two extra fields:
+
+```js
+// src/data/maps/route1.js
+{
+  id: 'route1Scout', name: 'Wren', x: 13, y: 27,
+  facing: 'left', sprite: 'villager', movement: 'static',
+  trainer: 'route1Scout',      // which trainer this is
+  sightRange: 4,               // how far along their facing they watch
+  dialogue: [
+    { when: 'trainer:route1Scout', pages: ['Straight up the path, then.'] },
+    { pages: ['Ready when you are!'], action: 'trainer:route1Scout' },
+  ],
+},
+```
+
+The tests then check — with no test code from you — that the trainer id exists,
+the party species and levels are real, the reward is sane, the intro and outro
+lines are there, and the NPC has a usable `sightRange`.
+
+### How being spotted works
+
+A trainer sees **only along the one direction they face**. No diagonals, no
+peripheral vision, nothing behind them. `sightRange: 4` means the four tiles
+directly ahead — distance 4 is seen, distance 5 is not.
+
+Anything **solid strictly between** the two blocks the view: walls, trees,
+furniture, and another person standing in the lane. Ground items do not — a
+Potion lying in the grass is not a screen. The tile the player is standing on is
+never tested; they are standing on it.
+
+When several trainers could see you at once, **exactly one** challenges, chosen
+with nothing random: the nearest, and on a tie the one whose id sorts first.
+Everyone else waits until you walk into their lane.
+
+A completed step is offered to **exits, then trainers, then wild encounters**,
+and the first to claim it stops the others — so a trainer standing in tall grass
+always wins over the grass.
+
+Then: a "!" pops over their head, they walk down the lane and stop one tile
+short of you, you both turn to face each other, and their intro plays. Walking up
+and talking to them yourself starts exactly the same battle, through the same
+code — the dialogue's `action: 'trainer:<id>'` and being spotted both end in one
+place.
+
+### What a trainer battle is
+
+| Rule | Why |
+|------|-----|
+| You cannot **Run** | you do not walk away from someone who challenged you |
+| You cannot throw an **orb** | their Aethers are not yours to catch |
+| Experience **x1.5** | the trainer multiplier |
+| Prize money, paid once | `rewardMoney` from the trainer |
+| Losing **blacks you out** | the ordinary Phase 7 consequences |
+
+All of that is one configuration object. Nothing downstream checks a name to
+work it out, which is why a Gym Leader later needs no new code — only a bigger
+party.
+
+**Beating a trainer** is recorded by id, after the battle scene has finished
+narrating experience, level-ups, new moves and evolutions. They never challenge
+you again, and talking to them gets their `when: 'trainer:<id>'` lines instead.
+
+**Losing** costs you 5% of your coins and sends you back to the Mender's Hall —
+and does *not* mark them beaten, so they are still standing there when you come
+back up the route.
+
+**Route 1's three:** Pathfinder Wren (Nibbit L6, 240 coins), Grass-Treader Osrin
+(Grubbit and Vinelet, both L7, 320 coins) and Warden Aspirant Halla (Flittle L8
+and Emberfly L9, 420 coins, by the gate).
 
 ---
 
@@ -771,7 +869,7 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-1791 tests covering map parsing, collision, spawn fallbacks, map validation, game
+1900 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, inventory operations,
 interaction targeting, type effectiveness, the move and creature databases, stat
 and experience maths, the creature factory, the party, the starter-selection
@@ -783,7 +881,9 @@ suppresses an encounter, and the battle a successful roll produces — and
 catching: the odds, the shakes, when an orb is and is not spent, what a capture
 does to the battle, the party and its storage overflow, and the Aether Index —
 and the economy: money, buying, selling, item use and its refusals, healing, the
-recovery point and blacking out.
+recovery point and blacking out — and trainers: sight geometry and every one of
+its boundaries, blockers and corners, which of several trainers challenges,
+trainer data, trainer battle configuration and the defeated-trainer record.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -803,7 +903,10 @@ every map you add. They catch, without you writing a line of test code:
 - an index entry pointing at a species that does not exist
 - an item with an unknown category, a negative price, or an effect nothing implements
 - a shop stocking an item that does not exist or has no price
-- a dialogue asking for a shop that does not exist
+- a dialogue asking for a shop or a trainer that does not exist
+- a trainer with no creatures, a species that does not exist, a level out of
+  bounds, a negative reward, or missing intro or outro lines
+- a trainer NPC with no `sightRange`, or a `trainer:` id nothing defines
 - an NPC with nothing to say to a brand new player
 - a tile with no artwork, or a key binding Phaser does not recognise
 - a move with an unknown type, impossible accuracy or malformed effect
