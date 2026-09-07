@@ -339,8 +339,11 @@ These are the deliberate knobs. All live in `src/config/balance.js`.
 4. **STAB (same-type attack bonus):** 1.5x.
 5. **Growth rates:** three curves only — `fast`, `medium`, `slow`. Fewer curves is easier
    to reason about and to balance than the six used by the games that inspired this.
-6. **Loss penalty:** lose 5% of carried coins (min 0), warp to the last Mender's Hall,
-   full heal. Never a game over — this game does not punish learning.
+6. **Loss penalty:** lose 5% of carried coins (`floor`, never more than you
+   have), warp to the last Mender's Hall, full heal. Never a game over — this
+   game does not punish learning. Implemented in Phase 7; whether a defeat
+   carries the penalty at all is `blackoutOnDefeat` on the battle config, so a
+   practice bout costs nothing.
 7. **Wild levels track the player**, staying inside each route's own band, so no route
    ever becomes trivially safe or brutally unfair.
 8. **Gym leaders are ~2 levels above the local trainers** and always have a coherent
@@ -594,3 +597,100 @@ Cancel opens it over a paused overworld. Party, Index, Storage, Close.
 
 All four are one scene with a `view` state machine, so there is one owner of the
 keyboard and one place that hands control back to the world.
+
+
+---
+
+## 18. Money, items and healing (Phase 7)
+
+### The economy
+
+| Value | Number | Where |
+|-------|--------|-------|
+| Starting money | 800 | `ECONOMY.startingMoney` |
+| Sell price | half the buy price | `ECONOMY.sellPriceFraction` |
+| Blackout loss | 5% of carried coins | `ECONOMY.faintMoneyLossFraction` |
+| Potion | 200 | `items.js` |
+| Basic Orb | 150 | `items.js` |
+| Status cures | 120 | `items.js` |
+
+800 coins is four Potions and change, or two Potions and three Orbs. That is the
+intended feel for the first town: a real choice, not a shopping spree.
+
+**Nothing but `EconomySystem` changes money.** It keeps the value a whole number,
+never negative, and refuses to take more than the player has — all or nothing,
+never a partial payment.
+
+### Items
+
+An item is an entry in `src/data/items.js`. Its `effect` decides what it does
+and, by default, where it can be used:
+
+| Effect | Does | Battle | Field |
+|--------|------|--------|-------|
+| `{ type: 'heal', amount }` | restores HP, clamped to max | yes | yes |
+| `{ type: 'cureStatus', status }` | clears one named status | yes | yes |
+| `{ type: 'cureAllStatus' }` | clears whatever is there | yes | yes |
+| `{ type: 'capture', modifier }` | an orb | yes | no |
+
+An item may override with `usableInBattle` / `usableInField`. `sellable: false`
+keeps a key item out of every shop.
+
+`ItemEffects.applyItemToCreature()` is the ONE implementation, used by both bags.
+It returns `{ success, consumed, message, reason, healedHp, curedStatus }`, and
+**`consumed` is only ever true when the item actually did something** — a wasted
+Potion is refused, not spent.
+
+**To add an item:** one entry in `items.js`. **To sell it:** add its id to a
+stock list in `src/data/shops.js`. No code either way.
+
+### Shops
+
+```js
+emberhollowSupplyPost: {
+  id: 'emberhollowSupplyPost',
+  name: 'Supply Post',
+  greeting: 'Orbs and potions. What will it be?',
+  stock: [{ item: 'potion' }, { item: 'basicOrb' }, { item: 'antidote', when: 'someFlag' }],
+}
+```
+
+An item existing is not the same as it being for sale. Super Potions and the
+stronger orbs are real items the player can find, but the starting shelf leaves
+them out so the first town cannot flatten the first route. `when` gates a row
+behind a story flag.
+
+A shopkeeper opens it with `action: 'shop:emberhollowSupplyPost'`. Every
+transaction is atomic: `ShopSystem` takes the money AND gives the goods, or
+changes nothing.
+
+### Healing and blacking out
+
+The Mender restores **HP, every move's PP and any status**, for the active party
+only — storage is not a free hospital. It works on the existing creatures, so
+instance ids, nicknames, levels, experience, moves and met locations survive.
+It is free.
+
+Healing also sets the **recovery point**: a map id and a NAMED spawn point on
+`GameState.respawn`. Every Mender's Hall does the same, which is all a future
+town needs — the blackout code never learns about individual maps.
+
+Losing a battle with `blackoutOnDefeat` set:
+
+1. `floor(money * 0.05)` is taken, once, capped at what the player has
+2. the whole party is fully restored
+3. the screen fades and the player wakes at the recovery point
+4. the bag, story flags, storage, index and creature identities are untouched
+
+`blackoutOnDefeat` defaults to true for wild and trainer battles and false for
+practice. A practice defeat instead patches the party up on the spot — free to
+lose, but never leaving the player stranded with a fainted team.
+
+### Controls
+
+| Screen | Keys |
+|--------|------|
+| Bag | Left/Right category · Up/Down choose · Confirm use · Cancel back |
+| Choosing a target | Up/Down choose · Confirm use it · Cancel back to the bag |
+| Shop | Up/Down choose · Confirm open · Cancel leave |
+| Buy / Sell | Up/Down item · Left/Right how many · Confirm agree · Cancel back |

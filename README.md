@@ -6,13 +6,13 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 6 (Capture + Party) complete — the core loop is playable.**
-> Start a new game, take a starter from Professor Wick, walk north into Route 1's
-> tall grass, wear something down, **throw an orb and keep it**. Then open the
-> menu, look your new Aether over, put it at the front of your team and go back
-> out. Battles, status, switching, running, experience, level-ups, new moves,
-> evolution, catching, storage and the Aether Index all work. Shops and healing
-> centres are next — see [TODO.md](TODO.md).
+> **Status: Phase 7 (Inventory + Economy + Healing) complete.**
+> Take a starter, buy supplies at the Supply Post, walk into Route 1's tall
+> grass, catch something, patch your team up from the Bag, get healed at the
+> Mender's Hall — and if it all goes wrong, black out, lose a few coins and wake
+> up restored. Battles, status, switching, running, experience, level-ups, new
+> moves, evolution, catching, storage, the Aether Index, money, shopping and
+> healing all work. Trainers are next — see [TODO.md](TODO.md).
 
 ---
 
@@ -81,6 +81,7 @@ src/
     creatures.js       Every Aether species
     items.js           Every item in the game
     encounters.js      Which wild Aethers live where
+    shops.js           What each shop sells
     maps/              One file per map, plus the map registry
   entities/
     Player.js          The player character and grid movement
@@ -98,6 +99,11 @@ src/
     NpcManager.js      Owns the NPCs on a map
     DialogueResolver.js Picks which lines an NPC says right now
     InteractionSystem.js What the player is pressing the button at
+    EconomySystem.js   Coins — the only thing that changes money
+    ItemEffects.js     What using an item does, shared by battle and overworld
+    HealingSystem.js   Putting creatures back together
+    ShopSystem.js      Buying and selling, atomically
+    BlackoutSystem.js  What losing costs
     EncounterSystem.js Every rule about whether a step turns something up
     WildBattle.js      Turning an encounter into a battle, and taking delivery
                        of anything caught
@@ -361,6 +367,62 @@ Nothing in the code names an individual orb, so that entry is the whole change.
 **Make a species easier or harder to catch:** change its `catchRate` in
 `src/data/creatures.js`. It runs 1..255 — Route 1's commons are 255, its rare
 Emberfly is 120, the starter lines are 45.
+
+### Money, the Bag and the shop
+
+Press **Cancel** (Escape) → **Bag**. Left/Right switches category, Up/Down picks
+an item, Confirm uses it. A healing item asks who for; the list stays open
+afterwards so patching up a whole party is one trip.
+
+The bag tells you when something *cannot* be used rather than doing nothing: an
+orb reads "in battle only", and refusing it costs you nothing. Neither does a
+Potion on a creature already at full health.
+
+**The Supply Post** — talk to Bram once you have a starter. Buy and Sell both
+show the price and how many you hold, and the quantity selector stops at what you
+can actually afford or actually own, so the shop never offers a deal it would
+refuse. One press is one transaction.
+
+| Value | Number |
+|-------|--------|
+| Starting money | 800 |
+| Potion | 200 |
+| Basic Orb | 150 |
+| Status cures | 120 |
+| Selling | half the buy price |
+
+**Add an item to a shop:**
+
+```js
+// shops.js
+emberhollowSupplyPost: {
+  id: 'emberhollowSupplyPost', name: 'Supply Post',
+  stock: [
+    { item: 'potion' },
+    { item: 'superPotion', when: 'beatFirstGym' },   // gated behind a flag
+  ],
+},
+```
+
+An item existing is not the same as it being for sale — that is why Super
+Potions and the stronger orbs are real items but not on the first shelf.
+
+**Open a shop from an NPC:** `action: 'shop:emberhollowSupplyPost'` in their
+dialogue. No code.
+
+### Healing, and losing
+
+The **Mender's Hall** restores your party's HP, every move's PP and any status,
+for free — and becomes the place you wake up if things go badly. A Mender in a
+future town needs only `action: 'heal'` to do both jobs.
+
+**Lose a real battle** and you black out: you drop 5% of your coins, your team is
+fully restored, and you wake at the last Mender's Hall you visited. Your bag,
+flags, storage and creatures are untouched.
+
+A **practice bout** at the Lodge costs nothing at all — Bly patches your team up
+and waves it off. That is `blackoutOnDefeat: false` on the battle, not a special
+case for Bly, so any battle can be made consequence-free the same way.
 
 ### The menu
 
@@ -709,7 +771,7 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-1645 tests covering map parsing, collision, spawn fallbacks, map validation, game
+1791 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, inventory operations,
 interaction targeting, type effectiveness, the move and creature databases, stat
 and experience maths, the creature factory, the party, the starter-selection
@@ -719,7 +781,9 @@ learning and evolution — the whole wild-encounter pipeline: the rate, the
 weighted tables, the level ranges, the step-based cooldown, every situation that
 suppresses an encounter, and the battle a successful roll produces — and
 catching: the odds, the shakes, when an orb is and is not spent, what a capture
-does to the battle, the party and its storage overflow, and the Aether Index.
+does to the battle, the party and its storage overflow, and the Aether Index —
+and the economy: money, buying, selling, item use and its refusals, healing, the
+recovery point and blacking out.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -737,6 +801,9 @@ every map you add. They catch, without you writing a line of test code:
 - a capture item with a missing or unusable modifier
 - a creature whose catch rate is outside the scale the formula expects
 - an index entry pointing at a species that does not exist
+- an item with an unknown category, a negative price, or an effect nothing implements
+- a shop stocking an item that does not exist or has no price
+- a dialogue asking for a shop that does not exist
 - an NPC with nothing to say to a brand new player
 - a tile with no artwork, or a key binding Phaser does not recognise
 - a move with an unknown type, impossible accuracy or malformed effect

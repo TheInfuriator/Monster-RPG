@@ -2,8 +2,8 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 6 — Capture + Party** ✅ complete
-Next phase: **Phase 7 — Inventory + Economy**
+Current phase: **Phase 7 — Inventory + Economy + Healing** ✅ complete
+Next phase: **Phase 8 — Trainers**
 
 ---
 
@@ -128,7 +128,26 @@ Next phase: **Phase 7 — Inventory + Economy**
 - [x] 1645 automated tests; browser-verified end to end; leak-tested over
       repeated capture and menu cycles
 
-## Phase 7 — Inventory + Economy ← NEXT
+## Phase 7 — Inventory + Economy + Healing ✅
+- [x] `EconomySystem` — the only thing that changes money; never negative, always whole
+- [x] `ItemEffects` — one shared executor for battle AND overworld item use,
+      returning structured results so a refusal never consumes anything
+- [x] `HealingSystem` — one definition of "put them back together", used by the
+      Mender and by blackout recovery
+- [x] `ShopSystem` — atomic buying and selling; a deal either completes or does nothing
+- [x] `BlackoutSystem` — the defeat rule, with `blackoutOnDefeat` as battle configuration
+- [x] Bag screen with category tabs, quantities, descriptions and disabled reasons
+- [x] Overworld item use with a party target list, staying open for repeat use
+- [x] Supply Post buying and selling, data-driven stock (`src/data/shops.js`)
+- [x] Mender's Hall restores HP, PP and status, and sets the recovery point
+- [x] Real blackout: configured money loss, full recovery, wake at the recovery point
+- [x] Practice defeats stay consequence-free, by configuration not by NPC name
+- [x] Burn Salve, Rouser and Clear Tonic complete the status cures
+- [x] `debug.orbs/item/money` and the existing party tools cover the new flows
+- [x] 1791 automated tests; browser-verified end to end; leak-tested over
+      repeated bag, shop and blackout cycles
+
+## Phase 8 — Trainers ← NEXT
 
 ## Phase 7 — Inventory + Economy
 - [ ] Item database, inventory with quantities
@@ -177,6 +196,23 @@ Next phase: **Phase 7 — Inventory + Economy**
 - **Encounters were real but had nowhere to go until Phase 5.** The table
   lookup, weighted species pick, level roll and anti-ambush cooldown shipped in
   Phase 2; Phase 5 handed the result to the battle engine. ✅
+
+**Phase 7 deferrals:**
+- **No PP-restoring consumable.** The Mender restores PP, which is what the
+  phase needed; an "Ether" item would have been a new item with no shop to sell
+  it in yet. The effect model has room for one.
+- **No revive item.** A fainted creature is refused by every item with a plain
+  message rather than being quietly half-healed. Reviving belongs with the
+  items that would sell it.
+- **The shop has no confirmation step.** The quantity selector already refuses
+  anything the player cannot afford or does not own, the total is on screen
+  before Confirm, and one press is one transaction — a Yes/No on top of that
+  would be ceremony rather than safety.
+- **Selling is at a flat fraction of the buy price.** `ECONOMY.sellPriceFraction`
+  is the single knob; per-item `sellPrice` is supported but unused.
+- **Only one shop exists.** The Supply Post is the first implementation of a
+  system that takes any number: a new shop is an entry in `src/data/shops.js`
+  plus `action: 'shop:<id>'` on a shopkeeper.
 
 **Phase 6 deferrals:**
 - **Nicknaming is not implemented.** Captured creatures already carry a

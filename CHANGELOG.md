@@ -4,6 +4,139 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 7 — Inventory, Economy and Healing
+
+Money means something, the bag opens, the shop trades, the Mender heals, and
+losing finally has a consequence.
+
+### Added
+
+**Coins** (`EconomySystem`) — the only thing that changes money. "Never
+negative, always a whole number, never more than you can afford" is one rule
+instead of four copies in four screens. It also owns the sell price
+(`ECONOMY.sellPriceFraction` of the buy price unless an item names its own) and
+the blackout loss.
+
+**One item-effect executor** (`ItemEffects`) — the healing formula used to live
+inside BattleScene, which meant the overworld bag would have needed a second
+copy. Both now call the same function, so they cannot disagree about how much a
+Potion heals or when one would be wasted. It returns structured results —
+`{ success, consumed, message, reason, healedHp, curedStatus }` — so a caller
+never guesses from mutated state, and **a refusal is never consumed**.
+
+**One healing implementation** (`HealingSystem`) — used by the Mender and by
+blackout recovery, working on the EXISTING creatures. Instance ids, nicknames,
+levels, experience, moves and met locations all survive a full heal. Storage is
+deliberately left alone.
+
+**Shops** (`ShopSystem` + `src/data/shops.js`) — every transaction is atomic: it
+takes the money AND gives the goods, or changes nothing. There is no path that
+charges without delivering. Stock is data and prices come from the items, so a
+price is never written down twice.
+
+**The bag** (pause menu → Bag) — category tabs with counts, quantities,
+descriptions, and *why* something cannot be used rather than a silent no-op. An
+orb reads "in battle only" and refusing it costs nothing. Healing items open a
+target list built in the same shape as the party screen, and it stays open after
+a use so patching up a party is not one trip per Potion.
+
+**The Supply Post** — Buy and Sell, each showing name, price and how many are
+held, with a quantity selector that stops at what can actually be afforded or
+sold. An offer the shop would refuse is never presented. One press is one
+transaction, and the quantity resets after a deal, so holding Confirm cannot buy
+a shelf-full.
+
+**The Mender's Hall is real** — `action: 'heal'` restores the whole party's HP,
+every move's PP and any status, and makes the Hall the player's recovery point.
+Free, as its own sign has said since Phase 2. A second Hall in a later town
+needs no code.
+
+**Blackout** replaces the Phase 4 placeholder. Losing a battle that carries
+consequences takes the configured fraction of the player's coins exactly once,
+restores the party, and fades to the recovery point through the ordinary door
+machinery — so waking up cannot land inside a wall or on top of an exit.
+
+**Whether a defeat has consequences is battle configuration**, not a question
+about which NPC you fought: `blackoutOnDefeat`, defaulting to true for
+everything but practice. The Lodge bouts set it false and patch the party up on
+the spot instead, so testing the battle system still costs nothing and never
+strands the player with a fainted team. Phase 8's trainers turn it on by setting
+a flag.
+
+**New items** — Burn Salve, Rouser and Clear Tonic complete the cures for all
+four statuses the battle system inflicts. Key items are marked unsellable.
+
+### Rules chosen and documented
+
+- **Sell price:** half the buy price (`ECONOMY.sellPriceFraction`).
+- **Blackout loss:** `floor(money * 0.05)`, capped at what the player has, taken
+  exactly once. A player with nothing loses nothing.
+- **Healing is free** at the starting town's Mender's Hall.
+- **Starting money is 800**, a Potion is 200 and a Basic Orb 150 — four potions
+  and change, or two potions and three orbs. A real choice, not a shopping
+  spree.
+- **The starting shelf excludes** Super Potions and the stronger orbs. Stock is
+  the knob that controls availability, independently of what exists.
+- **A fainted creature is refused by every item**, plainly, rather than being
+  quietly half-healed.
+
+### Changed
+
+- `isItemUsableInBattle` and the battle bag now go through `ItemEffects`;
+  behaviour is unchanged.
+- The pause menu's root gained **Bag**, so it now reads Party / Bag / Index /
+  Storage / Close.
+- `GameState.respawn` became a real recovery point: a map id and a NAMED spawn
+  point rather than raw coordinates.
+
+### Verification
+
+- **1791 automated tests** pass (was 1645). New: 146 covering money, sell
+  prices, the blackout penalty, the bag, every item's data, item use and its
+  refusals, shop data, buying, selling, healing, the recovery point and blacking
+  out.
+- **Lint clean; production build succeeds.**
+- **Browser-verified against the production build**, 85/85 checks, zero console
+  errors: buying one and several with exact totals, unaffordable purchases
+  changing nothing, selling and the sell cap, the bag's categories and refusals,
+  healing for exactly the right amount, a wasted heal consuming nothing, curing
+  status, the Mender restoring HP/PP/status while keeping the same individual,
+  the recovery point moving, a practice defeat costing nothing, a wild defeat
+  blacking out for exactly 5% with party, bag and flags intact, and the battle
+  bag and overworld bag agreeing on one orb count.
+- **Screens inspected:** buy, sell, bag, target list, Mender and the blackout
+  arrival all render correctly — readable, nothing clipped, nothing at the world
+  origin, small interiors still centred.
+- **Stress test:** five bag cycles, five shop cycles and five blackout cycles,
+  plus twelve menu open/close cycles, leave display objects, update lists,
+  tweens, timers, textures, animations, keyboard keys, key and camera listeners,
+  player step listeners and scene instances unchanged, at ~42 fps, still able to
+  shop and use the bag afterwards.
+- **Phases 1–6 re-verified** on the same build: playthrough 10/10, world 34/34,
+  items and flags 18/18, starter chooser 22/22, starters 60/60, practice battles
+  27/27, switching and status 15/15, progression 33/33, encounters 41/41,
+  controlled encounters 13/13, capture and menus 65/65, and every earlier leak
+  check.
+
+### Fixed
+
+- Two data-integrity tests needed the Phase 7 additions and were made stronger
+  rather than merely widened: the item-effect check now reads the
+  implementation's own `SUPPORTED_ITEM_EFFECTS` instead of a list copied into
+  the test, and the dialogue-action check now validates that `shop:<id>` names a
+  shop that really exists.
+
+### Known limitations
+
+- No PP-restoring consumable and no revive item; the Mender covers PP, and a
+  fainted creature is refused plainly.
+- The shop has no separate Yes/No step — the total is on screen before Confirm,
+  and the selector already refuses anything unaffordable.
+- Storage is still the Phase 6 summary.
+- Save/load remains Phase 10; all new state is plain serialisable data.
+
+---
+
 ## Phase 6 — Capture and Party Management
 
 The loop closes. Leave town, find something in the grass, wear it down, throw an
