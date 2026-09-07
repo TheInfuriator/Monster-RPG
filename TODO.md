@@ -2,8 +2,8 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 5 — Wild Encounters** ✅ complete
-Next phase: **Phase 6 — Capture + Party**
+Current phase: **Phase 6 — Capture + Party** ✅ complete
+Next phase: **Phase 7 — Inventory + Economy**
 
 ---
 
@@ -109,10 +109,26 @@ Next phase: **Phase 6 — Capture + Party**
 - [x] 1554 automated tests; browser-verified end to end; leak-tested over
       repeated encounter cycles
 
-## Phase 6 — Capture + Party ← NEXT
-- [ ] Capture orbs and capture probability
-- [ ] Party screen, creature detail screen
-- [ ] Storage box for overflow
+## Phase 6 — Capture + Party ✅
+- [x] `CaptureCalculator` — an original formula from catch rate, HP, status and orb
+- [x] Three orb tiers as data (Basic x1, Great x1.5, Ultra x2); adding a tier is
+      one entry in items.js
+- [x] Shakes ARE the roll: four checks at `chance**(1/4)`, so what is watched is
+      what happened
+- [x] Capture is a real engine action — `allowCapture` (wild only by default)
+      decides it, the engine spends the orb, a refusal costs nothing
+- [x] Failed throw costs the turn; a catch ends the battle at once
+- [x] The captured creature is the creature that was fought — never rebuilt
+- [x] Party capacity of six, with storage taking the overflow safely
+- [x] `CreatureIndex` — seen/caught with one API, validated species ids
+- [x] Pause menu (Cancel) with Party, Index, Storage
+- [x] Party screen with HP bars, types, status and keyboard reordering
+- [x] Creature summary — stats, EXP progress, moves with PP, met location, evolution
+- [x] `debug.orbs/fillParty/reorder/storage/seen/caught/index/clearIndex`
+- [x] 1645 automated tests; browser-verified end to end; leak-tested over
+      repeated capture and menu cycles
+
+## Phase 7 — Inventory + Economy ← NEXT
 
 ## Phase 7 — Inventory + Economy
 - [ ] Item database, inventory with quantities
@@ -161,6 +177,23 @@ Next phase: **Phase 6 — Capture + Party**
 - **Encounters were real but had nowhere to go until Phase 5.** The table
   lookup, weighted species pick, level roll and anti-ambush cooldown shipped in
   Phase 2; Phase 5 handed the result to the battle engine. ✅
+
+**Phase 6 deferrals:**
+- **Nicknaming is not implemented.** Captured creatures already carry a
+  `nickname` field, the summary and every message use it when it is set, and
+  `createCreature(id, level, { nickname })` fills it in — but there is no
+  on-screen text entry yet. A keyboard text-input widget is a screen's worth of
+  work on its own (character grid, cursor, validation, backspace) and would have
+  doubled this phase; it belongs with the other UI in a later pass.
+- **Storage is a summary, not a manager.** You can see what is waiting and that
+  is all: no withdrawing, depositing, releasing or box organising. Nothing is
+  ever lost — the list is a plain serialised array — but moving a creature back
+  into the party needs a screen that is really Phase 11's job.
+- **A capture awards no experience.** The creature is the reward; paying both
+  would make catching strictly better than fighting.
+- **No capture-rate items or field effects** (repels, lures, status-inflicting
+  throws). The formula has one knob per input and `CAPTURE.globalModifier` for
+  the whole game, which is where any of those would hang.
 
 **Phase 5 deferrals:**
 - **Capture is still Phase 6.** Orbs appear in the wild-battle bag listed as

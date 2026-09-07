@@ -6,13 +6,13 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 5 (Wild Encounters) complete.**
-> Start a new game, explore Emberhollow, choose your first Aether from Professor
-> Wick, then head north to Route 1 and **walk into the tall grass**. Wild Aethers
-> ambush you for real: type matchups, status conditions, switching, items,
-> running, experience, level-ups, new moves and evolution all work, and when the
-> fight ends you are put back on the exact tile you left. Catching them is next —
-> see [TODO.md](TODO.md).
+> **Status: Phase 6 (Capture + Party) complete — the core loop is playable.**
+> Start a new game, take a starter from Professor Wick, walk north into Route 1's
+> tall grass, wear something down, **throw an orb and keep it**. Then open the
+> menu, look your new Aether over, put it at the front of your team and go back
+> out. Battles, status, switching, running, experience, level-ups, new moves,
+> evolution, catching, storage and the Aether Index all work. Shops and healing
+> centres are next — see [TODO.md](TODO.md).
 
 ---
 
@@ -99,7 +99,9 @@ src/
     DialogueResolver.js Picks which lines an NPC says right now
     InteractionSystem.js What the player is pressing the button at
     EncounterSystem.js Every rule about whether a step turns something up
-    WildBattle.js      Turning an encounter into a battle configuration
+    WildBattle.js      Turning an encounter into a battle, and taking delivery
+                       of anything caught
+    CreatureIndex.js   What has been seen and what has been caught
     InventorySystem.js The bag
     TypeChart.js       How much a move type hurts a creature type
     StatCalculator.js  Stats, growth curves and experience thresholds
@@ -321,6 +323,70 @@ To poke at it from the browser console: `debug.encounter()` arms the next grass
 step, `debug.encounterRate(1)` makes every step certain, `debug.encountersOff()`
 switches them off, and `debug.encounterInfo()` prints the table, rate and
 cooldown for the map you are standing on.
+
+### Catch something
+
+Wear a wild Aether down, open the Bag in battle and throw an orb. The odds are:
+
+    chance = catchRate/255 * (1 - hpFraction*0.7) * statusBonus * orbModifier
+
+clamped to 1%..95%. Full health is caught at 30% of a species' base chance, half
+health at 65%, and one point of HP left at ~100%, so weakening something first is
+the biggest thing you can do. Sleep doubles the odds, paralysis multiplies by
+1.5, poison and burn by 1.3. A fainted creature cannot be caught at all.
+
+The orb shakes up to four times, and each shake is a real check at
+`chance ** (1/4)` — passing all four *is* the catch. Nothing decides the result
+and then picks an animation to match; there is one roll sequence and both come
+out of it.
+
+Throwing is your action for the turn. Catch it and the battle ends at once; miss
+and the opponent gets its hit in. A throw that was never legal — a practice
+battle, an empty bag, a fainted target — costs neither the orb nor the turn.
+
+**Add an orb tier:**
+
+```js
+// items.js
+ultraOrb: {
+  id: 'ultraOrb', name: 'Ultra Orb', category: 'capture',
+  description: 'The finest orb a Warden can carry.',
+  price: 1200,
+  effect: { type: 'capture', modifier: 2 },   // 2 = twice as likely
+},
+```
+
+Nothing in the code names an individual orb, so that entry is the whole change.
+
+**Make a species easier or harder to catch:** change its `catchRate` in
+`src/data/creatures.js`. It runs 1..255 — Route 1's commons are 255, its rare
+Emberfly is 120, the starter lines are 45.
+
+### The menu
+
+Press **Cancel** (Escape) in the overworld.
+
+| Screen | Keys |
+|--------|------|
+| Root | Up/Down choose · Confirm open · Cancel close |
+| Party | Up/Down choose · Confirm summary · **Shift move** · Cancel back |
+| Moving a creature | Up/Down pick a slot · Confirm swap · Cancel put it back |
+| Summary | Left/Right another creature · Cancel back |
+| Index | Up/Down scroll · Cancel back |
+
+The first party slot is the creature that goes out first, so reordering matters
+straight away. Cancelling a move changes nothing — nothing has moved until you
+confirm it.
+
+Six Aethers travel with you. Catch a seventh and it goes to **storage**
+automatically, and the game says so; you are never asked to throw one away
+mid-battle. Storage is a summary in this build — you can see what is waiting,
+not move it back yet.
+
+The **Aether Index** fills itself in: a creature is *seen* the moment it stands
+on the battlefield in any kind of battle, and *caught* when you catch one or are
+given one (your starter counts). An unseen species shows only its number, a seen
+one its name and types, and a caught one its write-up too.
 
 ### Add a tile type
 
@@ -643,15 +709,17 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-1554 tests covering map parsing, collision, spawn fallbacks, map validation, game
+1645 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, inventory operations,
 interaction targeting, type effectiveness, the move and creature databases, stat
 and experience maths, the creature factory, the party, the starter-selection
 rules, the whole battle system — damage, accuracy, crits, turn order, stat
 stages, status conditions, every move effect, experience, level-ups, move
-learning and evolution — and the whole wild-encounter pipeline: the rate, the
+learning and evolution — the whole wild-encounter pipeline: the rate, the
 weighted tables, the level ranges, the step-based cooldown, every situation that
-suppresses an encounter, and the battle a successful roll produces.
+suppresses an encounter, and the battle a successful roll produces — and
+catching: the odds, the shakes, when an orb is and is not spent, what a capture
+does to the battle, the party and its storage overflow, and the Aether Index.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -666,6 +734,9 @@ every map you add. They catch, without you writing a line of test code:
 - an encounter table naming a species that does not exist
 - a level range that is backwards, fractional or outside the game's bounds
 - an encounter weight that is zero or negative, or an empty table
+- a capture item with a missing or unusable modifier
+- a creature whose catch rate is outside the scale the formula expects
+- an index entry pointing at a species that does not exist
 - an NPC with nothing to say to a brand new player
 - a tile with no artwork, or a key binding Phaser does not recognise
 - a move with an unknown type, impossible accuracy or malformed effect

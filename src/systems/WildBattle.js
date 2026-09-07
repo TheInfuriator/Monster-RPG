@@ -26,9 +26,12 @@ import { gameState } from '../core/GameState.js';
  * @param {{species: string, level: number}} encounter from EncounterSystem
  * @param {object[]} playerParty the live party from GameState — passed through,
  *   never copied, so experience, damage and evolution land on the real team
+ * @param {object} [options]
+ * @param {string} [options.metAt] where this is happening, recorded on the
+ *   creature now so it is already right if the player catches it
  * @returns {object|null} a BattleEngine config, or null if it cannot be built
  */
-export function createWildBattleConfig(encounter, playerParty) {
+export function createWildBattleConfig(encounter, playerParty, options = {}) {
   if (!encounter || !encounter.species) {
     console.warn('[WildBattle] Asked for a battle with no encounter.');
     return null;
@@ -42,7 +45,9 @@ export function createWildBattleConfig(encounter, playerParty) {
   // CreatureFactory is the only thing that builds creatures — a wild Aether is
   // an ordinary creature with real stats, moves and artwork, not a battle-only
   // stand-in. It also clamps a silly level rather than trusting the caller.
-  const opponent = createCreature(encounter.species, encounter.level);
+  const opponent = createCreature(encounter.species, encounter.level, {
+    metAt: options.metAt ?? null,
+  });
   if (!opponent) return null;
 
   return {

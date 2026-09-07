@@ -199,7 +199,9 @@ export function installDebugTools(game) {
 
       // Built through the same pipeline a real ambush uses, so what you test
       // here is what the grass does.
-      const config = createWildBattleConfig({ species, level }, gameState.party);
+      const config = createWildBattleConfig({ species, level }, gameState.party, {
+        metAt: scene.map.name,
+      });
       if (!config) return null;
 
       scene.launchBattle(config);

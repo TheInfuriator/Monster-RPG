@@ -4,6 +4,139 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 6 — Capture and Party Management
+
+The loop closes. Leave town, find something in the grass, wear it down, throw an
+orb, keep it, look it over, and put it at the front of your team.
+
+### Added
+
+**Catching things** (`src/systems/battle/CaptureCalculator.js`)
+
+Our own formula, documented at the top of the file:
+
+    chance = catchRate/255              how catchable the species is
+           * (1 - hpFraction * 0.7)     how hurt it is
+           * statusBonus                whether it can struggle
+           * orbModifier                what you threw
+           * globalModifier             one knob for the whole game
+
+clamped to 1%..95% — nothing is hopeless, nothing is certain. Full health is
+caught at 30% of a species' base chance, half health 65%, and one point of HP
+left at ~100%, so weakening something first is the biggest lever the player has.
+Sleep doubles the odds, paralysis x1.5, poison and burn x1.3.
+
+**The shakes are the roll.** A throw performs four checks at `chance**(1/4)`;
+passing all four IS the capture. The overall odds come out exactly `chance` and
+the number of wobbles watched is genuinely how close it came — the animation is
+never decided separately from the result. A test throws 6000 orbs and confirms
+the observed rate matches the stated one.
+
+**Orbs as data** — Basic (x1), Great (x1.5) and the new Ultra (x2). Nothing in
+the code names an individual orb; a new tier is one entry in `items.js` with a
+new modifier.
+
+**Capture is a battle action, not a menu trick.** `allowCapture` on the battle
+config decides whether orbs may be thrown — wild battles by default, and a
+scripted battle can turn it off — and nothing checks an NPC, a map or a scene
+name. The engine spends the orb itself, because whether a throw was legitimate
+is a battle rule:
+
+- a legitimate throw is the player's action for the turn
+- catch it and the battle ends at once; the opponent never answers
+- miss and the opponent attacks, exactly like a failed escape
+- a refusal (wrong battle, empty bag, fainted target, not an orb) costs neither
+  the item nor the turn
+
+The creature received is the creature fought — same object, same level, HP, PP,
+moves, status, nickname field, met location and instance id. Nothing rebuilds
+it. Wild creatures now record the route they were met on, so a caught one
+already knows where it came from.
+
+**Party, storage and the index**
+
+- `PartySystem` gains `movePartyMember`, `removeFromParty`, `isValidPartyIndex`
+  and the storage reads. Every reorder is all-or-nothing; an invalid index
+  changes nothing rather than half-applying.
+- Storage takes the overflow. A seventh capture goes there rather than being
+  dropped, refused, or trading places with something the player would have to
+  choose. Plain data, so it serialises with the save, and repeated captures
+  never overwrite one another.
+- `CreatureIndex` is the new single home for seen/caught:
+  **SEEN** anything that stands on the battlefield, in any battle type;
+  **CAUGHT** capture, or being given one — your starter counts. Caught implies
+  seen, so "caught but not seen" cannot happen. Unknown species ids are refused
+  with a warning instead of quietly creating an entry.
+
+**The pause menu** (`MenuScene`, opened with Cancel)
+
+All four views are ONE scene with a `view` state machine rather than four scenes
+launching each other — one owner of the keyboard, one place that hands control
+back.
+
+- **Party** — artwork, name, level, HP bar and numbers, types, status tag, and
+  the lead slot labelled. Shift picks a creature up, arrows choose a slot,
+  Confirm swaps. Cancelling a move changes nothing, because nothing has changed
+  until it is confirmed.
+- **Summary** — species, nickname, number, level, types, HP, status, EXP with
+  the distance to the next level as a bar, all five stats, every move with type,
+  category, power, accuracy, PP and description, where it was met, and what it
+  evolves into. The instance id is deliberately absent: plumbing, not
+  information.
+- **Index** — every species in number order. Unmet ones keep their number and
+  show "-----"; seen ones show name and types; caught ones add the write-up.
+- **Storage** — a plain list of what is waiting, and a line explaining how
+  creatures get there.
+
+**Debug** — `orbs()`, `fillParty()`, `reorder()`, `storage()`, `seen()`,
+`caught()`, `index()`, `clearIndex()`.
+
+### Changed
+
+- `isItemUsableInBattle(item, { allowCapture })` now takes the battle's own
+  answer rather than assuming. Healing items are unaffected.
+- The Phase 5 test asserting orbs were always refused, and the browser check
+  that expected them greyed out in a wild battle, both now verify the Phase 6
+  intent: enabled where catching is allowed, refused with a reason everywhere
+  else. Their original purpose — orbs are never silently half-working — is
+  unchanged.
+
+### Verification
+
+- **1645 automated tests** pass (was 1554). New: 45 capture tests (odds, shakes,
+  orb spending, battle flow, what comes out of the orb) and 42 party/storage/
+  index tests.
+- **Lint clean; production build succeeds.**
+- **Browser-verified against the production build**, 62/62 checks, zero console
+  errors: a practice battle listing orbs disabled and consuming none, a failed
+  throw spending an orb and giving the opponent its turn, a successful capture
+  ending the battle and returning to the exact tile and facing, the caught
+  creature keeping its species, level, HP and met location, the index marking
+  seen on the encounter and caught on the capture, the whole menu (party,
+  summary with every field, index, storage), reordering being respected by the
+  next battle, and a seventh capture going to storage with its identity intact.
+- **Stress test:** seven full encounter → failed throw → capture → menu → summary
+  → index → overworld cycles, plus twelve menu open/close cycles, leave display
+  objects, update lists, tweens, timers, textures, animations, keyboard keys,
+  key and camera listeners, player step listeners and scene instances unchanged,
+  at ~38 fps, still able to catch afterwards.
+- **Phases 1–5 re-verified** on the same build: playthrough 10/10, world 34/34,
+  items and flags 18/18, starter chooser 22/22, starters for real 60/60,
+  practice battles 27/27, switching and status 15/15, progression 33/33,
+  encounters 41/41, controlled encounters 13/13, and every earlier leak check.
+
+### Known limitations
+
+- **Nicknaming is not implemented.** The field exists and is used everywhere it
+  would appear; there is no on-screen text entry yet.
+- **Storage is a summary, not a manager** — no withdrawing or depositing.
+  Nothing is lost, but moving a creature back into the party is a later screen.
+- A capture awards no experience: the creature is the reward.
+- Losing still revives the party to 1 HP with a message; the Mender's Hall
+  blackout remains Phase 7.
+
+---
+
 ## Phase 5 — Wild Encounters
 
 The grass bites back. Walking through tall grass on Route 1 now drops you into a

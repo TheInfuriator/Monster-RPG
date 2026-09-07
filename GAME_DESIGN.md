@@ -490,3 +490,107 @@ rule sits in `BattleItems.js` on the item's own category, so catching can be
 added there without touching this pipeline. Defeat keeps its Phase 4 behaviour
 (party revived to 1 HP with a plain message); the Mender's Hall blackout is
 Phase 7.
+
+
+---
+
+## 17. Capture, the party and the index (Phase 6)
+
+### The capture formula
+
+    chance = catchRate / 255            how catchable the species is
+           * (1 - hpFraction * 0.7)     how hurt it is
+           * statusBonus                whether it can struggle
+           * orbModifier                what was thrown
+           * globalModifier             one knob for the whole game
+
+clamped to **1%..95%**. Every number lives in `CAPTURE` in `balance.js`; the
+formula itself is `src/systems/battle/CaptureCalculator.js` and nothing else
+computes capture odds.
+
+| Input | Effect |
+|-------|--------|
+| Full HP | x0.30 — catching something untouched is meant to be a long shot |
+| Half HP | x0.65 |
+| 1 HP | ~x1.00 |
+| Fainted | impossible: it is beaten, not caught |
+| Sleep | x2.0 |
+| Paralysis | x1.5 |
+| Poison / Burn | x1.3 |
+| Basic Orb | x1 |
+| Great Orb | x1.5 |
+| Ultra Orb | x2 |
+
+**Tuning a species** is one number: `catchRate` in `src/data/creatures.js`, on a
+1..255 scale. Route 1's commons sit at 255, its rare Emberfly at 120, and the
+starter lines at 45. **Adding an orb tier** is one entry in `src/data/items.js`
+with `effect: { type: 'capture', modifier: N }` — no code names an orb.
+
+### The shakes
+
+A throw performs `CAPTURE.shakeChecks` (4) checks, each at `chance ** (1/4)`.
+Passing all four IS the capture, so:
+
+- the overall odds are exactly `chance`
+- the wobble count is genuinely how close the throw came
+- **0** broke free at once, **1** almost, **2** so close, **3** agonising,
+  **4** caught
+
+The animation reads the rolled count. It is never decided separately.
+
+### Turn behaviour
+
+Throwing an orb is the player's action for the turn, resolved before anything
+else, exactly like running:
+
+- **Caught** — the battle ends immediately; the opponent never answers.
+- **Missed** — the opponent attacks, then end-of-turn effects run.
+- **Refused** — wrong kind of battle, empty bag, fainted target, not an orb:
+  nothing is spent and the turn is not used.
+
+Whether orbs may be thrown at all is `allowCapture` on the battle config,
+defaulting to wild battles only. Nothing checks an NPC, a map or a scene name.
+
+### Party and storage
+
+Six travel with you. A capture past that goes to **storage**, automatically,
+with a message saying so — the player is never asked to throw one away
+mid-battle, and nothing is ever lost or overwritten. Storage is a plain array on
+GameState, so it serialises with the save. It is a *summary* in Phase 6: you can
+see what is waiting, not move it back.
+
+Reordering is a swap: pick one up with Shift, choose a slot, Confirm. The first
+slot is the creature that goes out first, so the order matters immediately.
+Every reorder is all-or-nothing — an invalid index changes nothing.
+
+### The index
+
+| State | Shows |
+|-------|-------|
+| Unseen | number, `-----`, no types |
+| Seen | number, name, types |
+| Caught | the above plus the species write-up |
+
+**SEEN** is set the moment a creature stands on the battlefield, in any battle
+type — wild, trainer or practice. If it was on the field, you saw it.
+**CAUGHT** is set by catching one, or by being given one; your starter counts.
+Caught implies seen, so "caught but not seen" cannot happen.
+
+All of it goes through `src/systems/CreatureIndex.js` — `markSeen`,
+`markCaught`, `isSeen`, `isCaught`, `getIndexRows` — and no scene writes the
+index directly. Unknown species ids are refused with a warning.
+
+### The menu
+
+Cancel opens it over a paused overworld. Party, Index, Storage, Close.
+
+| Screen | Keys |
+|--------|------|
+| Root | Up/Down choose, Confirm open, Cancel close |
+| Party | Up/Down choose, Confirm summary, **Shift move**, Cancel back |
+| Moving | Up/Down pick a slot, Confirm swap, Cancel put it back |
+| Summary | Left/Right another creature, Cancel back |
+| Index | Up/Down scroll, Cancel back |
+
+All four are one scene with a `view` state machine, so there is one owner of the
+keyboard and one place that hands control back to the world.

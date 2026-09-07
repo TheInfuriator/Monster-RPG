@@ -389,7 +389,9 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    const config = createWildBattleConfig(encounter, gameState.party);
+    const config = createWildBattleConfig(encounter, gameState.party, {
+      metAt: this.map.name,
+    });
     if (!config) {
       console.error(
         `[World] Could not build a wild battle for "${encounter.species}".`

@@ -265,6 +265,18 @@ describe('building a wild battle', () => {
     error.mockRestore();
   });
 
+  it('records where the creature was met, so a capture already knows', () => {
+    const config = createWildBattleConfig({ species: 'nibbit', level: 3 }, party(), {
+      metAt: 'Route 1 — Cinderpath',
+    });
+    expect(config.opponentParty[0].metAt).toBe('Route 1 — Cinderpath');
+  });
+
+  it('leaves the met location unrecorded when nobody says where', () => {
+    const config = createWildBattleConfig({ species: 'nibbit', level: 3 }, party());
+    expect(config.opponentParty[0].metAt).toBeNull();
+  });
+
   it('joins straight onto a rolled encounter', () => {
     const system = new EncounterSystem('route1', alwaysLucky);
     const encounter = system.step({ onEncounterTile: true });
