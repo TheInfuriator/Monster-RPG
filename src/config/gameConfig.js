@@ -28,6 +28,7 @@ export const SCENES = {
   WORLD: 'WorldScene',
   STARTER_SELECT: 'StarterSelectScene',
   BATTLE: 'BattleScene',
+  MENU: 'MenuScene',
 };
 
 /**

@@ -565,6 +565,36 @@ export class WorldScene extends Phaser.Scene {
     this.npcManager.setAllBusy(false);
   }
 
+  /** True when pressing Cancel should open the pause menu. */
+  canOpenMenu() {
+    if (this.isTransitioning || this.isEnteringBattle) return false;
+    if (this.player.inputLocked) return false;
+    if (this.dialogueBox.isOpen) return false;
+    return !this.scene.isActive(SCENES.MENU) && !this.scene.isActive(SCENES.BATTLE);
+  }
+
+  /**
+   * Open the pause menu — party, index and storage — over a paused overworld.
+   *
+   * Paused rather than restarted, exactly like a battle, so the map, the tile
+   * and the facing are untouched. `releasePlayer()` drops the key press that
+   * closed the menu, so it cannot also count as "talk to whoever is in front
+   * of me".
+   */
+  openMenu() {
+    this.player.inputLocked = true;
+    this.player.stopMovement();
+    this.npcManager.setAllBusy(true);
+
+    this.scene.pause();
+    this.scene.launch(SCENES.MENU, {
+      onFinished: () => {
+        this.scene.resume();
+        this.releasePlayer();
+      },
+    });
+  }
+
   /**
    * Open the starter chooser as an overlay scene.
    * The world keeps running underneath but the player stays frozen, so their
@@ -719,6 +749,13 @@ export class WorldScene extends Phaser.Scene {
 
     if (!this.isTransitioning && this.controls.justPressed('confirm')) {
       this.handleInteract();
+    }
+
+    // The pause menu. Only when the player is actually in control — never
+    // mid-transition, mid-cutscene or with something else on screen.
+    if (this.canOpenMenu() && this.controls.justPressed('cancel')) {
+      this.openMenu();
+      return;
     }
 
     this.player.update(this.controls);
