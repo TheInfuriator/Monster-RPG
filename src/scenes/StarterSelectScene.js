@@ -32,6 +32,7 @@ import { STARTER_IDS, STARTER_LEVEL, getSpecies } from '../data/creatures.js';
 import { getTypeName } from '../data/types.js';
 import { getTypeColor } from '../systems/TypeChart.js';
 import { createCreature } from '../systems/CreatureFactory.js';
+import { markCaught } from '../systems/CreatureIndex.js';
 import { addToParty } from '../systems/PartySystem.js';
 import { gameState, setFlag, hasFlag } from '../core/GameState.js';
 
@@ -300,6 +301,10 @@ export class StarterSelectScene extends Phaser.Scene {
       this.close(null);
       return;
     }
+
+    // A creature you were given is a creature you own: the index counts your
+    // starter as caught, and the API makes it seen at the same time.
+    markCaught(speciesId);
 
     setFlag(STARTER_FLAG);
     console.info(

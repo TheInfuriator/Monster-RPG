@@ -11,9 +11,16 @@
  */
 
 import { gameState, setFlag } from '../core/GameState.js';
-import { createCreature, fullyHeal, recalculateStats } from './CreatureFactory.js';
+import {
+  createCreature, fullyHeal, recalculateStats, getDisplayName,
+} from './CreatureFactory.js';
 import { createWildBattleConfig } from './WildBattle.js';
-import { giveCreature, describeParty } from './PartySystem.js';
+import {
+  giveCreature, describeParty, listStorage, getStorageCount, swapPartyMembers,
+} from './PartySystem.js';
+import {
+  markSeen, markCaught, isSeen, isCaught, countSeen, countCaught, countSpecies,
+} from './CreatureIndex.js';
 import { addItem } from './InventorySystem.js';
 import { grantExperience } from './battle/ExperienceSystem.js';
 import { experienceForLevel } from './StatCalculator.js';
@@ -21,6 +28,8 @@ import { CREATURE_IDS, getSpecies } from '../data/creatures.js';
 import { STATUS_IDS } from '../data/statuses.js';
 import { SCRIPTED_BATTLES } from '../data/battles.js';
 import { MAPS } from '../data/maps/index.js';
+import { getItem } from '../data/items.js';
+import { PARTY } from '../config/balance.js';
 import { SCENES } from '../config/gameConfig.js';
 
 /** The currently running overworld scene, or null. */
@@ -71,6 +80,12 @@ export function installDebugTools(game) {
           '  debug.encountersOff(true/false) turn wild encounters off / on',
           '  debug.encounterRate(0..1)       set the chance per step',
           '  debug.encounterInfo()           table, rate and cooldown for this map',
+          '  debug.orbs(id, quantity)        give capture orbs',
+          '  debug.fillParty(species, level) fill the party to six',
+          '  debug.reorder(a, b)             swap two party slots',
+          '  debug.storage()                 list everything in storage',
+          '  debug.seen(id) / .caught(id)    record index entries by hand',
+          '  debug.index() / .clearIndex()   index progress, or wipe it',
           '  debug.trainer(id)               start a scripted battle',
           '  debug.teleport(mapId, spawn)    change map',
           '  debug.species()                 list every species id',
@@ -85,6 +100,7 @@ export function installDebugTools(game) {
       const creature = createCreature(species, level);
       if (!creature) return null;
 
+      markCaught(species);
       const { destination } = giveCreature(gameState, creature);
       console.info(`[debug] ${species} Lv${level} -> ${destination}`);
       return creature;
@@ -248,6 +264,76 @@ export function installDebugTools(game) {
       }
       scene.startScriptedBattle(id);
       return id;
+    },
+
+    // --- Party, storage and the index -----------------------------------
+    /** Fill the party to its maximum with throwaway creatures. */
+    fillParty(species = 'nibbit', level = 5) {
+      while (gameState.party.length < PARTY.maxSize) {
+        const creature = createCreature(species, level);
+        if (!creature) break;
+        markCaught(species);
+        gameState.party.push(creature);
+      }
+      console.info(`[debug] party -> ${describeParty(gameState)}`);
+      return gameState.party.length;
+    },
+
+    /** Swap two party slots, the way the party menu does. */
+    reorder(a = 0, b = 1) {
+      const ok = swapPartyMembers(gameState, a, b);
+      console.info(ok ? `[debug] swapped ${a} and ${b}` : '[debug] invalid slots');
+      return describeParty(gameState);
+    },
+
+    /** Everything waiting in storage. */
+    storage() {
+      const rows = listStorage(gameState).map(
+        (c) => `${getDisplayName(c)} L${c.level} ${c.currentHp}/${c.stats.hp} (${c.instanceId})`
+      );
+      console.info(`[debug] storage (${getStorageCount(gameState)}):`, rows);
+      return rows;
+    },
+
+    /** Give orbs. Any capture item id works — see src/data/items.js. */
+    orbs(id = 'basicOrb', quantity = 10) {
+      const item = getItem(id);
+      if (!item || item.category !== 'capture') {
+        console.warn(`[debug] "${id}" is not a capture item.`);
+        return null;
+      }
+      addItem(gameState.inventory, id, quantity);
+      console.info(`[debug] +${quantity} ${item.name}`);
+      return gameState.inventory;
+    },
+
+    /** Record a species as seen or caught without meeting it. */
+    seen(species) {
+      markSeen(species);
+      return { seen: isSeen(species), caught: isCaught(species) };
+    },
+
+    caught(species) {
+      markCaught(species);
+      return { seen: isSeen(species), caught: isCaught(species) };
+    },
+
+    /** Wipe the index back to a brand-new game. */
+    clearIndex() {
+      gameState.creatureIndex = { seen: {}, caught: {} };
+      console.info('[debug] index cleared');
+      return gameState.creatureIndex;
+    },
+
+    /** How much of the index is filled in. */
+    index() {
+      const info = {
+        seen: countSeen(),
+        caught: countCaught(),
+        total: countSpecies(),
+      };
+      console.info('[debug] index:', info);
+      return info;
     },
 
     // --- World ---------------------------------------------------------
