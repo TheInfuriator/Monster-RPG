@@ -146,6 +146,16 @@ export const BATTLE_UI = {
   messagePause: 260,
 };
 
+/** Timings for the capture sequence. Short — an orb should feel tense, not slow. */
+export const CAPTURE_UI = {
+  /** How long one wobble of the orb takes. */
+  shakeDuration: 190,
+  /** Still moment between wobbles. */
+  shakeGap: 130,
+  /** The beat before the orb clicks shut on a successful catch. */
+  clickPause: 260,
+};
+
 export const STATUS = {
   /** Fraction of max HP lost at end of turn while poisoned. */
   poisonDamageFraction: 1 / 8,
@@ -185,14 +195,54 @@ export const ECONOMY = {
   sellPriceFraction: 0.5,
 };
 
+/**
+ * Catching wild Aethers. The formula itself is documented in
+ * `src/systems/battle/CaptureCalculator.js`; these are its knobs.
+ *
+ *   chance = (catchRate / catchRateScale)      how catchable the species is
+ *          * (1 - hpFraction * hpWeight)       how hurt it is
+ *          * statusBonus[status]               whether it is slowed or asleep
+ *          * orb modifier                      which orb you threw
+ *          * globalModifier                    a thumb on the scale for everyone
+ */
 export const CAPTURE = {
   /**
    * Scales the whole capture formula. Raise it to make catching easier across the
    * board without editing every creature's individual catch rate.
    */
   globalModifier: 1.0,
-  /** How many shake checks a capture attempt performs before succeeding. */
-  shakeChecks: 3,
+  /**
+   * The catch rate a "always catchable" species has. Rates are stored per
+   * species in creatures.js on a 1..255 scale, so this divides them into 0..1.
+   */
+  catchRateScale: 255,
+  /**
+   * How much full health protects a creature. At 0.7, a creature at full HP is
+   * caught at 30% of its base chance and one on its last point of HP at ~100%.
+   * Lower it to make weakening matter less.
+   */
+  hpWeight: 0.7,
+  /**
+   * Multipliers for a major status. Sleep is the big one — a sleeping creature
+   * cannot struggle out of the orb. Poison and burn help a little because the
+   * creature is already worn down.
+   */
+  statusBonuses: {
+    sleep: 2.0,
+    paralysis: 1.5,
+    poison: 1.3,
+    burn: 1.3,
+  },
+  /** Nothing is ever hopeless, and nothing is ever a certainty. */
+  minChance: 0.01,
+  maxChance: 0.95,
+  /**
+   * How many checks a thrown orb performs. Each one is a shake; passing all of
+   * them is a capture. Each check uses `chance ** (1 / shakeChecks)`, so the
+   * overall odds are exactly `chance` and the number of shakes the player sees
+   * is genuinely how close the throw came — it is never decided separately.
+   */
+  shakeChecks: 4,
 };
 
 /**

@@ -13,7 +13,16 @@
  *   category    'healing' | 'capture' | 'battle' | 'key'
  *   description one line, shown in the bag and the shop
  *   price       what a shop charges. 0 means it cannot be bought.
- *   effect      what using it does — read by the item system in Phase 7
+ *   effect      what using it does
+ *
+ * EFFECT TYPES
+ *   { type: 'heal', amount }             restore HP
+ *   { type: 'cureStatus', status }       clear one major status
+ *   { type: 'capture', modifier }        an orb; `modifier` multiplies the
+ *                                        capture chance (1 = plain, 2 = twice
+ *                                        as likely). Nothing in the code names
+ *                                        an individual orb — adding a new tier
+ *                                        is one entry here with a new modifier.
  */
 
 export const ITEMS = {
@@ -64,6 +73,14 @@ export const ITEMS = {
     description: 'A better orb. Catches Aethers more reliably.',
     price: 500,
     effect: { type: 'capture', modifier: 1.5 },
+  },
+  ultraOrb: {
+    id: 'ultraOrb',
+    name: 'Ultra Orb',
+    category: 'capture',
+    description: 'The finest orb a Warden can carry. Catches almost anything.',
+    price: 1200,
+    effect: { type: 'capture', modifier: 2 },
   },
   wardensPass: {
     id: 'wardensPass',

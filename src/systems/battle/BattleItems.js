@@ -7,29 +7,43 @@
  * tested without a browser. The battle screen only asks the question and draws
  * the answer.
  *
- * The rule is about the ITEM, not the kind of battle: a capture orb is refused
- * in a wild fight exactly as it is in a practice bout. That is what lets Phase 6
- * add catching by changing this one function, rather than by touching the
- * encounter pipeline or the battle scene.
+ * Capture is decided by the BATTLE, not by the item and not by the scene: the
+ * engine's `allowCapture` flag (which defaults to "wild battles only") is the
+ * single source of truth. A practice bout and a trainer fight both refuse orbs
+ * for the same reason, without anyone naming an NPC or a scene.
  */
+
+import { getCaptureModifier, CAPTURE_REFUSAL } from './CaptureCalculator.js';
 
 /**
  * @param {object} item an entry from src/data/items.js
+ * @param {object} [context]
+ * @param {boolean} [context.allowCapture] whether THIS battle allows catching
  * @returns {{ok: boolean, reason: string|null}} `reason` is shown to the player
  */
-export function isItemUsableInBattle(item) {
+export function isItemUsableInBattle(item, context = {}) {
   if (!item) return { ok: false, reason: 'This cannot be used in battle.' };
 
-  // Capture orbs are shown but disabled: catching arrives in Phase 6, and a
-  // half-implemented capture would be worse than an honest "not yet". They are
-  // never consumed and no probability is rolled.
   if (item.category === 'capture') {
-    return { ok: false, reason: 'Catching arrives in a later update.' };
+    // An orb with no usable modifier is a data mistake, not a player one.
+    if (getCaptureModifier(item) === null) {
+      return { ok: false, reason: 'This orb does not seem to work.' };
+    }
+    if (!context.allowCapture) {
+      return { ok: false, reason: CAPTURE_REFUSAL.NOT_WILD };
+    }
+    return { ok: true, reason: null };
   }
+
   if (item.category === 'key') {
     return { ok: false, reason: 'This cannot be used in battle.' };
   }
   if (!item.effect) return { ok: false, reason: 'This cannot be used in battle.' };
 
   return { ok: true, reason: null };
+}
+
+/** True when using this item means throwing it at the opponent. */
+export function isCaptureItem(item) {
+  return Boolean(item) && item.category === 'capture';
 }

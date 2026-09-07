@@ -7,7 +7,10 @@
  * that goes to storage. Everything here works on plain arrays of plain objects,
  * so the whole party serialises straight into a save file.
  *
- * Phase 3 needs only the data foundation. The party MENU arrives in Phase 6.
+ * STORAGE is the overflow: anything caught while six creatures are already
+ * travelling is put there instead. It is a plain array on GameState, so it
+ * serialises with everything else, and nothing is ever dropped or overwritten
+ * to make room.
  */
 
 import { PARTY } from '../config/balance.js';
@@ -44,8 +47,31 @@ export function addToParty(state, creature) {
 /** Put a creature in storage, for when the party is full. */
 export function addToStorage(state, creature) {
   if (!creature) return false;
+  if (!state.storage) state.storage = [];
+
   state.storage.push(creature);
   return true;
+}
+
+/** How many creatures are waiting in storage. */
+export function getStorageCount(state) {
+  return state.storage ? state.storage.length : 0;
+}
+
+/** Everything in storage, oldest first. A copy, so callers cannot reorder it. */
+export function listStorage(state) {
+  return state.storage ? [...state.storage] : [];
+}
+
+/** Find a stored creature by its instance id. */
+export function findInStorage(state, instanceId) {
+  if (!state.storage) return null;
+  return state.storage.find((creature) => creature.instanceId === instanceId) || null;
+}
+
+/** Find a creature anywhere the player keeps them. */
+export function findCreature(state, instanceId) {
+  return findInParty(state, instanceId) || findInStorage(state, instanceId);
 }
 
 /**
@@ -93,14 +119,58 @@ export function findInParty(state, instanceId) {
 
 /**
  * Swap two party members, for reordering in the party menu.
- * @returns {boolean} false if either index is out of range
+ *
+ * Swapping rather than shuffling keeps the operation obvious: exactly two
+ * slots change, everyone else stays put, and the creature objects themselves
+ * are untouched — the same individuals, in a different order.
+ *
+ * @returns {boolean} false if either index is out of range, in which case
+ *   NOTHING changes. An invalid reorder is a no-op, never a partial one.
  */
 export function swapPartyMembers(state, indexA, indexB) {
   const { party } = state;
-  const valid = (i) => Number.isInteger(i) && i >= 0 && i < party.length;
-  if (!valid(indexA) || !valid(indexB) || indexA === indexB) return false;
+  if (!isValidPartyIndex(state, indexA)) return false;
+  if (!isValidPartyIndex(state, indexB)) return false;
+  if (indexA === indexB) return false;
 
   [party[indexA], party[indexB]] = [party[indexB], party[indexA]];
+  return true;
+}
+
+/** True if this index names a real party slot. */
+export function isValidPartyIndex(state, index) {
+  return Number.isInteger(index) && index >= 0 && index < state.party.length;
+}
+
+/**
+ * Take a creature out of the party.
+ *
+ * Refuses to remove the last one: a player with an empty party cannot battle,
+ * and every caller so far would consider that a bug rather than a feature.
+ *
+ * @returns {object|null} the creature removed, or null if nothing was
+ */
+export function removeFromParty(state, index) {
+  if (!isValidPartyIndex(state, index)) return null;
+  if (state.party.length <= 1) return null;
+
+  return state.party.splice(index, 1)[0];
+}
+
+/**
+ * Move a party member to another slot, sliding everyone in between along.
+ * Provided beside `swapPartyMembers` because "put this one first" is a
+ * different intention from "trade these two places".
+ *
+ * @returns {boolean} false (changing nothing) if either index is invalid
+ */
+export function movePartyMember(state, from, to) {
+  if (!isValidPartyIndex(state, from)) return false;
+  if (!isValidPartyIndex(state, to)) return false;
+  if (from === to) return false;
+
+  const [creature] = state.party.splice(from, 1);
+  state.party.splice(to, 0, creature);
   return true;
 }
 

@@ -36,12 +36,18 @@ import { resolveTurnOrder, getEffectiveSpeed } from './TurnResolver.js';
 import { runEffect, rollHitCount, damageCreature } from './MoveEffectRunner.js';
 import { calculateExperienceReward, distributeExperience } from './ExperienceSystem.js';
 import { chooseAction } from './BattleAI.js';
+import {
+  attemptCapture, getCaptureModifier, describeShakes, CAPTURE_REFUSAL,
+} from './CaptureCalculator.js';
+import { getItem } from '../../data/items.js';
+import { getItemCount, removeItem } from '../InventorySystem.js';
 
 /** How a battle can finish. */
 export const BATTLE_RESULT = {
   WIN: 'win',
   LOSS: 'loss',
   FLED: 'fled',
+  CAPTURED: 'captured',
 };
 
 /** Wrap a creature in the per-battle state it needs. */
@@ -76,8 +82,21 @@ export class BattleEngine {
     this.opponentParty = config.opponentParty;
 
     this.canRun = config.canRun ?? this.battleType === 'wild';
+    /**
+     * Whether orbs may be thrown. Defaults to "wild battles only", and a
+     * scripted battle can turn it off explicitly. This flag is the ONLY thing
+     * that decides it — nothing checks an NPC, a map or a scene name.
+     */
+    this.allowCapture = config.allowCapture ?? this.battleType === 'wild';
     this.awardExperience = config.awardExperience ?? true;
     this.rewardMoney = config.rewardMoney ?? 0;
+    /**
+     * The player's bag, as the plain `{ itemId: count }` object GameState
+     * holds. The engine consumes orbs itself, because whether a throw was
+     * legitimate is a battle rule, not a menu one. Defaults to an empty bag so
+     * a test can build an engine without one.
+     */
+    this.inventory = config.inventory || {};
 
     this.player = createBattler(this.firstHealthy(this.playerParty), 'player');
     this.opponent = createBattler(this.firstHealthy(this.opponentParty), 'opponent');
@@ -169,6 +188,12 @@ export class BattleEngine {
     // wasted your turn, and either way no attack of yours happens.
     if (playerAction.type === 'run') {
       return this.resolveRun();
+    }
+
+    // Throwing an orb works the same way: it IS the player's action for the
+    // turn. Catch it and the battle ends there; miss and the opponent hits back.
+    if (playerAction.type === 'capture') {
+      return this.resolveCapture(playerAction);
     }
 
     const opponentAction = this.chooseOpponentAction();
@@ -440,6 +465,113 @@ export class BattleEngine {
 
     for (const text of outcome.messages || []) events.push({ type: 'message', text });
     events.push({ type: 'refresh' });
+    return events;
+  }
+
+  // -------------------------------------------------------------------------
+  // Capture
+  // -------------------------------------------------------------------------
+
+  /**
+   * Can an orb be thrown at all right now, and if not, why not?
+   *
+   * Separated from the throw so the bag can grey an orb out with the same
+   * reasoning that would have refused it, rather than a second guess at it.
+   *
+   * @returns {{ok: boolean, reason: string|null, item: object|null,
+   *            modifier: number}}
+   */
+  canCapture(itemId) {
+    const refuse = (reason, item = null) => ({ ok: false, reason, item, modifier: 0 });
+
+    if (!this.allowCapture) return refuse(CAPTURE_REFUSAL.NOT_WILD);
+
+    const item = getItem(itemId);
+    if (!item) return refuse(CAPTURE_REFUSAL.NO_ITEM);
+
+    const modifier = getCaptureModifier(item);
+    if (modifier === null) return refuse(CAPTURE_REFUSAL.NO_ITEM, item);
+
+    if (getItemCount(this.inventory, itemId) <= 0) {
+      return refuse(CAPTURE_REFUSAL.NONE_LEFT, item);
+    }
+
+    const target = this.opponent?.creature;
+    if (!target) return refuse(CAPTURE_REFUSAL.NO_TARGET, item);
+    if (isFainted(target)) return refuse(CAPTURE_REFUSAL.FAINTED, item);
+
+    return { ok: true, reason: null, item, modifier };
+  }
+
+  /**
+   * Throw an orb at the wild creature.
+   *
+   * TURN RULE: a legitimate throw IS the player's action for the turn. Catch it
+   * and the battle ends immediately — the opponent never gets to answer. Fail
+   * and the opponent attacks, exactly as a failed escape works.
+   *
+   * The orb is consumed only for a throw that actually happens. A refusal — the
+   * wrong kind of battle, an empty bag, a fainted target — costs nothing at all,
+   * not the item and not the turn.
+   */
+  resolveCapture(action) {
+    const events = [];
+    const check = this.canCapture(action.itemId);
+
+    if (!check.ok) {
+      events.push({ type: 'message', text: check.reason });
+      return events;
+    }
+
+    const target = this.opponent.creature;
+    const name = getDisplayName(target);
+
+    // Consume exactly one orb, now that the throw is definitely happening.
+    removeItem(this.inventory, action.itemId, 1);
+
+    events.push({ type: 'message', text: `You threw the ${check.item.name}!` });
+
+    const outcome = attemptCapture({
+      target,
+      modifier: check.modifier,
+      random: this.random,
+    });
+
+    // One event per shake, so the scene can animate exactly what was rolled.
+    events.push({
+      type: 'captureThrow',
+      itemId: action.itemId,
+      shakes: outcome.shakes,
+      captured: outcome.captured,
+      chance: outcome.chance,
+    });
+
+    if (!outcome.captured) {
+      events.push({ type: 'message', text: describeShakes(outcome.shakes) });
+
+      // A failed throw costs the turn. The opponent answers, then end-of-turn
+      // effects run — the same shape as a failed escape.
+      const opponentAction = this.chooseOpponentAction();
+      if (!isFainted(this.opponent.creature)) {
+        events.push(...this.performAction(this.opponent, opponentAction));
+      }
+      events.push(...this.endOfTurn());
+      this.checkForEnd(events);
+      return events;
+    }
+
+    events.push({ type: 'message', text: `Gotcha! ${name} was captured!` });
+
+    // The captured creature is THE creature that was fought — the same object,
+    // with its level, HP, PP, status and instance id intact. Nothing rebuilds
+    // it, so what the player receives is what they weakened.
+    this.result = {
+      outcome: BATTLE_RESULT.CAPTURED,
+      experience: [],
+      money: 0,
+      captured: target,
+    };
+    events.push({ type: 'end', result: this.result });
     return events;
   }
 

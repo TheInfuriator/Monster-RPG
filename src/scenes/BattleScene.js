@@ -23,7 +23,7 @@ import Phaser from 'phaser';
 import {
   SCENES, GAME_WIDTH, GAME_HEIGHT, COLORS, TEXT_STYLES, DEPTHS,
 } from '../config/gameConfig.js';
-import { BATTLE_UI, TEXT_SPEEDS, DIALOGUE } from '../config/balance.js';
+import { BATTLE_UI, CAPTURE_UI, TEXT_SPEEDS, DIALOGUE } from '../config/balance.js';
 import { creatureTextureKey } from '../config/assets.js';
 import { InputManager } from '../core/InputManager.js';
 import { gameState } from '../core/GameState.js';
@@ -38,7 +38,9 @@ import { getTypeColor } from '../systems/TypeChart.js';
 import { getStatus } from '../data/statuses.js';
 import { removeItem, getItemCount } from '../systems/InventorySystem.js';
 import { healCreature } from '../systems/battle/MoveEffectRunner.js';
-import { isItemUsableInBattle } from '../systems/battle/BattleItems.js';
+import { isItemUsableInBattle, isCaptureItem } from '../systems/battle/BattleItems.js';
+import { receiveCapturedCreature } from '../systems/WildBattle.js';
+import { markSeen } from '../systems/CreatureIndex.js';
 import { BattleHud } from '../ui/battle/BattleHud.js';
 import { BattleMenu } from '../ui/battle/BattleMenu.js';
 
@@ -79,7 +81,17 @@ export class BattleScene extends Phaser.Scene {
 
   create() {
     this.controls = new InputManager(this);
-    this.engine = new BattleEngine(this.battleConfig);
+    // The bag goes in first so the engine can spend an orb itself; a config may
+    // still override it, which is what the unit tests do.
+    this.engine = new BattleEngine({
+      inventory: gameState.inventory,
+      ...this.battleConfig,
+    });
+
+    // Anything that stands on the field has been met, whatever kind of battle
+    // this is. The index API owns the rule; this is just the one place that
+    // knows a creature has appeared.
+    markSeen(this.engine.opponent.creature.speciesId);
 
     this.buildBackdrop();
     this.buildCreatures();
@@ -299,6 +311,10 @@ export class BattleScene extends Phaser.Scene {
           this.refreshHuds();
           break;
 
+        case 'captureThrow':
+          await this.animateCaptureThrow(event);
+          break;
+
         case 'requestSwitch':
           await this.promptForcedSwitch();
           break;
@@ -351,6 +367,89 @@ export class BattleScene extends Phaser.Scene {
         onComplete: resolve,
       });
     });
+  }
+
+  /**
+   * The orb: thrown, the creature drawn into it, then one wobble per shake the
+   * engine actually rolled. Nothing here decides anything — `event.shakes` and
+   * `event.captured` came out of the capture roll, so what the player watches is
+   * literally what happened.
+   */
+  async animateCaptureThrow(event) {
+    const sprite = this.opponentSprite;
+    const home = { x: sprite.x, y: sprite.y };
+
+    const orb = this.add
+      .circle(LAYOUT.playerSprite.x, LAYOUT.playerSprite.y - 20, 9, COLORS.accent)
+      .setStrokeStyle(2, COLORS.ink)
+      .setDepth(DEPTHS.entities + 1);
+
+    // Arc the orb across the screen.
+    await new Promise((resolve) => {
+      this.tweens.add({
+        targets: orb,
+        x: home.x,
+        y: home.y,
+        duration: 380,
+        ease: 'Quad.easeOut',
+        onComplete: resolve,
+      });
+    });
+
+    // The creature is drawn in.
+    await new Promise((resolve) => {
+      this.tweens.add({
+        targets: sprite,
+        scale: 0,
+        alpha: 0,
+        duration: 260,
+        ease: 'Quad.easeIn',
+        onComplete: resolve,
+      });
+    });
+
+    // One wobble per shake that was rolled.
+    for (let i = 0; i < event.shakes; i += 1) {
+      await new Promise((resolve) => {
+        this.tweens.add({
+          targets: orb,
+          angle: { from: -22, to: 22 },
+          duration: CAPTURE_UI.shakeDuration,
+          yoyo: true,
+          ease: 'Sine.easeInOut',
+          onComplete: () => {
+            orb.setAngle(0);
+            resolve();
+          },
+        });
+      });
+      await this.pause(CAPTURE_UI.shakeGap);
+    }
+
+    if (event.captured) {
+      // A short settle, then the orb stays shut.
+      await this.pause(CAPTURE_UI.clickPause);
+      this.tweens.add({ targets: orb, alpha: 0.85, duration: 160 });
+      return;
+    }
+
+    // It broke out: the orb pops and the creature comes back.
+    orb.destroy();
+    sprite.setScale(0).setAlpha(1);
+    await new Promise((resolve) => {
+      this.tweens.add({
+        targets: sprite,
+        scale: LAYOUT.creatureScale,
+        duration: 260,
+        ease: 'Back.easeOut',
+        onComplete: resolve,
+      });
+    });
+  }
+
+  /** A plain wait that respects the scene's own clock. */
+  pause(ms) {
+    return new Promise((resolve) => this.time.delayedCall(ms, resolve));
   }
 
   /** Point a side's sprite and panel at whatever creature is now out. */
@@ -523,7 +622,9 @@ export class BattleScene extends Phaser.Scene {
       .filter((entry) => entry.item && entry.quantity > 0);
 
     const items = entries.map(({ item, quantity }) => {
-      const usable = isItemUsableInBattle(item);
+      const usable = isItemUsableInBattle(item, {
+        allowCapture: this.engine.allowCapture,
+      });
       return {
         label: item.name,
         detail: `x${quantity}`,
@@ -566,6 +667,13 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (item.value.kind === 'item') {
+      // An orb is thrown at the opponent; everything else is used on your own
+      // creature. The engine owns the throw, so capture is a battle action
+      // rather than something the menu does behind its back.
+      if (isCaptureItem(getItem(item.value.itemId))) {
+        this.submit({ type: 'capture', itemId: item.value.itemId });
+        return;
+      }
       this.submit(this.buildItemAction(item.value.itemId));
     }
   }
@@ -659,6 +767,10 @@ export class BattleScene extends Phaser.Scene {
       await this.narrateRewards(result);
     }
 
+    if (result.outcome === BATTLE_RESULT.CAPTURED) {
+      await this.narrateCapture(result);
+    }
+
     this.phase = 'done';
     await this.showMessage('...', { waitForInput: false });
 
@@ -672,6 +784,17 @@ export class BattleScene extends Phaser.Scene {
       this.scene.stop();
       if (finished) finished(result);
     });
+  }
+
+  /**
+   * Hand the caught creature over and say where it went.
+   *
+   * A capture awards no experience: the creature IS the reward, and paying out
+   * both would make catching strictly better than fighting.
+   */
+  async narrateCapture(result) {
+    const { messages } = receiveCapturedCreature(result.captured);
+    for (const text of messages) await this.showMessage(text);
   }
 
   /** Experience, level-ups, new moves and evolutions, narrated in order. */

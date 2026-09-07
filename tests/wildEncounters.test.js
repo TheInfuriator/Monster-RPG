@@ -275,26 +275,42 @@ describe('building a wild battle', () => {
   });
 });
 
-describe('capture stays unavailable in a wild battle', () => {
-  it('refuses every capture item, with a reason the player can read', () => {
-    const orbs = Object.values(ITEMS).filter((item) => item.category === 'capture');
-    expect(orbs.length).toBeGreaterThan(0);
+describe('capture items in a wild battle', () => {
+  // Phase 5 refused every orb because catching did not exist. Phase 6 turned it
+  // on for wild battles ONLY, so the original purpose of these checks — orbs are
+  // never silently half-working — now reads as: enabled where catching is
+  // allowed, refused with a reason everywhere else.
+  const orbs = Object.values(ITEMS).filter((item) => item.category === 'capture');
 
+  it('the game defines capture items at all', () => {
+    expect(orbs.length).toBeGreaterThan(0);
+  });
+
+  it('offers every orb when the battle allows catching', () => {
     for (const orb of orbs) {
-      const verdict = isItemUsableInBattle(orb);
-      expect(verdict.ok, `${orb.name} must not be usable yet`).toBe(false);
-      expect(verdict.reason).toMatch(/later update/i);
+      const verdict = isItemUsableInBattle(orb, { allowCapture: true });
+      expect(verdict.ok, `${orb.name} should be throwable in a wild battle`).toBe(true);
     }
   });
 
-  it('still allows healing items, so the bag is not simply switched off', () => {
-    expect(isItemUsableInBattle(ITEMS.potion).ok).toBe(true);
+  it('refuses every orb when the battle does not, with a reason to read', () => {
+    for (const orb of orbs) {
+      const verdict = isItemUsableInBattle(orb, { allowCapture: false });
+      expect(verdict.ok, `${orb.name} must not be throwable here`).toBe(false);
+      expect(verdict.reason).toMatch(/not allowed/i);
+    }
   });
 
-  it('the rule does not depend on the kind of battle', () => {
-    // Nothing about the verdict changes with battle type: that is what lets
-    // Phase 6 add catching without touching the encounter pipeline.
-    expect(isItemUsableInBattle(ITEMS.basicOrb)).toEqual(isItemUsableInBattle(ITEMS.basicOrb));
+  it('a wild battle config switches capture on', () => {
+    const config = createWildBattleConfig({ species: 'nibbit', level: 3 },
+      [createCreature('pyrret', 5)]);
+    expect(config.allowCapture).toBe(true);
+    expect(new BattleEngine(config).allowCapture).toBe(true);
+  });
+
+  it('still allows healing items, so the bag is not simply switched off', () => {
+    expect(isItemUsableInBattle(ITEMS.potion, { allowCapture: true }).ok).toBe(true);
+    expect(isItemUsableInBattle(ITEMS.potion, { allowCapture: false }).ok).toBe(true);
   });
 });
 
