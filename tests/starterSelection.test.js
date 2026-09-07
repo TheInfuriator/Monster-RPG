@@ -21,6 +21,7 @@ import { resolveDialogue } from '../src/systems/DialogueResolver.js';
 import { wardensLodge } from '../src/data/maps/wardensLodge.js';
 import { MAPS } from '../src/data/maps/index.js';
 import { SHOPS } from '../src/data/shops.js';
+import { TRAINERS } from '../src/data/trainers.js';
 import { PARTY } from '../src/config/balance.js';
 
 const STARTER_FLAG = 'gotStarter';
@@ -211,6 +212,7 @@ describe('dialogue actions across all map data', () => {
    */
   const isKnownAction = (action) => {
     if (action.startsWith('shop:')) return Boolean(SHOPS[action.slice('shop:'.length)]);
+    if (action.startsWith('trainer:')) return Boolean(TRAINERS[action.slice('trainer:'.length)]);
     return KNOWN_ACTIONS.has(action);
   };
 

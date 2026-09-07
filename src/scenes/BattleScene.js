@@ -38,6 +38,7 @@ import { getTypeColor } from '../systems/TypeChart.js';
 import { getStatus } from '../data/statuses.js';
 import { removeItem, getItemCount } from '../systems/InventorySystem.js';
 import { applyItemToCreature } from '../systems/ItemEffects.js';
+import { addMoney } from '../systems/EconomySystem.js';
 import { isItemUsableInBattle, isCaptureItem } from '../systems/battle/BattleItems.js';
 import { receiveCapturedCreature } from '../systems/WildBattle.js';
 import { markSeen } from '../systems/CreatureIndex.js';
@@ -783,7 +784,9 @@ export class BattleScene extends Phaser.Scene {
   /** Experience, level-ups, new moves and evolutions, narrated in order. */
   async narrateRewards(result) {
     if (result.money > 0) {
-      gameState.money += result.money;
+      // Through EconomySystem, so prize money obeys the same rules as every
+      // other coin the player earns.
+      addMoney(gameState, result.money);
       await this.showMessage(`You got ${result.money} coins!`);
     }
 

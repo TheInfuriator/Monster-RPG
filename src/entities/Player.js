@@ -120,6 +120,23 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.setFrame(PLAYER_FRAMES[facing].idle);
   }
 
+  /**
+   * Turn to look at a tile — used so the player and a trainer end up facing
+   * each other before a battle, rather than talking to the back of a head.
+   * Picks whichever axis the target is furthest away on, like the NPC version.
+   */
+  faceTowards(x, y) {
+    const dx = x - this.tileX;
+    const dy = y - this.tileY;
+    if (dx === 0 && dy === 0) return;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      this.setFacing(dx > 0 ? 'right' : 'left');
+    } else {
+      this.setFacing(dy > 0 ? 'down' : 'up');
+    }
+  }
+
   playWalkAnimation(facing, running) {
     const key = PLAYER_ANIMS[facing];
     // `true` = ignore the request if this animation is already playing, so the

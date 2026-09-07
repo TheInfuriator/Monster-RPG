@@ -99,6 +99,12 @@ export class BattleEngine {
      */
     this.blackoutOnDefeat = config.blackoutOnDefeat ?? this.battleType !== 'practice';
     /**
+     * Which trainer this is, when it is one. Carried through to the result so
+     * the overworld can mark them beaten without keeping its own note of who
+     * the battle was against.
+     */
+    this.trainerId = config.trainerId ?? null;
+    /**
      * The player's bag, as the plain `{ itemId: count }` object GameState
      * holds. The engine consumes orbs itself, because whether a throw was
      * legitimate is a battle rule, not a menu one. Defaults to an empty bag so
@@ -739,6 +745,7 @@ export class BattleEngine {
       // Carried on the result so the overworld reads the battle's own rule
       // rather than guessing from the battle type.
       blackoutOnDefeat: this.blackoutOnDefeat,
+      trainerId: this.trainerId,
     };
 
     events.push({ type: 'end', result: this.result });

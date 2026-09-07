@@ -23,6 +23,7 @@ import {
   SCENES,
   GAME_WIDTH,
   COLORS,
+  CSS_COLORS,
   TEXT_STYLES,
   DEPTHS,
   TILE_SIZE,
@@ -46,6 +47,12 @@ import { DialogueBox } from '../ui/DialogueBox.js';
 import { getSpecies } from '../data/creatures.js';
 import { getScriptedBattle } from '../data/battles.js';
 import { getShop } from '../data/shops.js';
+import { getTrainer, getTrainerDisplayName } from '../data/trainers.js';
+import {
+  createTrainerBattleConfig, isTrainerDefeated, markTrainerDefeated,
+  getDialogueConditions,
+} from '../systems/TrainerSystem.js';
+import { findChallenger } from '../systems/SightSystem.js';
 import { createCreature } from '../systems/CreatureFactory.js';
 import { createWildBattleConfig } from '../systems/WildBattle.js';
 import { STARTER_FLAG } from './StarterSelectScene.js';
@@ -63,6 +70,9 @@ import { fadeIn } from '../utils/transitions.js';
  */
 const ENCOUNTER_FLASH_MS = 160;
 const ENCOUNTER_FADE_MS = 260;
+
+/** How long the "!" hangs over a trainer before they start walking. */
+const TRAINER_ALERT_MS = 620;
 
 export class WorldScene extends Phaser.Scene {
   constructor() {
@@ -85,6 +95,13 @@ export class WorldScene extends Phaser.Scene {
      * two battles.
      */
     this.isEnteringBattle = false;
+    /**
+     * The NPC currently challenging the player, or null. One at a time: this is
+     * what stops a second trainer, or a second step, starting another sequence
+     * on top of the first.
+     */
+    this.trainerChallenge = null;
+    this.trainerAlert = null;
   }
 
   create() {
@@ -316,6 +333,16 @@ export class WorldScene extends Phaser.Scene {
    * Exits win over encounters: standing in a doorway should always take you
    * through it, never start a fight.
    */
+  /**
+   * One completed step, at most one thing happens. The order matters:
+   *
+   *   1. an exit — standing in a doorway always takes you through it
+   *   2. a trainer spotting you — being challenged beats being ambushed, so a
+   *      wild Aether can never barge in at the moment someone shouts at you
+   *   3. a wild encounter
+   *
+   * Each returns early, so two of these can never fire from one step.
+   */
   onPlayerStep(x, y) {
     if (this.isTransitioning) return;
 
@@ -324,6 +351,8 @@ export class WorldScene extends Phaser.Scene {
       this.startTransition(exit);
       return;
     }
+
+    if (this.checkForTrainers(x, y)) return;
 
     this.checkForEncounter(x, y);
   }
@@ -353,6 +382,190 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.restart({ mapId: exit.to, spawn: spawnName });
     });
+  }
+
+  // -------------------------------------------------------------------------
+  // Trainers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Has anyone just spotted the player?
+   *
+   * SightSystem decides who — this only gathers the facts. A trainer is
+   * eligible when they are a trainer at all, have not already been beaten, and
+   * are standing still; everything else about the moment (dialogue open, a
+   * battle running, mid-transition) is checked once, here, before any of them
+   * are considered.
+   *
+   * @returns {boolean} true if a challenge began, so the caller stops
+   */
+  checkForTrainers(x, y) {
+    if (!this.canBeChallenged()) return false;
+
+    const watchers = this.npcManager.npcs
+      .filter((npc) => this.isEligibleTrainer(npc))
+      .map((npc) => ({
+        id: npc.id,
+        x: npc.tileX,
+        y: npc.tileY,
+        facing: npc.facing,
+        sightRange: npc.definition.sightRange ?? 0,
+        npc,
+      }));
+
+    if (watchers.length === 0) return false;
+
+    // Walls, trees and furniture stop a view; so does another person standing
+    // in the way. Ground items deliberately do not — a Potion lying in the
+    // grass is not a screen.
+    const isBlocked = (tileX, tileY) => (
+      !this.map.isWalkable(tileX, tileY) || this.npcManager.isTileBlockedByNpc(tileX, tileY)
+    );
+
+    const challenge = findChallenger(watchers, { x, y }, isBlocked);
+    if (!challenge) return false;
+
+    this.beginTrainerChallenge(challenge.watcher.npc, challenge.distance);
+    return true;
+  }
+
+  /** True when the moment allows a trainer to start something. */
+  canBeChallenged() {
+    if (this.isTransitioning || this.isEnteringBattle) return false;
+    if (this.trainerChallenge) return false;
+    if (this.player.inputLocked) return false;
+    if (this.dialogueBox.isOpen) return false;
+    if (this.scene.isActive(SCENES.BATTLE)) return false;
+    if (this.scene.isActive(SCENES.MENU)) return false;
+    if (this.scene.isActive(SCENES.STARTER_SELECT)) return false;
+    return true;
+  }
+
+  /** True if this NPC is a trainer who would still want a battle. */
+  isEligibleTrainer(npc) {
+    const trainerId = npc.definition.trainer;
+    if (!trainerId) return false;
+    if (!getTrainer(trainerId)) return false;
+    if (isTrainerDefeated(trainerId)) return false;
+    // Mid-step, their tile and their facing are both unreliable.
+    if (npc.isMoving) return false;
+
+    return (npc.definition.sightRange ?? 0) >= 1;
+  }
+
+  /**
+   * The challenge: a "!" over their head, a walk down the lane, then the fight.
+   *
+   * `this.trainerChallenge` is claimed FIRST and held until the battle is over,
+   * which is what stops a second trainer, a second step or an impatient key
+   * press starting any of this twice.
+   */
+  beginTrainerChallenge(npc, distance) {
+    if (this.trainerChallenge) return;
+    this.trainerChallenge = npc;
+
+    this.player.inputLocked = true;
+    this.player.stopMovement();
+    this.npcManager.setAllBusy(true);
+    npc.halt();
+
+    this.showTrainerAlert(npc);
+
+    this.time.delayedCall(TRAINER_ALERT_MS, () => {
+      if (this.trainerChallenge !== npc) return;   // the scene moved on
+      this.clearTrainerAlert();
+
+      // They saw the player down an unobstructed line, so walking back along it
+      // needs no pathfinding. Stop one tile short — never onto the player.
+      npc.walkLine(npc.facing, Math.max(0, distance - 1), () => {
+        if (this.trainerChallenge !== npc) return;
+
+        npc.faceTowards(this.player.tileX, this.player.tileY);
+        this.player.faceTowards(npc.tileX, npc.tileY);
+
+        const trainer = getTrainer(npc.definition.trainer);
+        this.startDialogue(trainer.intro, {
+          speaker: getTrainerDisplayName(trainer),
+          action: `trainer:${trainer.id}`,
+        });
+      });
+    });
+  }
+
+  /** A "!" above a trainer's head. Destroyed as soon as they start walking. */
+  showTrainerAlert(npc) {
+    this.clearTrainerAlert();
+
+    this.trainerAlert = this.add
+      .text(npc.x, npc.y - TILE_SIZE - 6, '!', {
+        ...TEXT_STYLES.body, fontSize: '20px', color: CSS_COLORS.accent,
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(DEPTHS.overhead);
+
+    this.tweens.add({
+      targets: this.trainerAlert,
+      y: this.trainerAlert.y - 6,
+      duration: 180,
+      yoyo: true,
+      repeat: 1,
+      ease: 'Sine.easeOut',
+    });
+  }
+
+  clearTrainerAlert() {
+    if (this.trainerAlert) {
+      this.trainerAlert.destroy();
+      this.trainerAlert = null;
+    }
+  }
+
+  /**
+   * Start a trainer battle. The ONE way in — a challenge down a sight lane and
+   * walking up to someone and talking to them both end up here, so there is a
+   * single pipeline to get right.
+   */
+  startTrainerBattle(trainerId) {
+    const trainer = getTrainer(trainerId);
+
+    if (!trainer || isTrainerDefeated(trainerId)) {
+      this.releasePlayer();
+      return;
+    }
+
+    if (gameState.party.length === 0) {
+      this.startDialogue(['You have no creatures to battle with!']);
+      return;
+    }
+
+    const config = createTrainerBattleConfig(trainerId, gameState.party);
+    if (!config) {
+      console.error(`[World] Could not build a battle for trainer "${trainerId}".`);
+      this.releasePlayer();
+      return;
+    }
+
+    this.launchBattle(config);
+  }
+
+  /**
+   * A trainer battle has finished. Beating them is recorded HERE — after the
+   * battle scene has finished narrating experience, level-ups, new moves and
+   * evolutions — so a trainer is never marked beaten before the win is
+   * completely resolved, and never at all if the player lost.
+   */
+  onTrainerBattleFinished(result) {
+    const trainerId = result.trainerId;
+    const trainer = getTrainer(trainerId);
+    this.trainerChallenge = null;
+
+    if (!trainer) return false;
+    if (result.outcome !== BATTLE_RESULT.WIN) return false;
+
+    markTrainerDefeated(trainerId);
+
+    this.startDialogue(trainer.outro, { speaker: getTrainerDisplayName(trainer) });
+    return true;
   }
 
   // -------------------------------------------------------------------------
@@ -446,6 +659,13 @@ export class WorldScene extends Phaser.Scene {
       onFinished: (result) => {
         this.scene.resume();
         this.isEnteringBattle = false;
+    /**
+     * The NPC currently challenging the player, or null. One at a time: this is
+     * what stops a second trainer, or a second step, starting another sequence
+     * on top of the first.
+     */
+    this.trainerChallenge = null;
+    this.trainerAlert = null;
         if (fadeBackIn) fadeIn(this);
         this.onBattleFinished(result);
       },
@@ -495,7 +715,10 @@ export class WorldScene extends Phaser.Scene {
 
   /** Resolve a dialogue definition against the story flags, then show it. */
   showDialogueFor(dialogue, fallbackSpeaker = null) {
-    const resolved = resolveDialogue(dialogue, gameState.flags);
+    // Story flags PLUS who has been beaten, so a trainer's post-defeat lines
+    // are ordinary conditional dialogue (`when: 'trainer:route1Scout'`) and no
+    // scene ever reaches into `defeatedTrainers` itself.
+    const resolved = resolveDialogue(dialogue, getDialogueConditions(gameState));
     if (resolved.pages.length === 0) return;
 
     this.startDialogue(resolved.pages, {
@@ -570,6 +793,10 @@ export class WorldScene extends Phaser.Scene {
         // new shop is a data change with no code behind it.
         if (action.startsWith('shop:')) {
           this.openShop(action.slice('shop:'.length));
+          return;
+        }
+        if (action.startsWith('trainer:')) {
+          this.startTrainerBattle(action.slice('trainer:'.length));
           return;
         }
 
@@ -722,6 +949,10 @@ export class WorldScene extends Phaser.Scene {
     // fight straight into another reads as a bug rather than bad luck. Harmless
     // indoors, where the encounter system is inactive anyway.
     this.encounters.applyCooldown();
+
+    // A trainer win is recorded and narrated here; anything else falls through
+    // to the ordinary handling below.
+    if (this.onTrainerBattleFinished(result)) return;
 
     if (result.outcome === BATTLE_RESULT.LOSS) {
       // The BATTLE decides whether losing has consequences, not this scene and
@@ -891,6 +1122,9 @@ export class WorldScene extends Phaser.Scene {
   }
 
   cleanup() {
+    this.clearTrainerAlert();
+    this.trainerChallenge = null;
+
     if (this.mapRenderer) {
       this.mapRenderer.destroy();
       this.mapRenderer = null;

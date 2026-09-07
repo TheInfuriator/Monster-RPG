@@ -29,6 +29,11 @@ import { STATUS_IDS } from '../data/statuses.js';
 import { SCRIPTED_BATTLES } from '../data/battles.js';
 import { MAPS } from '../data/maps/index.js';
 import { getItem } from '../data/items.js';
+import { TRAINERS, getTrainerDisplayName } from '../data/trainers.js';
+import {
+  isTrainerDefeated, markTrainerDefeated, clearTrainerDefeat, countDefeatedTrainers,
+} from './TrainerSystem.js';
+import { getSightTiles } from './SightSystem.js';
 import { PARTY } from '../config/balance.js';
 import { SCENES } from '../config/gameConfig.js';
 
@@ -86,6 +91,11 @@ export function installDebugTools(game) {
           '  debug.storage()                 list everything in storage',
           '  debug.seen(id) / .caught(id)    record index entries by hand',
           '  debug.index() / .clearIndex()   index progress, or wipe it',
+          '  debug.trainers()                every trainer and whether beaten',
+          '  debug.trainerBattle(id)         fight a trainer from anywhere',
+          '  debug.beatTrainer(id, bool)     mark a trainer beaten or not',
+          '  debug.resetTrainers()           forget every trainer battle',
+          '  debug.sight()                   what the trainers here can see',
           '  debug.trainer(id)               start a scripted battle',
           '  debug.teleport(mapId, spawn)    change map',
           '  debug.species()                 list every species id',
@@ -335,6 +345,80 @@ export function installDebugTools(game) {
         total: countSpecies(),
       };
       console.info('[debug] index:', info);
+      return info;
+    },
+
+    // --- Trainers -------------------------------------------------------
+    /** Every trainer, where they stand and whether they have been beaten. */
+    trainers() {
+      const rows = Object.values(TRAINERS).map((trainer) => ({
+        id: trainer.id,
+        who: getTrainerDisplayName(trainer),
+        party: trainer.party.map((e) => `${e.species} L${e.level}`).join(', '),
+        reward: trainer.rewardMoney,
+        beaten: isTrainerDefeated(trainer.id),
+      }));
+      console.table ? console.table(rows) : console.info('[debug] trainers:', rows);
+      return rows;
+    },
+
+    /** Start a trainer battle from anywhere, as if they had challenged you. */
+    trainerBattle(id) {
+      const scene = world(game);
+      if (!scene) {
+        console.warn('[debug] the overworld is not running.');
+        return null;
+      }
+      scene.startTrainerBattle(id);
+      return id;
+    },
+
+    /** Mark a trainer beaten, or un-beat them, without fighting. */
+    beatTrainer(id, beaten = true) {
+      if (beaten) markTrainerDefeated(id);
+      else clearTrainerDefeat(id);
+      console.info(`[debug] ${id} beaten -> ${isTrainerDefeated(id)}`);
+      return isTrainerDefeated(id);
+    },
+
+    /** Forget every trainer battle, so the route can be walked again. */
+    resetTrainers() {
+      for (const id of Object.keys(TRAINERS)) clearTrainerDefeat(id);
+      console.info('[debug] all trainers reset');
+      return countDefeatedTrainers();
+    },
+
+    /**
+     * Which tiles the trainers on this map can currently see, and whether the
+     * player is standing in any of them. Read-only — it draws nothing.
+     */
+    sight() {
+      const scene = world(game);
+      if (!scene) {
+        console.warn('[debug] the overworld is not running.');
+        return null;
+      }
+
+      const isBlocked = (x, y) => !scene.map.isWalkable(x, y)
+        || scene.npcManager.isTileBlockedByNpc(x, y);
+
+      const info = scene.npcManager.npcs
+        .filter((npc) => npc.definition.trainer)
+        .map((npc) => ({
+          id: npc.definition.trainer,
+          at: `${npc.tileX},${npc.tileY}`,
+          facing: npc.facing,
+          range: npc.definition.sightRange,
+          beaten: isTrainerDefeated(npc.definition.trainer),
+          sees: getSightTiles({
+            origin: { x: npc.tileX, y: npc.tileY },
+            facing: npc.facing,
+            range: npc.definition.sightRange ?? 0,
+            isBlocked,
+          }).map((t) => `${t.x},${t.y}`).join(' '),
+        }));
+
+      console.info(`[debug] player at ${scene.player.tileX},${scene.player.tileY}`, info);
       return info;
     },
 

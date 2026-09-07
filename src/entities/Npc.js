@@ -14,6 +14,10 @@
  *   'static'     never moves (the default)
  *   'lookAround' turns on the spot now and then
  *   'wander'     strolls around within `wanderRadius` tiles of where it started
+ *
+ * A trainer who has spotted the player also walks, but on demand rather than at
+ * random — see `walkLine()`. Trainers should be 'static' so they cannot amble
+ * out of the sight lane they were placed to watch.
  */
 
 import Phaser from 'phaser';
@@ -167,7 +171,7 @@ export class Npc extends Phaser.GameObjects.Sprite {
     this.startMove(direction, targetX, targetY);
   }
 
-  startMove(direction, targetX, targetY) {
+  startMove(direction, targetX, targetY, onArrive = null) {
     this.setFacing(direction);
     this.isMoving = true;
     this.targetX = targetX;
@@ -190,7 +194,46 @@ export class Npc extends Phaser.GameObjects.Sprite {
         this.moveTween = null;
         this.anims.stop();
         this.setFrame(PLAYER_FRAMES[this.facing].idle);
+        if (onArrive) onArrive();
       },
+    });
+  }
+
+  /**
+   * Walk a straight line, one tile at a time, then call back.
+   *
+   * Used when a trainer has spotted the player: they saw them along an
+   * unobstructed line, so walking back down that same line needs no
+   * pathfinding. Each step goes through the ordinary `startMove`, so the walk
+   * animates and lands on tiles exactly like any other NPC movement.
+   *
+   * Refuses to enter a blocked tile and simply stops there, so a trainer can
+   * never end up inside a wall, on the player, or on another NPC.
+   *
+   * @param {string} direction  'up' | 'down' | 'left' | 'right'
+   * @param {number} steps      how many tiles to try
+   * @param {() => void} [onComplete]
+   */
+  walkLine(direction, steps, onComplete = () => {}) {
+    const vector = DIRECTION_VECTORS[direction];
+    if (!vector || steps <= 0 || !this.active) {
+      this.setFacing(direction);
+      onComplete();
+      return;
+    }
+
+    const targetX = this.tileX + vector.x;
+    const targetY = this.tileY + vector.y;
+
+    if (this.canEnterTile && !this.canEnterTile(targetX, targetY)) {
+      // Something is in the way — stop here, still facing the right direction.
+      this.setFacing(direction);
+      onComplete();
+      return;
+    }
+
+    this.startMove(direction, targetX, targetY, () => {
+      this.walkLine(direction, steps - 1, onComplete);
     });
   }
 

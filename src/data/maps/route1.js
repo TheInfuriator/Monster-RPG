@@ -123,6 +123,91 @@ export const route1 = {
         },
       ],
     },
+    // --- Trainers -----------------------------------------------------------
+    // Each stands BESIDE the path looking across it, so their sight lane is
+    // obvious, the corridor itself is never blocked, and no defeated trainer
+    // can ever become a wall. Their teams and money live in src/data/trainers.js.
+    {
+      id: 'route1Scout',
+      name: 'Wren',
+      trainer: 'route1Scout',
+      sightRange: 4,
+      // Low on the route, watching the first stretch of path north of the exit.
+      x: 13,
+      y: 27,
+      facing: 'left',
+      sprite: 'villagerAlt',
+      movement: 'static',
+      dialogue: [
+        {
+          when: 'trainer:route1Scout',
+          pages: [
+            'That was a clean round. You have got the measure of it.',
+            'Osrin is up past the bend. Mind the grass on the way.',
+          ],
+        },
+        {
+          action: 'trainer:route1Scout',
+          pages: [
+            'You walk like someone with a partner. Let me see it!',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'route1Treader',
+      name: 'Osrin',
+      trainer: 'route1Treader',
+      sightRange: 4,
+      // On the western jog, watching the path where it bends.
+      x: 9,
+      y: 17,
+      facing: 'left',
+      sprite: 'villager',
+      movement: 'static',
+      dialogue: [
+        {
+          when: 'trainer:route1Treader',
+          pages: [
+            'Two of mine and you still walked away. I am going to sit down.',
+            'Halla is up by the gate. She has been there all week.',
+          ],
+        },
+        {
+          action: 'trainer:route1Treader',
+          pages: [
+            'I have been in that grass since dawn. You look fresher than I feel.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'route1Aspirant',
+      name: 'Halla',
+      trainer: 'route1Aspirant',
+      sightRange: 4,
+      // By the gate, watching the last stretch before the warden.
+      x: 13,
+      y: 5,
+      facing: 'left',
+      sprite: 'child',
+      movement: 'static',
+      dialogue: [
+        {
+          when: 'trainer:route1Aspirant',
+          pages: [
+            'Well fought. I will be through that gate right behind you.',
+            'Thistlewood has a Beacon Hall, you know. That is where I am headed.',
+          ],
+        },
+        {
+          action: 'trainer:route1Aspirant',
+          pages: [
+            'Waiting on the gate too? Everyone is.',
+          ],
+        },
+      ],
+    },
     {
       id: 'wanderingKid',
       name: 'Kid',
