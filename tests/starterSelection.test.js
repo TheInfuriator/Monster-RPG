@@ -20,6 +20,7 @@ import { STARTER_IDS, STARTER_LEVEL, CREATURES } from '../src/data/creatures.js'
 import { resolveDialogue } from '../src/systems/DialogueResolver.js';
 import { wardensLodge } from '../src/data/maps/wardensLodge.js';
 import { MAPS } from '../src/data/maps/index.js';
+import { SHOPS } from '../src/data/shops.js';
 import { PARTY } from '../src/config/balance.js';
 
 const STARTER_FLAG = 'gotStarter';
@@ -199,7 +200,19 @@ describe('the world reacts to gotStarter', () => {
 });
 
 describe('dialogue actions across all map data', () => {
-  const KNOWN_ACTIONS = new Set(['starterSelect', 'practiceBattle', 'practiceBattleDouble']);
+  const KNOWN_ACTIONS = new Set([
+    'starterSelect', 'practiceBattle', 'practiceBattleDouble', 'heal', 'blackoutTravel',
+  ]);
+
+  /**
+   * A parameterised action names something in the data, so check that too — a
+   * typo in `shop:emberhollowSupplyPost` should fail here rather than opening
+   * an empty shop in front of a player.
+   */
+  const isKnownAction = (action) => {
+    if (action.startsWith('shop:')) return Boolean(SHOPS[action.slice('shop:'.length)]);
+    return KNOWN_ACTIONS.has(action);
+  };
 
   it('only uses actions the game knows how to run', () => {
     for (const [mapId, map] of Object.entries(MAPS)) {
@@ -210,7 +223,7 @@ describe('dialogue actions across all map data', () => {
           const { action } = resolveDialogue(source.dialogue, flags);
           if (action) {
             expect(
-              KNOWN_ACTIONS.has(action),
+              isKnownAction(action),
               `${mapId}:${source.id || `${source.x},${source.y}`} uses unknown action "${action}"`
             ).toBe(true);
           }

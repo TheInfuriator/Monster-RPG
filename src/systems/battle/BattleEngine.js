@@ -91,6 +91,14 @@ export class BattleEngine {
     this.awardExperience = config.awardExperience ?? true;
     this.rewardMoney = config.rewardMoney ?? 0;
     /**
+     * Whether losing this battle blacks the player out — coins lost, party
+     * restored, wake up at the recovery point. Wild and trainer battles do;
+     * a practice bout at the Lodge does not, so testing the battle system can
+     * never cost anything. This is a CONFIGURATION, so Phase 8's trainers turn
+     * it on by setting a flag rather than by editing the defeat code.
+     */
+    this.blackoutOnDefeat = config.blackoutOnDefeat ?? this.battleType !== 'practice';
+    /**
      * The player's bag, as the plain `{ itemId: count }` object GameState
      * holds. The engine consumes orbs itself, because whether a throw was
      * legitimate is a battle rule, not a menu one. Defaults to an empty bag so
@@ -728,6 +736,9 @@ export class BattleEngine {
       outcome,
       experience,
       money: outcome === BATTLE_RESULT.WIN ? this.rewardMoney : 0,
+      // Carried on the result so the overworld reads the battle's own rule
+      // rather than guessing from the battle type.
+      blackoutOnDefeat: this.blackoutOnDefeat,
     };
 
     events.push({ type: 'end', result: this.result });

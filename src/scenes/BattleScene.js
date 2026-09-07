@@ -37,7 +37,7 @@ import { getItem } from '../data/items.js';
 import { getTypeColor } from '../systems/TypeChart.js';
 import { getStatus } from '../data/statuses.js';
 import { removeItem, getItemCount } from '../systems/InventorySystem.js';
-import { healCreature } from '../systems/battle/MoveEffectRunner.js';
+import { applyItemToCreature } from '../systems/ItemEffects.js';
 import { isItemUsableInBattle, isCaptureItem } from '../systems/battle/BattleItems.js';
 import { receiveCapturedCreature } from '../systems/WildBattle.js';
 import { markSeen } from '../systems/CreatureIndex.js';
@@ -691,39 +691,22 @@ export class BattleScene extends Phaser.Scene {
       type: 'item',
       itemId,
       apply: () => {
-        const messages = [];
-
         if (getItemCount(gameState.inventory, itemId) <= 0) {
           return { ok: false, messages: ['You have none of those!'] };
         }
 
-        const name = getDisplayName(target);
+        // ItemEffects decides what the item does — the same function the
+        // overworld bag calls — so the two can never disagree about how much a
+        // Potion heals or when one would be wasted.
+        const result = applyItemToCreature(item, target, { where: 'battle' });
+        if (!result.success) return { ok: false, messages: [result.message] };
 
-        if (item.effect.type === 'heal') {
-          if (target.currentHp >= target.stats.hp) {
-            // Refusing WITHOUT consuming the item is the important part.
-            return { ok: false, messages: [`${name}'s HP is already full!`] };
-          }
-          const restored = healCreature(target, item.effect.amount);
-          removeItem(gameState.inventory, itemId, 1);
-          messages.push(`You used the ${item.name}.`);
-          messages.push(`${name} recovered ${restored} HP!`);
-          return { ok: true, messages };
-        }
+        // A cure has to clear the battle-only sleep counter too; the creature's
+        // own status is ItemEffects' business, this counter is the engine's.
+        if (result.curedStatus === 'sleep') this.engine.player.sleepTurns = 0;
 
-        if (item.effect.type === 'cureStatus') {
-          if (target.status !== item.effect.status) {
-            return { ok: false, messages: ['It would have no effect right now.'] };
-          }
-          target.status = null;
-          this.engine.player.sleepTurns = 0;
-          removeItem(gameState.inventory, itemId, 1);
-          messages.push(`You used the ${item.name}.`);
-          messages.push(`${name} was cured!`);
-          return { ok: true, messages };
-        }
-
-        return { ok: false, messages: ['It would have no effect right now.'] };
+        removeItem(gameState.inventory, itemId, 1);
+        return { ok: true, messages: [`You used the ${item.name}.`, result.message] };
       },
     };
   }

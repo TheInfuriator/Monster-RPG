@@ -45,10 +45,16 @@ import { DebugOverlay } from '../ui/DebugOverlay.js';
 import { DialogueBox } from '../ui/DialogueBox.js';
 import { getSpecies } from '../data/creatures.js';
 import { getScriptedBattle } from '../data/battles.js';
+import { getShop } from '../data/shops.js';
 import { createCreature } from '../systems/CreatureFactory.js';
 import { createWildBattleConfig } from '../systems/WildBattle.js';
 import { STARTER_FLAG } from './StarterSelectScene.js';
-import { gameState, setLocation, hasFlag, setFlag } from '../core/GameState.js';
+import {
+  gameState, setLocation, hasFlag, setFlag, setRecoveryPoint,
+} from '../core/GameState.js';
+import { healParty } from '../systems/HealingSystem.js';
+import { resolveBlackout, getRecoveryMessages } from '../systems/BlackoutSystem.js';
+import { BATTLE_RESULT } from '../systems/battle/BattleEngine.js';
 import { fadeIn } from '../utils/transitions.js';
 
 /**
@@ -103,6 +109,12 @@ export class WorldScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
 
     fadeIn(this);
+
+    // Waking up after a blackout. Said here rather than before the fade so the
+    // player reads it in the room they woke up in.
+    if (this.startData.arrival === 'blackout') {
+      this.startDialogue(getRecoveryMessages(gameState.playerName));
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -545,7 +557,22 @@ export class WorldScene extends Phaser.Scene {
         this.startScriptedBattle('lodgePracticeDouble');
         break;
 
+      case 'blackoutTravel':
+        this.travelToRecovery();
+        break;
+
+      case 'heal':
+        this.healAtMender();
+        break;
+
       default:
+        // Parameterised actions look like 'shop:emberhollowSupplyPost', so a
+        // new shop is a data change with no code behind it.
+        if (action.startsWith('shop:')) {
+          this.openShop(action.slice('shop:'.length));
+          return;
+        }
+
         console.warn(
           `[World] Dialogue asked for unknown action "${action}". ` +
             `Add it to runDialogueAction() in WorldScene.`
@@ -583,13 +610,14 @@ export class WorldScene extends Phaser.Scene {
    * closed the menu, so it cannot also count as "talk to whoever is in front
    * of me".
    */
-  openMenu() {
+  openMenu(options = {}) {
     this.player.inputLocked = true;
     this.player.stopMovement();
     this.npcManager.setAllBusy(true);
 
     this.scene.pause();
     this.scene.launch(SCENES.MENU, {
+      ...options,
       onFinished: () => {
         this.scene.resume();
         this.releasePlayer();
@@ -677,6 +705,7 @@ export class WorldScene extends Phaser.Scene {
       canRun: definition.canRun,
       awardExperience: definition.awardExperience,
       rewardMoney: definition.rewardMoney,
+      blackoutOnDefeat: definition.blackoutOnDefeat,
     });
   }
 
@@ -694,22 +723,119 @@ export class WorldScene extends Phaser.Scene {
     // indoors, where the encounter system is inactive anyway.
     this.encounters.applyCooldown();
 
-    const lines = [];
-
-    if (result.outcome === 'loss') {
-      for (const creature of gameState.party) {
-        if (creature.currentHp <= 0) creature.currentHp = 1;
+    if (result.outcome === BATTLE_RESULT.LOSS) {
+      // The BATTLE decides whether losing has consequences, not this scene and
+      // not the name of whoever you were fighting.
+      if (result.blackoutOnDefeat) {
+        this.startBlackout();
+        return;
       }
-      lines.push('You scraped your creatures back together.');
-      lines.push('(Fainting properly sends you to a Mender\u2019s Hall in a later update.)');
-    }
 
-    if (lines.length > 0) {
-      this.startDialogue(lines);
+      // A consequence-free defeat — a practice bout. Everyone is patched up on
+      // the spot, because leaving the player with a fainted party and no
+      // penalty would just strand them.
+      healParty(gameState);
+      this.startDialogue([
+        'Bly waves it off and sets your Aethers right again.',
+        '"Nothing lost. Come back whenever you want another go."',
+      ]);
       return;
     }
 
     this.releasePlayer();
+  }
+
+  /**
+   * The Mender restores the party, and this becomes where you wake up.
+   *
+   * HealingSystem does the healing on the EXISTING creatures — nothing is
+   * rebuilt, so instance ids, nicknames, levels, experience, learned moves and
+   * met locations all survive untouched. It is free: Wardens look after each
+   * other, and the sign in the Hall says so.
+   */
+  healAtMender() {
+    const outcome = healParty(gameState);
+
+    // Healing here makes this your recovery point. Every future Mender's Hall
+    // does the same, which is all it takes for blackout to send you to the
+    // nearest one — the blackout code never learns about individual maps.
+    setRecoveryPoint(this.map.id, 'default');
+
+    if (gameState.party.length === 0) {
+      this.startDialogue([
+        '"Bring me an Aether and I will set it right."',
+        '"Come back when you have someone walking beside you."',
+      ], { speaker: 'Mender Ines' });
+      return;
+    }
+
+    const lines = outcome.healed > 0
+      ? [
+        '"Let me see them..."',
+        'Your Aethers are fully restored — health, energy and all.',
+        '"There. Rest here any time, and I will be your way back if things go badly."',
+      ]
+      : [
+        '"Let me see them... ah, they are already in fine shape."',
+        '"Rest here any time. I will be your way back if things go badly."',
+      ];
+
+    this.startDialogue(lines, { speaker: 'Mender Ines' });
+  }
+
+  /** Open a shop, described in src/data/shops.js, over a paused overworld. */
+  openShop(shopId) {
+    if (!getShop(shopId)) {
+      this.releasePlayer();
+      return;
+    }
+
+    this.openMenu({ mode: 'shop', shopId });
+  }
+
+  /**
+   * Black out: lose some coins, wake up restored at the recovery point.
+   *
+   * BlackoutSystem decides everything — how much is lost, who is healed, where
+   * you wake up. This method only narrates it and drives the map change, and it
+   * runs the rule EXACTLY ONCE, so a retried transition cannot charge twice.
+   */
+  startBlackout() {
+    const outcome = resolveBlackout(gameState);
+
+    console.info(
+      `[Blackout] lost ${outcome.lost} coins, waking at ` +
+        `${outcome.recovery.mapId}:${outcome.recovery.spawn}`
+    );
+
+    this.blackoutRecovery = outcome.recovery;
+    this.startDialogue(outcome.messages, { action: 'blackoutTravel' });
+  }
+
+  /** Carry the blacked-out player to their recovery point. */
+  travelToRecovery() {
+    const recovery = this.blackoutRecovery || { mapId: 'mendersHall', spawn: 'default' };
+    this.blackoutRecovery = null;
+
+    // Reuse the ordinary door machinery rather than inventing a second way to
+    // change maps: fade out, record where we are going, restart the scene.
+    this.isTransitioning = true;
+    this.player.inputLocked = true;
+    this.player.stopMovement();
+    this.npcManager.setAllBusy(true);
+
+    const target = getMapDefinition(recovery.mapId);
+    const spawn = new TileMap(target).getSpawnPoint(recovery.spawn);
+    setLocation(recovery.mapId, spawn.x, spawn.y, spawn.facing);
+
+    this.cameras.main.fadeOut(FADE_DURATION, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.restart({
+        mapId: recovery.mapId,
+        spawn: recovery.spawn,
+        arrival: 'blackout',
+      });
+    });
   }
 
   pickUpItem(entry) {

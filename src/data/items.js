@@ -17,12 +17,25 @@
  *
  * EFFECT TYPES
  *   { type: 'heal', amount }             restore HP
- *   { type: 'cureStatus', status }       clear one major status
+ *   { type: 'cureStatus', status }       clear one named major status
+ *   { type: 'cureAllStatus' }            clear whatever major status is there
  *   { type: 'capture', modifier }        an orb; `modifier` multiplies the
  *                                        capture chance (1 = plain, 2 = twice
  *                                        as likely). Nothing in the code names
  *                                        an individual orb — adding a new tier
  *                                        is one entry here with a new modifier.
+ *
+ * WHERE AN ITEM CAN BE USED is worked out from its effect (see
+ * `getItemUsage` in src/systems/ItemEffects.js): healing and status medicine
+ * work anywhere, orbs only in battle. An item may override that with
+ * `usableInBattle` or `usableInField`.
+ *
+ * SELLING is `ECONOMY.sellPriceFraction` of the buy price unless the item
+ * names its own `sellPrice`. `sellable: false` means a shop will not take it —
+ * key items should always say so.
+ *
+ * TO ADD AN ITEM: one entry here. To put it in a shop, add its id to a stock
+ * list in src/data/shops.js. Nothing else needs to change.
  */
 
 export const ITEMS = {
@@ -58,6 +71,30 @@ export const ITEMS = {
     price: 120,
     effect: { type: 'cureStatus', status: 'paralysis' },
   },
+  burnSalve: {
+    id: 'burnSalve',
+    name: 'Burn Salve',
+    category: 'healing',
+    description: 'Cools a burn away.',
+    price: 120,
+    effect: { type: 'cureStatus', status: 'burn' },
+  },
+  rouser: {
+    id: 'rouser',
+    name: 'Rouser',
+    category: 'healing',
+    description: 'A sharp scent that wakes a sleeping Aether.',
+    price: 120,
+    effect: { type: 'cureStatus', status: 'sleep' },
+  },
+  clearTonic: {
+    id: 'clearTonic',
+    name: 'Clear Tonic',
+    category: 'healing',
+    description: 'Cures any one ailment, whatever it happens to be.',
+    price: 400,
+    effect: { type: 'cureAllStatus' },
+  },
   basicOrb: {
     id: 'basicOrb',
     name: 'Basic Orb',
@@ -88,6 +125,8 @@ export const ITEMS = {
     category: 'key',
     description: 'Proof that you are a registered Warden.',
     price: 0,
+    // A key item is never sold, however hard up the player gets.
+    sellable: false,
     effect: null,
   },
 };

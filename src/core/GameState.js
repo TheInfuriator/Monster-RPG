@@ -39,9 +39,17 @@ export function createNewGameState() {
       facing: 'down',
     },
 
-    /** Where the player respawns after losing a battle. Set by Mender's Halls. */
+    /**
+     * Where the player wakes up after blacking out. A map id and a NAMED spawn
+     * point, never raw coordinates, so it goes through the same transition
+     * machinery as any door and cannot land the player inside a wall.
+     *
+     * Healing at a Mender's Hall sets this. It starts at Emberhollow's, so a
+     * player who blacks out before ever visiting one still has somewhere safe
+     * to wake up.
+     */
     respawn: {
-      mapId: STARTING_MAP_ID,
+      mapId: 'mendersHall',
       spawn: 'default',
     },
 
@@ -109,4 +117,36 @@ export function hasFlag(name) {
 /** Set a story flag. Flags are how NPCs and maps react to progress. */
 export function setFlag(name, value = true) {
   gameState.flags[name] = value;
+}
+
+// ---------------------------------------------------------------------------
+// Where the player wakes up after a blackout
+// ---------------------------------------------------------------------------
+
+/**
+ * The current recovery point, always a usable `{ mapId, spawn }`.
+ *
+ * Falls back to Emberhollow's Mender's Hall rather than returning null, so
+ * blackout code never has to handle "nowhere to go".
+ */
+export function getRecoveryPoint(state = gameState) {
+  const point = state.respawn;
+  if (point && point.mapId && point.spawn) return { ...point };
+
+  return { mapId: 'mendersHall', spawn: 'default' };
+}
+
+/**
+ * Record a new recovery point. Every Mender's Hall calls this when it heals
+ * you, which is all it takes for a future healing centre to become the place
+ * you wake up — the blackout code never changes.
+ *
+ * @returns {boolean} false (changing nothing) for an incomplete point
+ */
+export function setRecoveryPoint(mapId, spawn = 'default', state = gameState) {
+  if (typeof mapId !== 'string' || mapId.length === 0) return false;
+  if (typeof spawn !== 'string' || spawn.length === 0) return false;
+
+  state.respawn = { mapId, spawn };
+  return true;
 }

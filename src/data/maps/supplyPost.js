@@ -43,9 +43,11 @@ export const supplyPost = {
       dialogue: [
         {
           when: 'gotStarter',
+          // Opens the Supply Post's shelf. The stock lives in src/data/shops.js.
+          action: 'shop:emberhollowSupplyPost',
           pages: [
             'A Warden! Then you will be wanting orbs and potions.',
-            'Come back when I have the till open — I am still counting yesterday.',
+            'Till is open. Take a look.',
           ],
         },
         {

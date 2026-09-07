@@ -3,9 +3,10 @@
  * ----------------------------------------------------------------------------
  * This world's healing centre. The Mender restores your party for free.
  *
- * The actual healing needs a party to heal, which arrives in Phase 3, and the
- * respawn-here-after-losing rule needs battles, which arrive in Phase 4. Today
- * the Mender greets you and explains what she does.
+ * Talking to Mender Ines restores the whole party — HP, every move's PP and any
+ * status — and makes this Hall the place you wake up after blacking out. Both
+ * come from the dialogue `action: 'heal'`, so a second Hall in a later town
+ * needs no code at all.
  */
 
 export const mendersHall = {
@@ -46,6 +47,8 @@ export const mendersHall = {
       movement: 'static',
       dialogue: [
         {
+          // The heal runs when the conversation ENDS, and speaks for itself.
+          action: 'heal',
           pages: [
             'Welcome to the Mender’s Hall! Bring me any tired Aether and I will set it right.',
             'It costs nothing. Wardens look after each other out here.',

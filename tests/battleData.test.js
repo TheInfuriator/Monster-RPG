@@ -10,6 +10,7 @@ import { SCRIPTED_BATTLES, getScriptedBattle } from '../src/data/battles.js';
 import { CREATURES } from '../src/data/creatures.js';
 import { MOVES } from '../src/data/moves.js';
 import { ITEMS } from '../src/data/items.js';
+import { SUPPORTED_ITEM_EFFECTS } from '../src/systems/ItemEffects.js';
 import { STATUS_SET } from '../src/data/statuses.js';
 import { SUPPORTED_EFFECT_KINDS } from '../src/systems/battle/MoveEffectRunner.js';
 import { BattleEngine } from '../src/systems/battle/BattleEngine.js';
@@ -92,12 +93,16 @@ describe('the Struggle fallback', () => {
 });
 
 describe('battle-usable items', () => {
-  it('gives every non-key item an effect the battle scene understands', () => {
-    const supported = new Set(['heal', 'cureStatus', 'capture']);
+  it('gives every non-key item an effect the game knows how to carry out', () => {
+    // Checked against the implementation's own list rather than a copy of it,
+    // so adding an effect type to items.js with nothing to run it fails here.
     for (const item of Object.values(ITEMS)) {
       if (item.category === 'key') continue;
       expect(item.effect, `${item.id} has no effect`).toBeTruthy();
-      expect(supported.has(item.effect.type), `${item.id}: ${item.effect.type}`).toBe(true);
+      expect(
+        SUPPORTED_ITEM_EFFECTS.has(item.effect.type),
+        `${item.id}: ${item.effect.type}`
+      ).toBe(true);
     }
   });
 
