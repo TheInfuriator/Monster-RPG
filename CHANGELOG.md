@@ -173,7 +173,11 @@ than a note, because balance rots silently.
   timers, textures, animations, keyboard keys, listeners, scene instances, NPCs,
   barrier sprites and step listeners unchanged — then the puzzle, a Leader
   battle, the Sigil, the Sigil screen and map transitions all still working.
-- **Phases 1–8 re-verified** on the same build.
+- **Phases 1–8 re-verified** on the same build: playthrough 12/12, world
+  34/34, items and flags 18/18, starter chooser 22/22, starters 60/60,
+  practice battles 27/27, switching and status 15/15, progression 33/33,
+  encounters 41/41, controlled encounters 13/13, capture and menus 65/65,
+  economy 85/85, trainers 59/59, and every earlier leak check.
 
 ### Fixed
 

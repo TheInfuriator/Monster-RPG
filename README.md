@@ -1031,6 +1031,25 @@ development — see the Verification section of [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
+## The first-badge journey
+
+Everything below works end to end, on the keyboard, from a new game:
+
+1. Wake up in **Emberhollow**, talk to Mum, find the Warden's Lodge
+2. Take a **starter** from Prof. Wick
+3. Buy orbs and potions at the **Supply Post**
+4. Walk **Route 1**: tall grass, wild Aethers, two ground items, a pond
+5. Fight its **three trainers** — Wren, Osrin and Halla
+6. Ask the **Gate Warden** to open the north gate
+7. Arrive in **Thistlewood**: a shop with a better shelf, a second Mender's
+   Hall, a cottage, and a road north that is not open yet
+8. Enter the **Verdant Hall** and work out its three root switches
+9. Fight **Gardeners Teal and Bracken** on the way to the ones that matter
+10. Walk the solved corridor to **Leader Fern** and beat her
+11. Receive the **Verdant Sigil**, and watch the town notice
+
+---
+
 ## Documentation
 
 - [GAME_DESIGN.md](GAME_DESIGN.md) — the region, creatures, type chart, gyms, story
