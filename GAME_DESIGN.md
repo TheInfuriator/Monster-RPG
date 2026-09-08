@@ -1131,9 +1131,14 @@ disagree.
 
 ### What the world does about it
 
-The Gate Warden, Hall Keeper Sorrel, Fern herself, Bryn, Mose, Hesper, Pell,
-Nan Thistle and the Mender's Hall challenger all have `when: 'badge:verdantSigil'`
-branches. Nine reactions, all ordinary conditional dialogue, no scene changes.
+Eight NPCs have `when: 'badge:verdantSigil'` branches — the Gate Warden, Hall
+Keeper Sorrel, Bryn, Mose, Hesper, Pell, Nan Thistle and the challenger waiting
+at the Mender's Hall. Fern makes nine, on `when: 'trainer:verdantLeaderFern'`:
+what must stop her offering another fight is having been BEATEN, and a reward
+should never be the thing that closes a rematch.
+
+Nine reactions, all ordinary conditional dialogue, and not one line of scene
+code.
 
 ### The Thornway
 

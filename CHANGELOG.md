@@ -95,8 +95,9 @@ all resolved. Losing awards nothing. `awardBadge()` refuses a duplicate.
 **A Sigil needs no story flag beside it.** It reads as a condition,
 `badge:verdantSigil`, exactly the way a beaten trainer reads as `trainer:<id>`.
 `ProgressionSystem` folds flags, beaten trainers and Sigils into one set that
-dialogue, barriers and the menu all read — so nine NPCs react to the Sigil
-through ordinary conditional dialogue and no scene reads `gameState.badges`.
+dialogue, barriers and the menu all read — so eight NPCs react to the Sigil,
+and Fern to having been beaten, through ordinary conditional dialogue, and no
+scene reads `gameState.badges`.
 
 **Debug** — `debug.gates()`, `debug.toggle(id)`, `debug.resetPuzzle()`,
 `debug.puzzleState(map)`, `debug.sigils()`, `debug.sigil(id, earned)`.
