@@ -18,14 +18,16 @@
  *   rewardMoney  coins for beating them, paid once
  *   intro        what they say when the battle starts
  *   outro        what they say once beaten, before control returns
+ *   badge        optional Sigil id awarded for beating them (Leaders only)
  *
  * The lines an already-beaten trainer says afterwards live with the NPC in the
  * map file, because that is ordinary conditional dialogue —
  * `when: 'trainer:route1Scout'` — and needs no special machinery.
  *
  * TO ADD A TRAINER: an entry here, then an NPC with `trainer: '<id>'` and a
- * `sightRange` on some map. No code either way. Phase 9's Gym trainers and the
- * Gym Leader are meant to be exactly this, with a bigger party.
+ * `sightRange` on some map. No code either way — and the Verdant Hall's
+ * Gardeners and Leader Fern below are the proof: a Gym Leader is an ordinary
+ * trainer with a bigger party and one extra field, `badge`.
  *
  * BALANCE NOTE (Route 1)
  * The player arrives with a level 5 starter and meets wild Aethers at levels
@@ -36,6 +38,7 @@
  */
 
 import { CREATURES } from './creatures.js';
+import { BADGES } from './badges.js';
 import { PROGRESSION } from '../config/balance.js';
 
 export const TRAINERS = {
@@ -101,6 +104,95 @@ export const TRAINERS = {
     ],
     outro: [
       'Then you will be through that gate before I am. Fair enough.',
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // The Verdant Hall, Thistlewood
+  // -------------------------------------------------------------------------
+  //
+  // BALANCE: the player arrives around level 10-13 with a starter and one or
+  // two Route 1 captures. The Gardeners sit at 9-10 — a clear step up from
+  // Route 1's 6-9 without being a wall — and Fern's team runs 11-13 with a
+  // level 13 ace, so she is above the Gardeners rather than above the player.
+  //
+  // Every one of these is Grass or Grass/Poison, which is the point: a Fire
+  // starter walks it, and Water and Grass starters are expected to bring
+  // something with wings. Flittle is the second most common Aether on Route 1
+  // and knows Peck from level 1, so the answer is cheap, early and obvious —
+  // three separate NPCs point at it.
+
+  /**
+   * Guards the west walkway. Two creatures, no surprises: the fight that tells
+   * the player how much harder a Hall is than a route.
+   */
+  verdantGardenerTeal: {
+    id: 'verdantGardenerTeal',
+    name: 'Teal',
+    title: 'Gardener',
+    rewardMoney: 480,
+    party: [
+      { species: 'vinelet', level: 9 },
+      { species: 'puffcap', level: 9 },
+    ],
+    intro: [
+      'Nobody walks up my side of the Hall without a round first.',
+      'Nothing personal. It is just how we do it here.',
+    ],
+    outro: [
+      'Neatly done. The west coil is up past me — mind what it closes.',
+    ],
+  },
+
+  /**
+   * Guards the east walkway, and a shade tougher: a Bug type to break up the
+   * Grass, and the higher of the two Vinelets.
+   */
+  verdantGardenerBracken: {
+    id: 'verdantGardenerBracken',
+    name: 'Bracken',
+    title: 'Gardener',
+    rewardMoney: 520,
+    party: [
+      { species: 'grubbit', level: 9 },
+      { species: 'vinelet', level: 10 },
+    ],
+    intro: [
+      'Two hedges and one Gardener between you and the Leader.',
+      'I am the Gardener. Let us see about the hedges afterwards.',
+    ],
+    outro: [
+      'Then you have earned the east coil. It is behind me — go on.',
+    ],
+  },
+
+  /**
+   * LEADER FERN. The canonical team from GAME_DESIGN.md: Vinelet 11,
+   * Puffcap 11, and Ivorn 13 as the ace.
+   *
+   * `badge` is the only field a Leader has that an ordinary trainer does not.
+   * Beating her awards the Verdant Sigil — once, after the win is completely
+   * resolved — and nothing in BattleScene or WorldScene names her to do it.
+   */
+  verdantLeaderFern: {
+    id: 'verdantLeaderFern',
+    name: 'Fern',
+    title: 'Leader',
+    rewardMoney: 1200,
+    badge: 'verdantSigil',
+    party: [
+      { species: 'vinelet', level: 11 },
+      { species: 'puffcap', level: 11 },
+      { species: 'ivorn', level: 13 },
+    ],
+    intro: [
+      'You found your way through. Most people give up at the second hedge.',
+      'I am Fern. I grew every wall in this building, and I have never lost in it.',
+      'Let us find out how much that is worth.',
+    ],
+    outro: [
+      'Ah. Well.',
+      'You read the hedges and then you read my Ivorn. That is a Warden.',
     ],
   },
 };
@@ -174,6 +266,11 @@ export function findTrainerProblems(trainer, id = 'trainer') {
         problems.push(`${where}: level must be between 1 and ${PROGRESSION.maxLevel}`);
       }
     });
+  }
+
+  // Only a Leader carries a Sigil, and it has to be one that exists.
+  if (trainer.badge !== undefined && !BADGES[trainer.badge]) {
+    problems.push(`${id}: awards unknown Sigil "${trainer.badge}"`);
   }
 
   for (const field of ['intro', 'outro']) {

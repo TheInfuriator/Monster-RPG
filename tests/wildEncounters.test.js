@@ -104,10 +104,18 @@ describe('a step only counts when the player actually moves', () => {
     const system = new EncounterSystem('route1', alwaysLucky);
     const spy = vi.spyOn(system, 'step');
 
-    // Tile (2, 2) on Route 1 is fence; (0, 3) is the tree border.
-    const walker = makeWalker(map, system).placeAt(2, 3);
-    expect(walker.move(-1, 0)).toBe(false); // into the treeline
-    expect(walker.move(0, -1)).toBe(false); // into the gate fence
+    // Found rather than written down: a tile with a wall to the west AND to
+    // the north. Naming coordinates makes this fail every time the route is
+    // edited, which teaches nothing about encounters.
+    const corner = findTile(
+      map,
+      (m, x, y) => m.isWalkable(x, y) && !m.isWalkable(x - 1, y) && !m.isWalkable(x, y - 1)
+    );
+    expect(corner, 'Route 1 has no walkable tile boxed in west and north').toBeTruthy();
+
+    const walker = makeWalker(map, system).placeAt(corner.x, corner.y);
+    expect(walker.move(-1, 0)).toBe(false);
+    expect(walker.move(0, -1)).toBe(false);
 
     expect(spy).not.toHaveBeenCalled();
     expect(walker.encounters).toHaveLength(0);

@@ -20,10 +20,12 @@ import {
   PLAYER_FRAME,
   CHARACTER_PALETTES,
   CREATURE_SPRITE_SIZE,
+  badgeTextureKey,
   characterTextureKey,
   creatureTextureKey,
 } from '../config/assets.js';
 import { CREATURES } from '../data/creatures.js';
+import { BADGES } from '../data/badges.js';
 import { getTypeColor, getTypeDarkColor } from './TypeChart.js';
 import { createSeededRandom } from '../utils/rng.js';
 
@@ -442,6 +444,96 @@ const TILE_GENERATORS = {
     return canvas;
   },
 
+  // --- Thistlewood and the Verdant Hall ---------------------------------
+
+  'tile-timber-wall': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x9b7c52);
+    // Horizontal timbers with darker gaps, so a wall reads as boards.
+    for (let y = 0; y < TILE_SIZE; y += 8) rect(ctx, 0, y + 6, TILE_SIZE, 2, 0x6f5637);
+    rect(ctx, 0, 0, 2, TILE_SIZE, 0x6f5637);
+    // Thistlewood is half-swallowed by hedges — moss on every timber.
+    speckle(ctx, 0x5c7a44, 10, 41);
+    return canvas;
+  },
+
+  'tile-timber-roof': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x6d7f4e);   // turf roof
+    rect(ctx, 0, 0, TILE_SIZE, 4, 0x86975f);
+    speckle(ctx, 0x54663c, 22, 42);
+    speckle(ctx, 0x9aab6f, 10, 43);
+    return canvas;
+  },
+
+  'tile-garden-soil': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x6b5439);
+    speckle(ctx, 0x7d6444, 26, 44);
+    speckle(ctx, 0x55412c, 14, 45);
+    // A few sprouting shoots, so the greenhouse floor reads as tended.
+    speckle(ctx, 0x5c8a45, 5, 46, 2);
+    return canvas;
+  },
+
+  'tile-hedge': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, COLORS.treeDark);
+    rect(ctx, 1, 1, 30, 26, COLORS.tree);
+    speckle(ctx, 0x7fae5c, 26, 47, 3);
+    speckle(ctx, 0x35542c, 16, 48, 3);
+    // A woody base so a hedge does not read as a floating bush.
+    rect(ctx, 0, 27, TILE_SIZE, 5, 0x4a3a26);
+    return canvas;
+  },
+
+  'tile-gate': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x000000);
+    // Posts either side, three bars across, and a visible cross-brace: this is
+    // a gate that is SHUT, not a fence.
+    rect(ctx, 0, 2, 5, 30, 0x6f5637);
+    rect(ctx, 27, 2, 5, 30, 0x6f5637);
+    for (const y of [6, 15, 24]) rect(ctx, 3, y, 26, 4, 0x9b7c52);
+    ctx.strokeStyle = hex(0x9b7c52);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(4, 28);
+    ctx.lineTo(28, 6);
+    ctx.stroke();
+    return canvas;
+  },
+
+  'tile-root-switch': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    // A coil of pale root set into the soil. Drawn on a see-through background
+    // so the map's own floor shows around it.
+    ctx.strokeStyle = hex(0xc7b083);
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(16, 16, 10, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = hex(0x8f7a52);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(16, 16, 6, 0, Math.PI * 2);
+    ctx.stroke();
+    rect(ctx, 14, 14, 4, 4, 0x6fbf73);
+    return canvas;
+  },
+
+  'tile-planter': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 2, 16, 28, 14, 0x8a6438);   // trough
+    rect(ctx, 2, 16, 28, 3, 0xa87f4c);
+    rect(ctx, 4, 19, 24, 8, 0x5b4630);    // soil
+    // Planting sitting in it.
+    rect(ctx, 7, 8, 6, 10, COLORS.tree);
+    rect(ctx, 14, 5, 7, 13, COLORS.tree);
+    rect(ctx, 21, 9, 5, 9, COLORS.treeDark);
+    return canvas;
+  },
+
   // A deliberately hideous magenta/black check, so an unknown map character is
   // impossible to miss on screen.
   'tile-void': () => {
@@ -456,6 +548,81 @@ const TILE_GENERATORS = {
 // ---------------------------------------------------------------------------
 // Player sprite sheet
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Sigils
+// ---------------------------------------------------------------------------
+
+/** How big a Sigil icon is drawn. Small: it is a badge, not a portrait. */
+export const BADGE_SIZE = 28;
+
+/**
+ * One Sigil icon: a coloured disc with the Hall's shape cut into it.
+ *
+ * Drawn from the Sigil's own `icon` and `color`, so a new Hall is an entry in
+ * src/data/badges.js and nothing here changes — except a new `icon` shape,
+ * which needs a case below and a matching name in SUPPORTED_BADGE_ICONS.
+ */
+function createBadgeIcon(badge) {
+  const size = BADGE_SIZE;
+  const { canvas, ctx } = makeCanvas(size, size);
+  const middle = size / 2;
+
+  // The disc, with a dark rim so it reads on both the parchment panel and ink.
+  ctx.fillStyle = hex(badge.color);
+  ctx.beginPath();
+  ctx.arc(middle, middle, middle - 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = hex(COLORS.ink);
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = hex(COLORS.ink);
+  switch (badge.icon) {
+    case 'leaf':
+      // A pointed leaf with a central vein.
+      ctx.beginPath();
+      ctx.moveTo(middle, 5);
+      ctx.quadraticCurveTo(size - 6, middle, middle, size - 5);
+      ctx.quadraticCurveTo(6, middle, middle, 5);
+      ctx.fill();
+      ctx.strokeStyle = hex(badge.color);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(middle, 8);
+      ctx.lineTo(middle, size - 8);
+      ctx.stroke();
+      break;
+
+    case 'wave':
+      // Three stacked swells.
+      for (let i = 0; i < 3; i += 1) {
+        const y = 9 + i * 5;
+        ctx.beginPath();
+        ctx.moveTo(6, y);
+        ctx.quadraticCurveTo(middle, y - 4, size - 6, y);
+        ctx.lineTo(size - 6, y + 2);
+        ctx.quadraticCurveTo(middle, y - 2, 6, y + 2);
+        ctx.fill();
+      }
+      break;
+
+    case 'bolt':
+    default:
+      ctx.beginPath();
+      ctx.moveTo(middle + 4, 5);
+      ctx.lineTo(middle - 6, middle + 2);
+      ctx.lineTo(middle - 1, middle + 2);
+      ctx.lineTo(middle - 4, size - 5);
+      ctx.lineTo(middle + 7, middle - 3);
+      ctx.lineTo(middle + 1, middle - 3);
+      ctx.closePath();
+      ctx.fill();
+      break;
+  }
+
+  return canvas;
+}
 
 /**
  * Draw one character frame using a palette.
@@ -856,6 +1023,15 @@ export function generateAllTextures(scene) {
     created += 1;
   }
 
+  // One icon per Sigil, earned or not — the Sigil screen draws locked slots too.
+  for (const badge of Object.values(BADGES)) {
+    const key = badgeTextureKey(badge.id);
+    if (scene.textures.exists(key)) continue;
+
+    scene.textures.addCanvas(key, createBadgeIcon(badge));
+    created += 1;
+  }
+
   // One sprite per creature species.
   for (const species of Object.values(CREATURES)) {
     const key = creatureTextureKey(species.id);
@@ -870,6 +1046,12 @@ export function generateAllTextures(scene) {
 
 /** Exported for tests and for anyone adding a new tile. */
 export const TILE_TEXTURE_KEYS = Object.keys(TILE_GENERATORS);
+
+/**
+ * Every Sigil icon this file generates.
+ * Read by the data tests, so a Sigil added without artwork cannot ship.
+ */
+export const BADGE_TEXTURE_KEYS = Object.values(BADGES).map((b) => badgeTextureKey(b.id));
 
 /** Exported so tests can check every species' body shape can actually be drawn. */
 export const CREATURE_BODY_DRAWER_NAMES = Object.keys(CREATURE_BODY_DRAWERS);

@@ -25,6 +25,7 @@ import { MAPS } from '../src/data/maps/index.js';
 import { CREATURES } from '../src/data/creatures.js';
 import { MOVES } from '../src/data/moves.js';
 import { ITEMS } from '../src/data/items.js';
+import { getBadge } from '../src/data/badges.js';
 import { PROGRESSION } from '../src/config/balance.js';
 import { createSeededRandom } from '../src/utils/rng.js';
 
@@ -345,9 +346,38 @@ describe('trainer data', () => {
   it('rewards run in a sensible early-game band', () => {
     for (const trainer of Object.values(TRAINERS)) {
       // Enough to feel worth it against a 200-coin Potion, not enough to make
-      // the economy meaningless.
+      // the economy meaningless. A LEADER is allowed a bigger purse — beating
+      // one is the end of a whole region's worth of progress — but not an
+      // unbounded one, and only a Leader may claim it.
+      const ceiling = trainer.badge ? 2000 : 1000;
+
       expect(trainer.rewardMoney).toBeGreaterThanOrEqual(100);
-      expect(trainer.rewardMoney).toBeLessThanOrEqual(1000);
+      expect(
+        trainer.rewardMoney,
+        `${trainer.id} pays ${trainer.rewardMoney}, above the ${ceiling} ceiling`
+      ).toBeLessThanOrEqual(ceiling);
+    }
+  });
+
+  it('pays a Leader more than any of their own Hall\'s trainers', () => {
+    const leaders = Object.values(TRAINERS).filter((t) => t.badge);
+    expect(leaders.length).toBeGreaterThan(0);
+
+    for (const leader of leaders) {
+      const badge = getBadge(leader.badge);
+      // Everyone else in the same Hall, found by the map they stand on.
+      const hallMates = Object.values(MAPS)
+        .filter((map) => (map.npcs || []).some((npc) => npc.trainer === leader.id))
+        .flatMap((map) => (map.npcs || []).map((npc) => TRAINERS[npc.trainer]))
+        .filter((t) => t && t.id !== leader.id);
+
+      expect(hallMates.length, `${leader.id} has no Hall trainers`).toBeGreaterThan(0);
+      for (const mate of hallMates) {
+        expect(
+          leader.rewardMoney,
+          `${badge.name}'s Leader pays less than ${mate.id}`
+        ).toBeGreaterThan(mate.rewardMoney);
+      }
     }
   });
 });
@@ -413,7 +443,18 @@ describe('every trainer NPC on every map', () => {
         expect(TRAINERS[npc.trainer], `unknown trainer "${npc.trainer}"`).toBeDefined();
       });
 
-      it('has a valid sight range', () => {
+      it('has a valid sight range, or none at all', () => {
+        // A Gym Leader waits to be come to and never spots anyone, so no sight
+        // range is a legitimate choice. Any range that IS declared has to be
+        // usable — a 0 or a 99 is a mistake either way.
+        if (npc.sightRange === undefined) {
+          expect(
+            resolveDialogue(npc.dialogue, {}).action,
+            `${npc.id} cannot be challenged: no sight range and no dialogue action`
+          ).toBe(`trainer:${npc.trainer}`);
+          return;
+        }
+
         expect(Number.isInteger(npc.sightRange)).toBe(true);
         expect(npc.sightRange).toBeGreaterThanOrEqual(1);
         expect(npc.sightRange).toBeLessThanOrEqual(8);
@@ -715,9 +756,26 @@ describe('prize money', () => {
   });
 
   it('funds a useful number of Potions without trivialising them', () => {
-    const total = Object.values(TRAINERS).reduce((sum, t) => sum + t.rewardMoney, 0);
+    // ROUTE 1 on its own, because that is the money a player actually has in
+    // hand when they reach Thistlewood. Summing every trainer in the game would
+    // stop meaning anything the moment a second Hall exists.
+    const route = Object.values(TRAINERS).filter((t) => t.id.startsWith('route1'));
+    expect(route.length).toBe(3);
+
+    const total = route.reduce((sum, t) => sum + t.rewardMoney, 0);
     const potions = Math.floor(total / ITEMS.potion.price);
     expect(potions).toBeGreaterThanOrEqual(3);
     expect(potions).toBeLessThanOrEqual(8);
+  });
+
+  it('pays for the Verdant Hall roughly what the Hall demands of you', () => {
+    const hall = ['verdantGardenerTeal', 'verdantGardenerBracken', 'verdantLeaderFern']
+      .map((id) => TRAINERS[id]);
+    const total = hall.reduce((sum, t) => sum + t.rewardMoney, 0);
+
+    // Clearing the Hall should cover a proper restock — several Super Potions
+    // and a Great Orb — without paying for a shelf of them.
+    expect(total).toBeGreaterThanOrEqual(ITEMS.superPotion.price * 3);
+    expect(total).toBeLessThanOrEqual(ITEMS.superPotion.price * 6);
   });
 });

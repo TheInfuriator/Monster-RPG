@@ -18,6 +18,11 @@ import { wardensLodge } from './wardensLodge.js';
 import { mendersHall } from './mendersHall.js';
 import { supplyPost } from './supplyPost.js';
 import { route1 } from './route1.js';
+import { thistlewood } from './thistlewood.js';
+import { thistlewoodMendersHall } from './thistlewoodMendersHall.js';
+import { thistlewoodSupplyPost } from './thistlewoodSupplyPost.js';
+import { thistlewoodCottage } from './thistlewoodCottage.js';
+import { verdantHall } from './verdantHall.js';
 
 export const MAPS = {
   emberhollow,
@@ -26,6 +31,11 @@ export const MAPS = {
   mendersHall,
   supplyPost,
   route1,
+  thistlewood,
+  thistlewoodMendersHall,
+  thistlewoodSupplyPost,
+  thistlewoodCottage,
+  verdantHall,
 };
 
 /**

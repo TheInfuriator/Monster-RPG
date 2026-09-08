@@ -2,14 +2,15 @@
  * route1.js — Route 1, the Cinderpath
  * ----------------------------------------------------------------------------
  * The first route north out of Emberhollow. Tall grass on both sides of the
- * path, a pond partway up, and a gate at the top that stays shut until you are
- * a registered Warden.
+ * path, a pond partway up, and a gate at the top that stays shut until the
+ * warden is satisfied you are a Warden walking with a partner.
  *
  * Every row is 22 characters: two border trees, eighteen tiles of route, two
  * more border trees. Keeping that shape consistent makes the map easy to edit.
  *
  *   .  grass      "  tall grass (wild Aethers)   -  path     T  tree
  *   ~  water      s  sand                        F  fence    S  sign
+ *   G  gate (drawn by the barrier at the top of the route, not in the grid)
  */
 
 export const route1 = {
@@ -18,11 +19,33 @@ export const route1 = {
   music: 'route',
   encounterTable: 'route1',
 
+  /**
+   * The north gate.
+   *
+   * The two path tiles at (10, 1) and (11, 1) are walkable in the map source;
+   * this barrier stands on them until the flag is set, and then never again.
+   * `openWhen` means the gate's state is a pure function of that flag — there
+   * is nothing to keep in sync, and no way to "open it twice".
+   *
+   * The warden sets the flag when a Warden with a partner asks. See
+   * src/systems/PuzzleSystem.js for how barriers work.
+   */
+  barriers: [
+    {
+      id: 'route1Gate',
+      name: 'the north gate',
+      tile: 'G',
+      tiles: [[10, 1], [11, 1]],
+      closed: true,
+      openWhen: 'route1GateOpen',
+    },
+  ],
+
   tiles: [
     // 0    5    10   15   20
-    'TTTTTTTTTTTTTTTTTTTTTT', //  0
-    'TTTTTTTTTTTTTTTTTTTTTT', //  1
-    'TTFFFFFFFFFFFFFFFFFFTT', //  2  the north gate — shut for now
+    'TTTTTTTTTT--TTTTTTTTTT', //  0  north exit to Thistlewood
+    'TTFFFFFFFF--FFFFFFFFTT', //  1  THE GATE — the '--' tiles are the barrier
+    'TT........--........TT', //  2
     'TT..................TT', //  3
     'TT.......S--........TT', //  4  signpost beside the path
     'TT........--........TT', //  5
@@ -56,28 +79,55 @@ export const route1 = {
     // Arriving from town: just inside the southern treeline, facing north.
     fromEmberhollow: { x: 10, y: 28, facing: 'up' },
     default: { x: 10, y: 28, facing: 'up' },
+    // Coming back south through the gate: just below it, facing on down the
+    // route. Never ON the gate tiles — a spawn inside a barrier is refused by
+    // the map tests for exactly that reason.
+    fromThistlewood: { x: 10, y: 2, facing: 'down' },
   },
 
   exits: [
     { x: 10, y: 29, to: 'emberhollow', spawn: 'fromRoute1' },
     { x: 11, y: 29, to: 'emberhollow', spawn: 'fromRoute1' },
+    { x: 10, y: 0, to: 'thistlewood', spawn: 'fromRoute1' },
+    { x: 11, y: 0, to: 'thistlewood', spawn: 'fromRoute1' },
   ],
 
   npcs: [
     {
       id: 'gateWarden',
       name: 'Gate Warden',
-      x: 13,
-      y: 3,
-      facing: 'down',
+      // Right beside the gate, so it is obvious who to ask about it.
+      x: 12,
+      y: 2,
+      facing: 'left',
       sprite: 'villagerAlt',
       movement: 'static',
       dialogue: [
+        // First matching branch wins, so the order here IS the progression.
         {
+          when: 'badge:verdantSigil',
+          pages: [
+            'A Sigil already! Fern does not hand those out to be kind.',
+            'Go on through whenever you like. The Cinderpath is yours now.',
+          ],
+        },
+        {
+          when: 'route1GateOpen',
+          pages: [
+            'Road is open. Thistlewood is an hour north, and it is worth the walk.',
+            'Mind the hedges. They grow across the path if nobody is watching.',
+          ],
+        },
+        {
+          // Having a partner is the whole requirement — no errands, no waiting.
+          // Setting the flag here is what retracts the gate barrier.
           when: 'gotStarter',
+          setFlags: ['route1GateOpen'],
           pages: [
             'So Wick finally handed one over! Good.',
-            'The gate opens for Wardens with a partner. Give me a day to shift the bar and Thistlewood is yours.',
+            'The gate opens for Wardens with a partner, and that is you now.',
+            '*He lifts the bar and swings the gate wide.*',
+            'Thistlewood is straight up the road. Ask after the Verdant Hall when you get there.',
           ],
         },
         {
@@ -234,8 +284,19 @@ export const route1 = {
       y: 4,
       type: 'sign',
       dialogue: [
-        'ROUTE 1 — THE CINDERPATH',
-        'North: Thistlewood (gate closed).  South: Emberhollow Town.',
+        {
+          when: 'route1GateOpen',
+          pages: [
+            'ROUTE 1 — THE CINDERPATH',
+            'North: Thistlewood.  South: Emberhollow Town.',
+          ],
+        },
+        {
+          pages: [
+            'ROUTE 1 — THE CINDERPATH',
+            'North: Thistlewood (gate closed).  South: Emberhollow Town.',
+          ],
+        },
       ],
     },
     {

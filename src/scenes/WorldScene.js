@@ -13,6 +13,7 @@
  *   DialogueBox        the text box at the bottom
  *   InteractionSystem  what the player is pressing the button at
  *   EncounterSystem    whether tall grass turns something up
+ *   PuzzleSystem       which gates and hedges are open right now
  *
  * Changing maps restarts this same scene with new data. Everything created here
  * is released in `cleanup()`, so that can happen as often as the player likes.
@@ -50,9 +51,15 @@ import { getShop } from '../data/shops.js';
 import { getTrainer, getTrainerDisplayName } from '../data/trainers.js';
 import {
   createTrainerBattleConfig, isTrainerDefeated, markTrainerDefeated,
-  getDialogueConditions,
 } from '../systems/TrainerSystem.js';
 import { findChallenger } from '../systems/SightSystem.js';
+import {
+  createBarrierState, getSwitchAt, pressSwitch, resetPuzzle, getBarrier,
+} from '../systems/PuzzleSystem.js';
+import { getWorldConditions } from '../systems/ProgressionSystem.js';
+import { awardBadge } from '../systems/BadgeSystem.js';
+import { getBadge } from '../data/badges.js';
+import { badgeTextureKey } from '../config/assets.js';
 import { createCreature } from '../systems/CreatureFactory.js';
 import { createWildBattleConfig } from '../systems/WildBattle.js';
 import { STARTER_FLAG } from './StarterSelectScene.js';
@@ -73,6 +80,9 @@ const ENCOUNTER_FADE_MS = 260;
 
 /** How long the "!" hangs over a trainer before they start walking. */
 const TRAINER_ALERT_MS = 620;
+
+/** How long a switch's "the west hedge draws back" note stays on screen. */
+const TOAST_MS = 1500;
 
 export class WorldScene extends Phaser.Scene {
   constructor() {
@@ -102,6 +112,12 @@ export class WorldScene extends Phaser.Scene {
      */
     this.trainerChallenge = null;
     this.trainerAlert = null;
+    /** The fading note a root switch leaves on screen, or null. */
+    this.toast = null;
+    /** The Sigil panel shown while its message is read, or null. */
+    this.badgePanel = null;
+    /** Who spoke the dialogue that is running, so an action can answer as them. */
+    this.lastSpeaker = null;
   }
 
   create() {
@@ -145,9 +161,121 @@ export class WorldScene extends Phaser.Scene {
     // rather than rendering an empty screen with no explanation.
     const definition = getMapDefinition(mapId);
     this.map = new TileMap(definition);
+
+    // Gates and hedges BEFORE anything is drawn or anyone is placed, so the
+    // first frame already shows the world as it really is.
+    this.syncBarriers();
     this.mapRenderer = new MapRenderer(this, this.map);
 
     this.cameras.main.setBackgroundColor(COLORS.ink);
+  }
+
+  // -------------------------------------------------------------------------
+  // Gates, hedges and root switches
+  // -------------------------------------------------------------------------
+
+  /**
+   * Push the saved barrier state into the map, and optionally into the picture.
+   *
+   * ONE call decides both what blocks and what is drawn. Story flags, beaten
+   * trainers and earned Sigils all reach `openWhen` through the same
+   * `getWorldConditions()` the dialogue uses, so opening Route 1's gate is a
+   * flag and nothing else.
+   *
+   * @param {object} [options]
+   * @param {string[]} [options.animate] barrier ids to animate rather than snap
+   */
+  syncBarriers({ animate = [] } = {}) {
+    if (this.map.barriers.length === 0) return;
+
+    this.map.setBarrierState(createBarrierState(this.map.definition, {
+      conditions: getWorldConditions(gameState),
+      state: gameState,
+    }));
+
+    if (this.mapRenderer) this.mapRenderer.refreshBarriers({ animate });
+  }
+
+  /**
+   * The player finished a step on a root switch.
+   *
+   * PuzzleSystem decides what moves; this reports who is standing where so a
+   * hedge can never grow through a person, and then narrates it. The switch
+   * CLAIMS the step (see `onPlayerStep`), so pressing one and being spotted can
+   * never happen on the same tile.
+   *
+   * @returns {boolean} true if a switch was pressed
+   */
+  checkForSwitch(x, y) {
+    const entry = getSwitchAt(this.map.definition, x, y);
+    if (!entry) return false;
+
+    const occupants = [
+      { x: this.player.tileX, y: this.player.tileY },
+      ...this.npcManager.npcs.map((npc) => ({ x: npc.tileX, y: npc.tileY })),
+    ];
+
+    const outcome = pressSwitch(this.map.definition, entry.id, { state: gameState, occupants });
+    if (!outcome.changed) {
+      // Only reachable if something is standing where a hedge wants to grow,
+      // which the map tests rule out. Say something rather than nothing.
+      this.showToast('The roots strain, but nothing moves.');
+      return true;
+    }
+
+    this.syncBarriers({ animate: [outcome.retracted, outcome.extended].filter(Boolean) });
+    this.showToast(this.describeSwitch(outcome));
+    return true;
+  }
+
+  /** "The east hedge draws back — the west hedge grows across." */
+  describeSwitch(outcome) {
+    const name = (id) => getBarrier(this.map.definition, id)?.name || 'a hedge';
+    const parts = [];
+    if (outcome.retracted) parts.push(`${name(outcome.retracted)} draws back`);
+    if (outcome.extended) parts.push(`${name(outcome.extended)} grows across`);
+    return `${parts.join(' — ')}.`;
+  }
+
+  /**
+   * A line of text that fades away on its own.
+   *
+   * Deliberately NOT the dialogue box: pressing a switch should not stop the
+   * player walking, and a box that had to be dismissed every time would make
+   * experimenting with the puzzle a chore.
+   */
+  showToast(text) {
+    this.clearToast();
+
+    const label = this.add
+      .text(GAME_WIDTH / 2, 56, text, { ...TEXT_STYLES.body, fontSize: '12px' })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(DEPTHS.ui);
+
+    const background = this.add
+      .rectangle(GAME_WIDTH / 2, 56, label.width + 24, 24, COLORS.ink, 0.85)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(DEPTHS.ui)
+      .setStrokeStyle(2, COLORS.good, 0.9);
+
+    this.toast = this.add.container(0, 0, [background, label]).setDepth(DEPTHS.ui);
+    this.tweens.add({
+      targets: this.toast,
+      alpha: 0,
+      delay: TOAST_MS,
+      duration: 350,
+      onComplete: () => this.clearToast(),
+    });
+  }
+
+  clearToast() {
+    if (this.toast) {
+      this.tweens.killTweensOf(this.toast);
+      this.toast.destroy();
+      this.toast = null;
+    }
   }
 
   createPlayer() {
@@ -319,6 +447,11 @@ export class WorldScene extends Phaser.Scene {
           ` rate ${this.encounters.rate}` +
           ` cd ${this.encounters.cooldown}`,
         `party  ${describeParty(gameState)}`,
+        ...(this.map.barriers.length > 0
+          ? [`gates  ${this.map.barriers
+            .map((b) => `${b.id}:${this.map.isBarrierClosed(b.id) ? 'shut' : 'open'}`)
+            .join(' ')}`]
+          : []),
         `fps    ${Math.round(this.game.loop.actualFps)}`,
       ];
     });
@@ -337,9 +470,12 @@ export class WorldScene extends Phaser.Scene {
    * One completed step, at most one thing happens. The order matters:
    *
    *   1. an exit — standing in a doorway always takes you through it
-   *   2. a trainer spotting you — being challenged beats being ambushed, so a
+   *   2. a root switch — the tile you are standing on wins over anything that
+   *      might notice you standing there, so pressing a switch and being
+   *      challenged can never collide on one step
+   *   3. a trainer spotting you — being challenged beats being ambushed, so a
    *      wild Aether can never barge in at the moment someone shouts at you
-   *   3. a wild encounter
+   *   4. a wild encounter
    *
    * Each returns early, so two of these can never fire from one step.
    */
@@ -351,6 +487,8 @@ export class WorldScene extends Phaser.Scene {
       this.startTransition(exit);
       return;
     }
+
+    if (this.checkForSwitch(x, y)) return;
 
     if (this.checkForTrainers(x, y)) return;
 
@@ -555,17 +693,100 @@ export class WorldScene extends Phaser.Scene {
    * completely resolved, and never at all if the player lost.
    */
   onTrainerBattleFinished(result) {
-    const trainerId = result.trainerId;
-    const trainer = getTrainer(trainerId);
-    this.trainerChallenge = null;
+    const trainer = getTrainer(result.trainerId);
 
     if (!trainer) return false;
+    // A LOSS marks nothing and awards nothing: the trainer is still standing
+    // there, and the Sigil is still theirs.
     if (result.outcome !== BATTLE_RESULT.WIN) return false;
 
-    markTrainerDefeated(trainerId);
+    markTrainerDefeated(trainer.id);
 
-    this.startDialogue(trainer.outro, { speaker: getTrainerDisplayName(trainer) });
+    // A Leader's Sigil, if they carry one. Trainer DATA decides this — nothing
+    // here names Fern, and a second Hall needs no code at all.
+    this.startDialogue(trainer.outro, {
+      speaker: getTrainerDisplayName(trainer),
+      onDone: () => this.awardTrainerBadge(trainer),
+    });
     return true;
+  }
+
+  /**
+   * Hand over a Leader's Sigil, once.
+   *
+   * Called only after a WIN, and only once the outro has finished playing — so
+   * experience, level-ups, new moves, evolutions and the Leader's own last word
+   * are all resolved before the Sigil is real. `awardBadge()` refuses a
+   * duplicate on its own, so even a doubled call cannot produce two.
+   */
+  awardTrainerBadge(trainer) {
+    const badge = getBadge(trainer.badge);
+    if (!trainer.badge || !badge) {
+      this.releasePlayer();
+      return;
+    }
+
+    const outcome = awardBadge(badge.id, gameState);
+    if (!outcome.awarded) {
+      this.releasePlayer();
+      return;
+    }
+
+    // A Sigil can stand a gate open — the Verdant Hall's hedges rest for good
+    // once it is won — so the world catches up before control comes back.
+    this.syncBarriers({ animate: this.map.barriers.map((b) => b.id) });
+    this.showBadgeAward(badge);
+  }
+
+  /**
+   * The Sigil itself, held up on screen while the message is read.
+   *
+   * Short and plain on purpose: it is a milestone, not a cut scene. The
+   * ordinary dialogue box drives it, which means the ordinary input handling
+   * does too — there is no second place that reads the keyboard.
+   */
+  showBadgeAward(badge) {
+    this.cameras.main.flash(240, 255, 255, 255);
+
+    const panel = this.add.container(GAME_WIDTH / 2, 108)
+      .setScrollFactor(0)
+      .setDepth(DEPTHS.ui);
+
+    const background = this.add.rectangle(0, 0, 210, 92, COLORS.ink, 0.92)
+      .setOrigin(0.5)
+      .setStrokeStyle(3, badge.color, 1);
+    const icon = this.add.image(0, -18, badgeTextureKey(badge.id)).setOrigin(0.5);
+    const label = this.add
+      .text(0, 22, badge.name.toUpperCase(), { ...TEXT_STYLES.heading, fontSize: '13px' })
+      .setOrigin(0.5);
+
+    panel.add([background, icon, label]);
+    this.tweens.add({
+      targets: icon, scale: { from: 0.4, to: 1 }, duration: 320, ease: 'Back.easeOut',
+    });
+
+    this.badgePanel = panel;
+    this.startDialogue(
+      [
+        `You received the ${badge.name}!`,
+        badge.description,
+        `Proof that ${badge.hall} could not keep you out.`,
+      ],
+      {
+        onDone: () => {
+          this.clearBadgePanel();
+          this.releasePlayer();
+        },
+      }
+    );
+  }
+
+  clearBadgePanel() {
+    if (this.badgePanel) {
+      this.tweens.killTweensOf(this.badgePanel.list);
+      this.badgePanel.destroy();
+      this.badgePanel = null;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -659,13 +880,12 @@ export class WorldScene extends Phaser.Scene {
       onFinished: (result) => {
         this.scene.resume();
         this.isEnteringBattle = false;
-    /**
-     * The NPC currently challenging the player, or null. One at a time: this is
-     * what stops a second trainer, or a second step, starting another sequence
-     * on top of the first.
-     */
-    this.trainerChallenge = null;
-    this.trainerAlert = null;
+
+        // Whatever the battle was, the challenge that led to it is over. The
+        // alert is destroyed rather than dropped, so nothing is left behind.
+        this.clearTrainerAlert();
+        this.trainerChallenge = null;
+
         if (fadeBackIn) fadeIn(this);
         this.onBattleFinished(result);
       },
@@ -715,10 +935,10 @@ export class WorldScene extends Phaser.Scene {
 
   /** Resolve a dialogue definition against the story flags, then show it. */
   showDialogueFor(dialogue, fallbackSpeaker = null) {
-    // Story flags PLUS who has been beaten, so a trainer's post-defeat lines
-    // are ordinary conditional dialogue (`when: 'trainer:route1Scout'`) and no
-    // scene ever reaches into `defeatedTrainers` itself.
-    const resolved = resolveDialogue(dialogue, getDialogueConditions(gameState));
+    // Story flags PLUS who has been beaten PLUS which Sigils are held, so
+    // `when: 'trainer:route1Scout'` and `when: 'badge:verdantSigil'` are both
+    // ordinary conditional dialogue and no scene reads either record itself.
+    const resolved = resolveDialogue(dialogue, getWorldConditions(gameState));
     if (resolved.pages.length === 0) return;
 
     this.startDialogue(resolved.pages, {
@@ -736,16 +956,31 @@ export class WorldScene extends Phaser.Scene {
     this.player.stopMovement();
     this.npcManager.setAllBusy(true);
 
+    // Remembered so an ACTION can answer in the same voice that triggered it.
+    // That is what lets a second Mender's Hall be pure data: `healAtMender()`
+    // speaks as whoever the player is talking to, not as a name in the code.
+    this.lastSpeaker = options.speaker || null;
+
     this.dialogueBox.show(pages, {
       speaker: options.speaker || null,
       onComplete: () => {
-        for (const flag of options.setFlags || []) setFlag(flag);
+        const flags = options.setFlags || [];
+        for (const flag of flags) setFlag(flag);
+
+        // A flag can open a gate — Route 1's warden sets one — so the world has
+        // to catch up before the player is handed back control.
+        if (flags.length > 0) this.syncBarriers({ animate: this.map.barriers.map((b) => b.id) });
 
         // An action runs INSTEAD of handing control back, because it usually
         // opens something of its own (a chooser, a battle) that will return
         // control when it finishes.
         if (options.action) {
           this.runDialogueAction(options.action);
+          return;
+        }
+
+        if (options.onDone) {
+          options.onDone();
           return;
         }
 
@@ -786,6 +1021,10 @@ export class WorldScene extends Phaser.Scene {
 
       case 'heal':
         this.healAtMender();
+        break;
+
+      case 'resetPuzzle':
+        this.resetMapPuzzle();
         break;
 
       default:
@@ -992,11 +1231,16 @@ export class WorldScene extends Phaser.Scene {
     // nearest one — the blackout code never learns about individual maps.
     setRecoveryPoint(this.map.id, 'default');
 
+    // Whoever the player is talking to keeps talking. Emberhollow's Ines and
+    // Thistlewood's Rell share every line below without either being named
+    // here — which is the point: a third Hall needs no code either.
+    const speaker = this.lastSpeaker;
+
     if (gameState.party.length === 0) {
       this.startDialogue([
         '"Bring me an Aether and I will set it right."',
         '"Come back when you have someone walking beside you."',
-      ], { speaker: 'Mender Ines' });
+      ], { speaker });
       return;
     }
 
@@ -1011,7 +1255,22 @@ export class WorldScene extends Phaser.Scene {
         '"Rest here any time. I will be your way back if things go badly."',
       ];
 
-    this.startDialogue(lines, { speaker: 'Mender Ines' });
+    this.startDialogue(lines, { speaker });
+  }
+
+  /**
+   * Put this map's hedges back to how they were found.
+   *
+   * The Verdant Hall's reset root. The puzzle cannot get stuck — every switch
+   * stands on the walkway, which is always connected to the door — so this is
+   * a convenience for a player who has tangled things, not a rescue.
+   */
+  resetMapPuzzle() {
+    const moved = resetPuzzle(this.map.definition, { state: gameState });
+    if (moved > 0) {
+      this.syncBarriers({ animate: this.map.barriers.map((b) => b.id) });
+    }
+    this.releasePlayer();
   }
 
   /** Open a shop, described in src/data/shops.js, over a paused overworld. */
@@ -1123,6 +1382,8 @@ export class WorldScene extends Phaser.Scene {
 
   cleanup() {
     this.clearTrainerAlert();
+    this.clearToast();
+    this.clearBadgePanel();
     this.trainerChallenge = null;
 
     if (this.mapRenderer) {

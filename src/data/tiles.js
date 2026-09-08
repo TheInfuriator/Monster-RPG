@@ -61,6 +61,23 @@ export const TILE_DEFINITIONS = {
   'H': { id: 'healing_machine', solid: true, object: true, texture: 'tile-healing-machine' },
   'V': { id: 'shop_shelf', solid: true, object: true, texture: 'tile-shop-shelf' },
   'I': { id: 'interior_window', solid: true, texture: 'tile-interior-window' },
+
+  // --- Thistlewood and the Verdant Hall (Phase 9) -------------------------
+  //
+  // `G` and `h` are the two BARRIER looks. A barrier is a set of tiles that a
+  // map can open and close at runtime (see src/systems/PuzzleSystem.js); it
+  // names one of these characters and the barrier is drawn — and blocks — as
+  // that tile while it is closed. They are ordinary tiles, so a map may also
+  // just write one in and get a permanent gate or hedge.
+  'G': { id: 'gate', solid: true, texture: 'tile-gate' },
+  'h': { id: 'hedge', solid: true, texture: 'tile-hedge' },
+  'g': { id: 'garden_soil', solid: false, texture: 'tile-garden-soil' },
+  // A root switch is stepped ON, so it must stay walkable. `object: true` draws
+  // it over the map's objectBase floor, like any other piece of furniture.
+  'x': { id: 'root_switch', solid: false, object: true, texture: 'tile-root-switch' },
+  'p': { id: 'planter', solid: true, object: true, texture: 'tile-planter' },
+  'k': { id: 'timber_wall', solid: true, texture: 'tile-timber-wall' },
+  'K': { id: 'timber_roof', solid: true, texture: 'tile-timber-roof' },
 };
 
 /** The tile used when a map contains a character this file does not define. */

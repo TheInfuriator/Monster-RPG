@@ -47,6 +47,36 @@ export const SHOPS = {
       // first town should not sell the answer to the first route.
     ],
   },
+
+  /**
+   * Thistlewood's Supply Post. A real step up, because the player arrives here
+   * with Route 1's trainer money in their pocket and a Beacon Hall in front of
+   * them.
+   *
+   * What is new: the SUPER POTION (50 HP, 550) and the GREAT ORB (x1.5, 500),
+   * plus the Rouser for sleep — Fern's Puffcap knows Lull Hum, so a sleep cure
+   * stops being a luxury the moment you walk into the Hall.
+   *
+   * What is still held back: the Ultra Orb and the Clear Tonic. A 1200-coin orb
+   * on the first Gym's doorstep would flatten every capture decision after it,
+   * and the single-status cures already cover everything the Hall inflicts.
+   */
+  thistlewoodSupplyPost: {
+    id: 'thistlewoodSupplyPost',
+    name: 'Supply Post',
+    keeper: 'Perrin',
+    greeting: 'Hall challenger? Then you will want the strong shelf.',
+    stock: [
+      { item: 'potion' },
+      { item: 'superPotion' },
+      { item: 'antidote' },
+      { item: 'soothingBalm' },
+      { item: 'burnSalve' },
+      { item: 'rouser' },
+      { item: 'basicOrb' },
+      { item: 'greatOrb' },
+    ],
+  },
 };
 
 /**

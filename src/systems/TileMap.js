@@ -10,6 +10,7 @@
 
 import { getTileByChar } from '../data/tiles.js';
 import { getEncounterConfig } from '../data/encounters.js';
+import { getBarriers } from './PuzzleSystem.js';
 import { TILE_SIZE } from '../config/gameConfig.js';
 
 export class TileMap {
@@ -42,6 +43,55 @@ export class TileMap {
      * check stays a cheap lookup rather than re-parsing the definition.
      */
     this.encounterConfig = getEncounterConfig(definition);
+
+    /**
+     * Barriers: tiles that are solid only some of the time — Route 1's gate,
+     * the Verdant Hall's hedges.
+     *
+     * They live HERE rather than in the scene because everything already asks
+     * the map whether a tile is walkable: the player, every NPC, the sight
+     * lines and the interaction check. Putting the rule in one place means the
+     * picture and the collision cannot disagree, and a trainer can no more see
+     * through a closed hedge than the player can walk through it.
+     *
+     * Each map starts at its DECLARED state. WorldScene immediately replaces
+     * that with the saved state via `setBarrierState()`; a TileMap built just
+     * to read a spawn point never needs to.
+     */
+    this.barriers = getBarriers(definition);
+    this.barrierTiles = new Map();
+    for (const barrier of this.barriers) {
+      for (const [x, y] of barrier.tiles || []) this.barrierTiles.set(`${x},${y}`, barrier.id);
+    }
+    this.barrierClosed = {};
+    for (const barrier of this.barriers) {
+      this.barrierClosed[barrier.id] = barrier.closed !== false;
+    }
+  }
+
+  /**
+   * Replace which barriers are closed.
+   * @param {Record<string, boolean>} state barrierId -> closed?
+   */
+  setBarrierState(state = {}) {
+    for (const barrier of this.barriers) {
+      if (barrier.id in state) this.barrierClosed[barrier.id] = Boolean(state[barrier.id]);
+    }
+  }
+
+  /** The id of the barrier covering a tile, or null. */
+  getBarrierIdAt(x, y) {
+    return this.barrierTiles.get(`${x},${y}`) || null;
+  }
+
+  isBarrierClosed(barrierId) {
+    return Boolean(this.barrierClosed[barrierId]);
+  }
+
+  /** True if a CLOSED barrier is standing on this tile. */
+  isBlockedByBarrier(x, y) {
+    const id = this.getBarrierIdAt(x, y);
+    return id !== null && this.isBarrierClosed(id);
   }
 
   /** Map width/height in pixels. Used to clamp the camera. */
@@ -74,6 +124,9 @@ export class TileMap {
   isWalkable(x, y) {
     const tile = this.getTile(x, y);
     if (!tile) return false;
+    // A closed barrier is as solid as a wall — to the player, to NPCs, and to
+    // a trainer trying to see past it.
+    if (this.isBlockedByBarrier(x, y)) return false;
     return !tile.solid;
   }
 

@@ -58,9 +58,20 @@ export function createNewGameState() {
     party: [],
     storage: [],
     inventory: {},
+    /** Sigil ids, in the order they were earned. See BadgeSystem. */
     badges: [],
     flags: {},
     defeatedTrainers: {},
+
+    /**
+     * Which barriers a map's switches have moved, keyed by map id:
+     *   { verdantHall: { hedgeEast: false, hedgeNorth: true } }
+     *
+     * Plain booleans, so the Verdant Hall's hedges save and load with
+     * everything else. A map the player has never entered simply has no entry
+     * and falls back to how its barriers are declared. See PuzzleSystem.
+     */
+    puzzles: {},
     creatureIndex: { seen: {}, caught: {} },
 
     /**

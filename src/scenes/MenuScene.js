@@ -15,6 +15,7 @@
  *   bag       what you are carrying, by category
  *   bagTarget who to use the selected item on
  *   index     what has been seen and caught
+ *   sigils    the Beacon Hall Sigils, earned and still to come
  *   storage   what is waiting back home
  *   shop      buying and selling, opened straight into by a shopkeeper
  *
@@ -30,7 +31,7 @@ import Phaser from 'phaser';
 import {
   SCENES, GAME_WIDTH, GAME_HEIGHT, COLORS, CSS_COLORS, TEXT_STYLES, FONT_FAMILY, DEPTHS,
 } from '../config/gameConfig.js';
-import { creatureTextureKey } from '../config/assets.js';
+import { badgeTextureKey, creatureTextureKey } from '../config/assets.js';
 import { InputManager } from '../core/InputManager.js';
 import { gameState } from '../core/GameState.js';
 import {
@@ -48,6 +49,7 @@ import { getMove } from '../data/moves.js';
 import { getSpecies } from '../data/creatures.js';
 import { getItem } from '../data/items.js';
 import { getShop } from '../data/shops.js';
+import { getBadgeSlots, countBadges } from '../systems/BadgeSystem.js';
 import { getItemCount, removeItem, listInventory } from '../systems/InventorySystem.js';
 import {
   applyItemToCreature, getItemUsage, needsCreatureTarget,
@@ -206,6 +208,11 @@ export class MenuScene extends Phaser.Scene {
         label: 'Index',
         detail: `${countCaught()} caught of ${countSpecies()}`,
         action: () => this.showIndex(),
+      },
+      {
+        label: 'Sigils',
+        detail: `${countBadges(gameState)} of ${getBadgeSlots(gameState).length}`,
+        action: () => this.showSigils(),
       },
       {
         label: 'Storage',
@@ -1045,6 +1052,62 @@ export class MenuScene extends Phaser.Scene {
   }
 
   // -------------------------------------------------------------------------
+  // Sigils
+  // -------------------------------------------------------------------------
+
+  /**
+   * One slot per Beacon Hall, earned or not.
+   *
+   * The empty slots are the point: three from the very first game, so a player
+   * can see how far the road goes. `getBadgeSlots()` decides what those slots
+   * are from src/data/badges.js, so a fourth Hall would appear here on its own.
+   */
+  showSigils() {
+    this.view = 'sigils';
+    this.drawSigils();
+  }
+
+  drawSigils() {
+    this.clearBody();
+
+    const slots = getBadgeSlots(gameState);
+    const earned = countBadges(gameState);
+    this.title.setText(`SIGILS      ${earned} of ${slots.length}`);
+    this.hint.setText('Cancel  back');
+
+    slots.forEach((slot, i) => {
+      const { badge } = slot;
+      const y = ROW.y + i * 58;
+
+      this.box(ROW.x - 6, y - 6, ROW.width, 52, COLORS.inkLight, slot.earned ? 1 : 0.4);
+
+      const icon = this.add.image(ROW.x + 26, y + 20, badgeTextureKey(badge.id)).setOrigin(0.5);
+      // An unearned Sigil is drawn as a shadow of itself rather than hidden, so
+      // its shape is a promise instead of a surprise.
+      if (!slot.earned) icon.setTint(COLORS.inkLight).setAlpha(0.55);
+      this.body.add(icon);
+
+      this.text(ROW.x + 56, y, slot.earned ? badge.name : '- - - -', {
+        fontSize: '13px',
+        color: slot.earned ? CSS_COLORS.accent : CSS_COLORS.parchmentDim,
+      });
+
+      this.text(ROW.x + 56, y + 20, `${badge.hall}, ${badge.town}`, {
+        color: slot.earned ? CSS_COLORS.parchment : CSS_COLORS.parchmentDim,
+      });
+
+      this.text(ROW.x + 56, y + 34, slot.earned ? badge.description : 'Not yet earned.', {
+        fontSize: '9px',
+        color: CSS_COLORS.parchmentDim,
+      });
+    });
+  }
+
+  updateSigils() {
+    if (this.controls.justPressed('cancel')) this.showRoot();
+  }
+
+  // -------------------------------------------------------------------------
   // Storage (a summary, not a management screen — see TODO.md)
   // -------------------------------------------------------------------------
 
@@ -1120,6 +1183,7 @@ export class MenuScene extends Phaser.Scene {
       case 'shop': this.updateShop(); break;
       case 'shopList': this.updateShopList(); break;
       case 'index': this.updateIndex(); break;
+      case 'sigils': this.updateSigils(); break;
       case 'storage': this.updateStorage(); break;
       default: break;
     }

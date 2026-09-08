@@ -22,6 +22,12 @@ import { CREATURES } from '../src/data/creatures.js';
 import { CREATURE_BODY_SET, creatureTextureKey } from '../src/config/assets.js';
 import { CREATURE_BODY_DRAWER_NAMES } from '../src/systems/TextureFactory.js';
 import { ITEMS } from '../src/data/items.js';
+import { SHOPS } from '../src/data/shops.js';
+import { TRAINERS } from '../src/data/trainers.js';
+import { BADGES, findBadgeProblems } from '../src/data/badges.js';
+import { badgeTextureKey } from '../src/config/assets.js';
+import { BADGE_TEXTURE_KEYS } from '../src/systems/TextureFactory.js';
+import { findPuzzleProblems } from '../src/systems/PuzzleSystem.js';
 import { collectAllPages, resolveDialogue } from '../src/systems/DialogueResolver.js';
 import { KEY_BINDINGS, DIRECTION_VECTORS, DIRECTIONS } from '../src/config/controls.js';
 
@@ -222,6 +228,13 @@ describe('every registered map is well-formed', () => {
         }
       });
 
+      it('has sound barriers and switches', () => {
+        // Runs over EVERY map automatically, so a gate or a hedge added later
+        // is checked the moment it exists — a barrier on a solid tile, a switch
+        // pointing at nothing, an NPC standing where a hedge can grow.
+        expect(findPuzzleProblems(definition)).toEqual([]);
+      });
+
       it('is fully enclosed, so the player cannot walk off the edge', () => {
         const escapes = [];
         for (let x = 0; x < map.width; x += 1) {
@@ -243,6 +256,84 @@ describe('every registered map is well-formed', () => {
 
         expect(holes).toEqual([]);
       });
+    });
+  }
+});
+
+describe('Sigils', () => {
+  it('validates every Sigil against the trainers that award them', () => {
+    for (const [id, badge] of Object.entries(BADGES)) {
+      expect(
+        findBadgeProblems(badge, id, (trainerId) => Boolean(TRAINERS[trainerId])),
+        `Sigil "${id}"`
+      ).toEqual([]);
+    }
+  });
+
+  it('gives every Sigil artwork, earned or not', () => {
+    // The Sigil screen draws locked slots too, so an unbuilt Hall still needs
+    // a picture.
+    for (const badge of Object.values(BADGES)) {
+      expect(
+        BADGE_TEXTURE_KEYS.includes(badgeTextureKey(badge.id)),
+        `Sigil "${badge.id}" has no icon to draw`
+      ).toBe(true);
+    }
+  });
+});
+
+describe('shops', () => {
+  it('gives every shop a unique id matching its key, and real stock', () => {
+    for (const [key, shop] of Object.entries(SHOPS)) {
+      expect(shop.id).toBe(key);
+      expect(shop.stock.length, `shop "${key}" is empty`).toBeGreaterThan(0);
+
+      for (const entry of shop.stock) {
+        expect(ITEMS[entry.item], `shop "${key}" stocks unknown item "${entry.item}"`)
+          .toBeDefined();
+      }
+    }
+  });
+
+  it('never stocks the same item twice in one shop', () => {
+    for (const [key, shop] of Object.entries(SHOPS)) {
+      const ids = shop.stock.map((entry) => entry.item);
+      expect(new Set(ids).size, `shop "${key}" lists an item twice`).toBe(ids.length);
+    }
+  });
+
+  it('has a shop for every `shop:` action any map asks for', () => {
+    for (const [mapId, map] of Object.entries(MAPS)) {
+      for (const npc of map.npcs || []) {
+        const actions = JSON.stringify(npc.dialogue).match(/shop:([a-zA-Z0-9_]+)/g) || [];
+        for (const action of actions) {
+          const id = action.slice('shop:'.length);
+          expect(SHOPS[id], `${mapId}:${npc.id} opens unknown shop "${id}"`).toBeDefined();
+        }
+      }
+    }
+  });
+});
+
+describe('Mender\'s Halls', () => {
+  // Every map with a `heal` action has to be somewhere a player can wake up:
+  // a default spawn on a walkable tile. That is the whole contract for a second
+  // healing centre — which is the point of checking it rather than trusting it.
+  const healingMaps = Object.entries(MAPS).filter(([, map]) =>
+    (map.npcs || []).some((npc) => JSON.stringify(npc.dialogue).includes('"heal"')));
+
+  it('there is more than one, so the recovery point has somewhere to move to', () => {
+    expect(healingMaps.length).toBeGreaterThanOrEqual(2);
+  });
+
+  for (const [id, definition] of healingMaps) {
+    it(`${id} can be woken up in`, () => {
+      const map = new TileMap(definition);
+      const spawn = definition.spawnPoints?.default;
+
+      expect(spawn, `${id} has no default spawn to wake up at`).toBeDefined();
+      expect(map.isWalkable(spawn.x, spawn.y)).toBe(true);
+      expect(map.getExitAt(spawn.x, spawn.y)).toBeNull();
     });
   }
 });

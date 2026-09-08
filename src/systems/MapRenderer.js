@@ -14,8 +14,15 @@
  * game objects updated every frame, as a RenderTexture it is one. Overhead tiles
  * (tree canopies the player walks behind) get a second RenderTexture on a higher
  * depth layer.
+ *
+ * BARRIERS ARE THE ONE EXCEPTION. A gate or a hedge that opens and closes
+ * cannot be baked into the ground texture, so each of its tiles gets a real
+ * sprite drawn just above the ground. Showing and hiding those sprites is
+ * driven by exactly the same `TileMap` state that decides whether the tile is
+ * walkable, which is what stops the picture and the collision ever disagreeing.
  */
 
+import { getTileByChar } from '../data/tiles.js';
 import { TILE_SIZE, DEPTHS } from '../config/gameConfig.js';
 
 export class MapRenderer {
@@ -29,8 +36,74 @@ export class MapRenderer {
 
     this.groundLayer = null;
     this.overheadLayer = null;
+    /** One sprite per barrier tile, keyed by barrier id. */
+    this.barrierSprites = new Map();
 
     this.render();
+    this.createBarriers();
+  }
+
+  /**
+   * Draw a sprite for every tile of every barrier on this map.
+   *
+   * Created once and then only shown or hidden, so opening and closing a gate
+   * never allocates anything and there is nothing to leak.
+   */
+  createBarriers() {
+    for (const barrier of this.map.barriers) {
+      const tile = getTileByChar(barrier.tile);
+      const sprites = (barrier.tiles || []).map(([x, y]) => this.scene.add
+        .image(x * TILE_SIZE, y * TILE_SIZE, tile.texture)
+        .setOrigin(0, 0)
+        .setDepth(DEPTHS.decoration));
+
+      this.barrierSprites.set(barrier.id, sprites);
+    }
+
+    this.refreshBarriers();
+  }
+
+  /**
+   * Make every barrier LOOK the way the map says it is.
+   *
+   * One source of truth: `map.isBarrierClosed()` is the same call collision
+   * uses, so a hedge that blocks is a hedge you can see and vice versa.
+   *
+   * @param {object} [options]
+   * @param {string[]} [options.animate] barrier ids to animate rather than snap
+   */
+  refreshBarriers({ animate = [] } = {}) {
+    const moving = new Set(animate);
+
+    for (const [id, sprites] of this.barrierSprites) {
+      const closed = this.map.isBarrierClosed(id);
+
+      for (const sprite of sprites) {
+        if (!moving.has(id)) {
+          sprite.setVisible(closed).setAlpha(1).setScale(1);
+          continue;
+        }
+
+        // Growing across, or drawing back. Short: it is feedback, not a
+        // cutscene, and the player is standing on the switch waiting.
+        this.scene.tweens.killTweensOf(sprite);
+        if (closed) {
+          sprite.setVisible(true).setAlpha(0).setScale(1, 0.2);
+          this.scene.tweens.add({
+            targets: sprite, alpha: 1, scaleY: 1, duration: 220, ease: 'Back.easeOut',
+          });
+        } else {
+          this.scene.tweens.add({
+            targets: sprite,
+            alpha: 0,
+            scaleY: 0.2,
+            duration: 200,
+            ease: 'Sine.easeIn',
+            onComplete: () => sprite.setVisible(false),
+          });
+        }
+      }
+    }
   }
 
   render() {
@@ -89,6 +162,14 @@ export class MapRenderer {
 
   /** Free the textures. Called when the scene changes maps or shuts down. */
   destroy() {
+    for (const sprites of this.barrierSprites.values()) {
+      for (const sprite of sprites) {
+        this.scene.tweens.killTweensOf(sprite);
+        sprite.destroy();
+      }
+    }
+    this.barrierSprites.clear();
+
     if (this.groundLayer) {
       this.groundLayer.destroy();
       this.groundLayer = null;

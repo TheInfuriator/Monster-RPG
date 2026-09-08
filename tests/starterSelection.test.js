@@ -203,6 +203,7 @@ describe('the world reacts to gotStarter', () => {
 describe('dialogue actions across all map data', () => {
   const KNOWN_ACTIONS = new Set([
     'starterSelect', 'practiceBattle', 'practiceBattleDouble', 'heal', 'blackoutTravel',
+    'resetPuzzle',
   ]);
 
   /**
@@ -221,7 +222,22 @@ describe('dialogue actions across all map data', () => {
       const sources = [...(map.npcs || []), ...(map.interactables || [])];
       for (const source of sources) {
         // Try every combination of the flags used in this project's dialogue.
-        for (const flags of [{}, { metWick: true }, { metWick: true, gotStarter: true }]) {
+        // Every progression state this project's dialogue actually branches
+        // on, including the ones that only exist after a Hall has been beaten
+        // — a post-victory branch with a broken action must fail here too.
+        for (const flags of [
+          {},
+          { metWick: true },
+          { metWick: true, gotStarter: true },
+          { metWick: true, gotStarter: true, route1GateOpen: true },
+          {
+            metWick: true,
+            gotStarter: true,
+            route1GateOpen: true,
+            'trainer:verdantLeaderFern': true,
+            'badge:verdantSigil': true,
+          },
+        ]) {
           const { action } = resolveDialogue(source.dialogue, flags);
           if (action) {
             expect(

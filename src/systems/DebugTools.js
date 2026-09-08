@@ -34,6 +34,14 @@ import {
   isTrainerDefeated, markTrainerDefeated, clearTrainerDefeat, countDefeatedTrainers,
 } from './TrainerSystem.js';
 import { getSightTiles } from './SightSystem.js';
+import {
+  getBarriers, getSwitches, pressSwitch, resetPuzzle, createBarrierState,
+} from './PuzzleSystem.js';
+import {
+  awardBadge, removeBadge, hasBadge, getBadgeSlots, countBadges,
+} from './BadgeSystem.js';
+import { getWorldConditions } from './ProgressionSystem.js';
+import { BADGES } from '../data/badges.js';
 import { PARTY } from '../config/balance.js';
 import { SCENES } from '../config/gameConfig.js';
 
@@ -97,6 +105,12 @@ export function installDebugTools(game) {
           '  debug.resetTrainers()           forget every trainer battle',
           '  debug.sight()                   what the trainers here can see',
           '  debug.trainer(id)               start a scripted battle',
+          '  debug.gates()                   barriers and switches on this map',
+          '  debug.toggle(switchId)          press a root switch from here',
+          '  debug.resetPuzzle()             put this map back how it was found',
+          '  debug.puzzleState(mapId)        saved barrier state (true = shut)',
+          '  debug.sigils()                  every Sigil and whether it is earned',
+          '  debug.sigil(id, earned=true)    award or remove a Sigil',
           '  debug.teleport(mapId, spawn)    change map',
           '  debug.species()                 list every species id',
           '  debug.battles()                 list scripted battles',
@@ -420,6 +434,117 @@ export function installDebugTools(game) {
 
       console.info(`[debug] player at ${scene.player.tileX},${scene.player.tileY}`, info);
       return info;
+    },
+
+    // --- Gates, hedges and puzzles ---------------------------------------
+    /** Every barrier on this map, whether it is shut, and what moves it. */
+    gates() {
+      const scene = world(game);
+      if (!scene) {
+        console.warn('[debug] the overworld is not running.');
+        return null;
+      }
+
+      const rows = getBarriers(scene.map.definition).map((barrier) => ({
+        id: barrier.id,
+        name: barrier.name || '',
+        shut: scene.map.isBarrierClosed(barrier.id),
+        tiles: (barrier.tiles || []).map(([x, y]) => `${x},${y}`).join(' '),
+        openWhen: barrier.openWhen || '(switches)',
+      }));
+      const moves = getSwitches(scene.map.definition).map((entry) => ({
+        id: entry.id,
+        at: `${entry.x},${entry.y}`,
+        retracts: entry.retract,
+        extends: entry.extend,
+      }));
+
+      console.table ? console.table(rows) : console.info('[debug] barriers:', rows);
+      if (moves.length) {
+        console.table ? console.table(moves) : console.info('[debug] switches:', moves);
+      }
+      return { barriers: rows, switches: moves };
+    },
+
+    /** Press a root switch from anywhere, without walking onto it. */
+    toggle(switchId) {
+      const scene = world(game);
+      if (!scene) {
+        console.warn('[debug] the overworld is not running.');
+        return null;
+      }
+
+      const outcome = pressSwitch(scene.map.definition, switchId, { state: gameState });
+      if (!outcome.changed) {
+        console.warn(`[debug] switch "${switchId}" did nothing (${outcome.reason}).`);
+        return outcome;
+      }
+
+      scene.syncBarriers({ animate: [outcome.retracted, outcome.extended].filter(Boolean) });
+      console.info(`[debug] ${switchId}: -${outcome.retracted} +${outcome.extended}`);
+      return outcome;
+    },
+
+    /** Put this map's hedges back to how they are declared. */
+    resetPuzzle() {
+      const scene = world(game);
+      if (!scene) {
+        console.warn('[debug] the overworld is not running.');
+        return null;
+      }
+
+      const moved = resetPuzzle(scene.map.definition, { state: gameState });
+      scene.syncBarriers({ animate: getBarriers(scene.map.definition).map((b) => b.id) });
+      console.info(`[debug] reset ${moved} barrier(s) on ${scene.map.id}`);
+      return moved;
+    },
+
+    /** The saved barrier state for a map, without needing to stand on it. */
+    puzzleState(mapId) {
+      const id = mapId || world(game)?.map?.id;
+      if (!id || !MAPS[id]) {
+        console.warn(`[debug] unknown map "${id}".`);
+        return null;
+      }
+
+      const state = createBarrierState(MAPS[id], {
+        conditions: getWorldConditions(gameState),
+        state: gameState,
+      });
+      console.info(`[debug] ${id} barriers (true = shut):`, state);
+      return state;
+    },
+
+    // --- Sigils ----------------------------------------------------------
+    /** Every Sigil, and whether it has been earned. */
+    sigils() {
+      const rows = getBadgeSlots(gameState).map(({ badge, earned }) => ({
+        id: badge.id,
+        name: badge.name,
+        hall: badge.hall,
+        leader: badge.leaderTrainerId || '(not built)',
+        earned,
+      }));
+      console.table ? console.table(rows) : console.info('[debug] sigils:', rows);
+      return rows;
+    },
+
+    /** Award a Sigil without beating its Leader, or take one back. */
+    sigil(id = 'verdantSigil', earned = true) {
+      if (!BADGES[id]) {
+        console.warn(`[debug] unknown Sigil "${id}". Known: ${Object.keys(BADGES).join(', ')}`);
+        return null;
+      }
+
+      if (earned) awardBadge(id, gameState);
+      else removeBadge(id, gameState);
+
+      // A Sigil can stand a gate open, so the map has to hear about it.
+      const scene = world(game);
+      if (scene) scene.syncBarriers({ animate: scene.map.barriers.map((b) => b.id) });
+
+      console.info(`[debug] ${id} earned -> ${hasBadge(id, gameState)} (${countBadges(gameState)} total)`);
+      return hasBadge(id, gameState);
     },
 
     // --- World ---------------------------------------------------------

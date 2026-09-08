@@ -148,6 +148,11 @@ export function creatureTextureKey(speciesId) {
   return `creature-${speciesId}`;
 }
 
+/** Texture key for one Sigil's icon. */
+export function badgeTextureKey(badgeId) {
+  return `badge-${badgeId}`;
+}
+
 /** Texture key for a character look. `player` keeps its short historical key. */
 export function characterTextureKey(name) {
   return name === 'player' ? ASSET_KEYS.player : `char-${name}`;
