@@ -63,6 +63,14 @@ import {
 const PANEL = { x: 8, y: 8, width: GAME_WIDTH - 16, height: GAME_HEIGHT - 16 };
 const ROW = { x: 18, y: 44, height: 40, width: GAME_WIDTH - 36 };
 const INDEX_ROWS_PER_PAGE = 8;
+/**
+ * How many shop rows fit above the quantity selector.
+ *
+ * A shelf longer than this SCROLLS. It used to simply draw the first seven and
+ * stop, which meant a longer shelf silently hid its last items — the eighth
+ * thing a shop sold could never be seen or bought.
+ */
+const SHOP_ROWS_PER_PAGE = 7;
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -102,6 +110,8 @@ export class MenuScene extends Phaser.Scene {
     // Shop
     this.shopRootIndex = 0;
     this.shopListIndex = 0;
+    /** First row drawn — a shelf longer than one page scrolls. */
+    this.shopOffset = 0;
     this.shopQuantity = 1;
     this.shopMessage = '';
 
@@ -834,6 +844,7 @@ export class MenuScene extends Phaser.Scene {
     this.view = 'shopList';
     this.shopKind = kind;
     this.shopListIndex = 0;
+    this.shopOffset = 0;
     this.shopQuantity = 1;
     this.shopMessage = '';
     this.drawShopList();
@@ -866,9 +877,18 @@ export class MenuScene extends Phaser.Scene {
       return;
     }
 
-    rows.slice(0, 7).forEach((row, i) => {
+    // Keep the highlighted row on screen, exactly like the Aether Index does.
+    if (this.shopListIndex < this.shopOffset) this.shopOffset = this.shopListIndex;
+    if (this.shopListIndex >= this.shopOffset + SHOP_ROWS_PER_PAGE) {
+      this.shopOffset = this.shopListIndex - SHOP_ROWS_PER_PAGE + 1;
+    }
+    this.shopOffset = Math.max(0, Math.min(this.shopOffset, rows.length - SHOP_ROWS_PER_PAGE));
+
+    const page = rows.slice(this.shopOffset, this.shopOffset + SHOP_ROWS_PER_PAGE);
+
+    page.forEach((row, i) => {
       const y = 60 + i * 22;
-      const selected = i === this.shopListIndex;
+      const selected = this.shopOffset + i === this.shopListIndex;
       if (selected) this.box(ROW.x - 6, y - 3, ROW.width, 20, COLORS.inkLight);
 
       this.text(ROW.x, y, row.item.name, {
