@@ -957,7 +957,7 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-2168 tests covering map parsing, collision, spawn fallbacks, map validation, game
+2175 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, inventory operations,
 interaction targeting, type effectiveness, the move and creature databases, stat
 and experience maths, the creature factory, the party, the starter-selection

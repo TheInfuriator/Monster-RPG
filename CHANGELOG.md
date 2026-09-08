@@ -146,7 +146,7 @@ than a note, because balance rots silently.
 
 ### Verification
 
-- **2168 automated tests** pass (was 1900). New: 68 on barriers, switches and
+- **2175 automated tests** pass (was 1900). New: 75 on barriers, switches and
   the no-trap proof; 45 on Sigils and the Leader-victory chain; 18 on first-Gym
   balance; plus the map, shop, Mender and Sigil checks that now run
   automatically over every map and every Sigil.

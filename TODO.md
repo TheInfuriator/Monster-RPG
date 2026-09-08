@@ -203,7 +203,7 @@ the Verdant Hall → its puzzle → its Gardeners → Leader Fern → the Verdan
 - [x] Sigils read as `badge:<id>` conditions, so the world reacts through
       ordinary conditional dialogue and no scene reads `gameState.badges`
 - [x] `debug.gates/toggle/resetPuzzle/puzzleState/sigils/sigil`
-- [x] 2168 automated tests; browser-verified end to end; balance measured over
+- [x] 2175 automated tests; browser-verified end to end; balance measured over
       hundreds of seeded battles; leak-tested over repeated town, puzzle and
       blackout cycles
 
