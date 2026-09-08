@@ -155,6 +155,20 @@ export const emberhollow = {
       movement: 'lookAround',
       dialogue: [
         {
+          when: 'badge:verdantSigil',
+          pages: [
+            'Back from Thistlewood already? And with a Sigil, they are saying.',
+            'You will be wanting the Thornway next. Give the crews a while yet.',
+          ],
+        },
+        {
+          when: 'route1GateOpen',
+          pages: [
+            'So the warden finally shifted that bar. About time.',
+            'Thistlewood is an hour up the Cinderpath. Mind the grass.',
+          ],
+        },
+        {
           pages: [
             'That road north is the Cinderpath. It runs all the way to Thistlewood.',
             'Or it would, if the gate were open.',
