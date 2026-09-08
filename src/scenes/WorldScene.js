@@ -752,7 +752,9 @@ export class WorldScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(DEPTHS.ui);
 
-    const background = this.add.rectangle(0, 0, 210, 92, COLORS.ink, 0.92)
+    // Fully opaque: the world showing faintly through the player's first Sigil
+    // made it look like a mistake rather than a moment.
+    const background = this.add.rectangle(0, 0, 210, 92, COLORS.ink, 1)
       .setOrigin(0.5)
       .setStrokeStyle(3, badge.color, 1);
     const icon = this.add.image(0, -18, badgeTextureKey(badge.id)).setOrigin(0.5);

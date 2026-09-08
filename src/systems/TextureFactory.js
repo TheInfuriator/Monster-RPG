@@ -487,6 +487,31 @@ const TILE_GENERATORS = {
     return canvas;
   },
 
+  'tile-hedge-gate': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, COLORS.treeDark);
+    rect(ctx, 1, 1, 30, 26, COLORS.tree);
+    speckle(ctx, 0x7fae5c, 18, 47, 3);
+    speckle(ctx, 0x35542c, 12, 48, 3);
+    rect(ctx, 0, 27, TILE_SIZE, 5, 0x4a3a26);
+
+    // Pale roots woven through, matching the root switches.
+    ctx.strokeStyle = hex(0xc7b083);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-2, 9);
+    ctx.bezierCurveTo(8, 3, 14, 15, 22, 9);
+    ctx.bezierCurveTo(27, 6, 30, 10, 34, 8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-2, 21);
+    ctx.bezierCurveTo(9, 26, 15, 14, 23, 21);
+    ctx.bezierCurveTo(28, 25, 30, 20, 34, 22);
+    ctx.stroke();
+    rect(ctx, 14, 13, 5, 5, 0x8f7a52);
+    return canvas;
+  },
+
   'tile-gate': () => {
     const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
     rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x000000);
@@ -580,17 +605,19 @@ function createBadgeIcon(badge) {
   ctx.fillStyle = hex(COLORS.ink);
   switch (badge.icon) {
     case 'leaf':
-      // A pointed leaf with a central vein.
+      // A broad pointed leaf with a central vein. Drawn on the diagonal and
+      // bellied out well past the middle, or it reads as a thin lens rather
+      // than a leaf at this size.
       ctx.beginPath();
-      ctx.moveTo(middle, 5);
-      ctx.quadraticCurveTo(size - 6, middle, middle, size - 5);
-      ctx.quadraticCurveTo(6, middle, middle, 5);
+      ctx.moveTo(6, size - 6);
+      ctx.bezierCurveTo(6, 8, 10, 5, size - 6, 6);
+      ctx.bezierCurveTo(size - 7, size - 10, size - 9, size - 6, 6, size - 6);
       ctx.fill();
       ctx.strokeStyle = hex(badge.color);
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(middle, 8);
-      ctx.lineTo(middle, size - 8);
+      ctx.moveTo(8, size - 8);
+      ctx.lineTo(size - 9, 8);
       ctx.stroke();
       break;
 

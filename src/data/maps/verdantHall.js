@@ -80,7 +80,7 @@ export const verdantHall = {
     {
       id: 'hedgeWest',
       name: 'the west hedge',
-      tile: 'h',
+      tile: 'e',
       tiles: [[3, 13]],
       closed: true,
       openWhen: 'badge:verdantSigil',
@@ -88,7 +88,7 @@ export const verdantHall = {
     {
       id: 'hedgeEast',
       name: 'the east hedge',
-      tile: 'h',
+      tile: 'e',
       tiles: [[17, 12]],
       closed: true,
       openWhen: 'badge:verdantSigil',
@@ -96,7 +96,7 @@ export const verdantHall = {
     {
       id: 'hedgeNorth',
       name: 'the north hedge',
-      tile: 'h',
+      tile: 'e',
       tiles: [[10, 6]],
       closed: true,
       openWhen: 'badge:verdantSigil',

@@ -37,10 +37,13 @@ springs, storms, and mineral veins. Full planned region (built incrementally):
 
 **Vertical slice (first playable build) = locations 1, 2, and 3.**
 
-**Built so far (Phase 2):** Emberhollow Town and its four interiors, plus Route 1.
-Thistlewood is held back until Beacon Hall 1 exists (Phase 9) — Route 1 ends at a
-closed gate with a warden who explains why, rather than an invisible wall or an
-empty town.
+**Built so far (Phase 9):** Emberhollow Town and its four interiors, Route 1, and
+Thistlewood with its Mender's Hall, Supply Post, a cottage and the Verdant Hall.
+That is the whole vertical slice: locations 1, 2 and 3.
+
+Route 2 is held back the same way Thistlewood was — Thistlewood's Thornway gate
+is visibly shut, with a keeper and a sign that explain the bramble clearance,
+rather than an invisible wall or an empty route.
 
 ### Region flavour notes
 - Emberhollow: warm ochre + slate, a small quarry town built on a dormant ember vent.
@@ -61,12 +64,28 @@ Cinderpath. Four buildings, each with an interior:
 Also: a kitchen garden, two signposts, a pond, and a patch of tall grass on the
 northern edge — a safe first taste of wild encounters within sight of home.
 
+### Thistlewood — as built
+30x24, reached through Route 1's north gate. A main road runs north from the
+route to the Verdant Hall's door and crosses an east-west road serving the
+Mender's Hall and the Supply Post. A third road climbs north-east to the shut
+Thornway gate. Nan Thistle's cottage sits in the south-west, a pond in the
+south-east, hedges everywhere, three signs, a hidden Great Orb, and ten NPCs
+across the town and its four interiors.
+
+| Building | Who is inside | Role |
+|----------|---------------|------|
+| The Verdant Hall | Sorrel, Teal, Bracken, Fern | Beacon Hall 1 |
+| Mender's Hall | Mender Rell, a challenger | Free healing, second recovery point |
+| Supply Post | Perrin | The strong shelf |
+| Thistle Cottage | Nan Thistle, Cob | Flavour, and the puzzle hint |
+
 ### Route 1 — Cinderpath — as built
 22x30, running north from Emberhollow. The path jogs twice so the route is not a
 straight corridor. Tall grass sits on both sides of the path throughout, so the
 player always chooses between the safe route and the interesting one. A pond
 partway up, two ground items, seven NPCs — four travellers and three trainers —
-a signpost, and a shut gate at the top.
+a signpost, and a gate at the top that the warden opens once you are walking
+with a partner.
 
 ---
 
@@ -287,7 +306,10 @@ Wake up in Emberhollow
 
 ---
 
-## 7. Beacon Hall 1 — The Verdant Hall (Thistlewood)
+## 7. Beacon Hall 1 — The Verdant Hall (Thistlewood) — BUILT (Phase 9)
+
+Built exactly as planned below. Section 20 documents what it became: the map,
+the barrier architecture, the measured balance and the Sigil.
 
 - **Theme:** an overgrown greenhouse. Hedges form the walls.
 - **Puzzle:** three **root switches**. Stepping on a switch retracts one hedge wall and
@@ -299,8 +321,11 @@ Wake up in Emberhollow
 - **Leader:** **Fern**, calm and rather smug about her hedges.
   - Vinelet L11, Puffcap L11, **Ivorn L13** (ace, Grass/Poison)
 - **Reward:** **Verdant Sigil**, 1200 coins, and the Hall's TM-equivalent later.
-- **Flag set:** `sigil_verdant`
-- **Unlocks:** the Thornway gate to Route 2.
+- **Progress recorded as:** the Sigil itself, readable in dialogue as
+  `badge:verdantSigil`. The old plan called for a separate `sigil_verdant` flag;
+  that would have been two records of one fact, free to disagree. See section 20.
+- **Unlocks:** the Thornway gate to Route 2 — a barrier waiting on a
+  `thornwayOpen` flag that nothing sets until Route 2 is built.
 
 ---
 
@@ -398,6 +423,10 @@ them, and later phases will gate areas with them.
 | `gotStarter` | Choosing a starter at the Lodge | Wick, her assistant, Mum, Bram and the gate warden all react — across three maps |
 | `pickedUpRoute1Potion` | Taking the Route 1 potion | The item stays taken |
 | `pickedUpRoute1Orbs` | Taking the Route 1 orbs | The item stays taken |
+| `route1GateOpen` | Asking the Gate Warden once you have a starter | Route 1's north gate opens, for good |
+| `pickedUpThistlewoodOrb` | Taking the Great Orb in Thistlewood | The item stays taken |
+| `pickedUpVerdantPotion` | Taking the Super Potion behind the west hedge | The item stays taken |
+| `thornwayOpen` | *nothing yet* | Would open the Thornway gate. Reserved for Route 2 |
 
 Beaten trainers are not flags — they live in `GameState.defeatedTrainers`, keyed
 by trainer id — but they are *readable* as flags. `getDialogueConditions()` folds
@@ -898,4 +927,237 @@ debug.trainerBattle('route1Scout')  // start one from anywhere
 debug.beatTrainer('route1Scout')    // mark beaten (false to un-beat)
 debug.resetTrainers()          // clear every defeat
 debug.sight()                  // what each trainer on this map can see right now
+```
+
+---
+
+## 20. Thistlewood and the Verdant Hall (Phase 9)
+
+The first-badge vertical slice: the road north opens, the second town exists,
+and the region's first Beacon Hall can be beaten.
+
+### Route 1's north gate
+
+The gate has been shut since Phase 2 with a warden who explained why. It opens
+on exactly the condition he always gave — **you are a Warden walking with a
+partner** — and the conversation itself is what lifts the bar:
+
+```js
+{ when: 'gotStarter', setFlags: ['route1GateOpen'], pages: [ ...he opens it... ] }
+```
+
+No errand, no waiting, no extra prerequisite. `route1GateOpen` is a story flag,
+the gate is a **flag-driven barrier**, and a flag is idempotent — so the gate
+cannot open twice and cannot fall out of step with the story.
+
+### Barriers — one mechanism for gates and hedges
+
+A barrier is a set of tiles that is solid only some of the time. A map declares
+them; `src/systems/PuzzleSystem.js` decides which are closed; `TileMap` turns
+that into collision; `MapRenderer` draws it.
+
+```js
+barriers: [
+  { id: 'route1Gate', name: 'the north gate', tile: 'G',
+    tiles: [[10, 1], [11, 1]], closed: true, openWhen: 'route1GateOpen' },
+],
+switches: [
+  { id: 'rootWest', name: 'the west root', x: 2, y: 5,
+    retract: 'hedgeEast', extend: 'hedgeNorth' },
+],
+```
+
+| Field | Meaning |
+|-------|---------|
+| `tile` | an ordinary character from `tiles.js` — what the barrier looks like and blocks like while closed |
+| `tiles` | which tiles it covers. The map source underneath must be **walkable**, because that is what you walk through when it opens |
+| `closed` | how it starts |
+| `openWhen` | a condition that forces it open — a flag (`route1GateOpen`) or a Sigil (`badge:verdantSigil`) |
+
+**Two kinds, and a barrier may be both.**
+
+- **Flag-driven** (`openWhen`, no switch): its state is a pure function of the
+  condition. Nothing is stored, so nothing can drift. Route 1's gate.
+- **Switch-driven** (a switch retracts or extends it): the position is saved in
+  `gameState.puzzles[mapId]` as plain booleans.
+- **Both**: the Verdant Hall's hedges are moved by switches *and* forced open
+  for good once the Sigil is won. An `openWhen` that holds always wins.
+
+**Why the state lives in `TileMap`.** Everything already asks the map whether a
+tile is walkable — the player, every NPC, the trainer sight lines, the
+interaction check. Putting barriers there means one answer serves all of them,
+and a trainer can no more see through a closed hedge than the player can walk
+through it. A barrier's sprite is shown or hidden from *the same* call that
+decides collision, so the picture and the rule cannot disagree.
+
+**A hedge never closes on anybody.** `pressSwitch()` takes the positions of the
+player and every NPC and refuses — changing nothing at all — if extending a
+barrier would cover one. The maps are also validated so that no NPC, spawn
+point or switch ever sits on a barrier tile, which makes that guard a safety
+net rather than a game rule.
+
+### The Verdant Hall puzzle
+
+Exactly the design this document has always described: **three root switches,
+each retracting one hedge wall and extending another, in the right order.**
+
+```
+                 Fern
+                  ▲
+              hedgeNorth                 walkway: west side, east side,
+   ┌──────────────┼──────────────┐       and the south — the two sides
+   │      the central lane       │       meet ONLY along the south
+   │              │              │
+ hedgeWest    east corridor  hedgeEast
+   │              │              │
+   └── west pocket ┘             │
+   ────────── south walkway ─────┘
+                door
+```
+
+| Switch | Where | Retracts | Extends |
+|--------|-------|----------|---------|
+| `rootSouth` | by the door, free | `hedgeWest` | `hedgeEast` |
+| `rootWest` | past Gardener Teal | `hedgeEast` | `hedgeNorth` |
+| `rootEast` | past Gardener Bracken | `hedgeNorth` | `hedgeWest` |
+
+Everything starts shut. Reaching Fern needs **`hedgeEast` and `hedgeNorth` open
+at once**, which is `rootWest` then `rootEast` — and each of those sits past a
+Gardener's sight lane, so the fights are the puzzle's price rather than an
+obstacle bolted on beside it. `rootSouth` is the free one by the door: it opens
+the west pocket and its Super Potion, and teaches what a switch does before
+anything is riding on it.
+
+Pressing a switch does **not** open a dialogue box. A hedge animates and a short
+note fades in ("the east hedge draws back — the north hedge grows across"), so
+experimenting stays cheap.
+
+**The player can never be trapped, and this is proved rather than asserted.**
+Every switch stands on the walkway and no barrier ever does, so whatever state
+the hedges are in, the walkway — which contains the door and all three switches
+— is intact. `tests/puzzle.test.js` walks **every configuration any order of
+presses can reach** and checks that the door and all three switches are
+reachable from each one, and that Fern is reachable from at least one. The reset
+root in the porch is a convenience for a tangled player, not a rescue.
+
+**Persistence.** Switch positions are saved per map on `GameState`, so leaving
+and re-entering the Hall — or blacking out inside it — finds the hedges exactly
+as they were left. Winning the Sigil sets `openWhen: 'badge:verdantSigil'` on
+all three, and they stand open for good.
+
+### Precedence — what one step can trigger
+
+    exit  →  root switch  →  trainer  →  wild encounter
+
+The switch claims the step, so pressing one and being spotted can never collide.
+
+### The Hall's roster
+
+| Who | Class | Party | Coins |
+|-----|-------|-------|-------|
+| **Teal** | Gardener | Vinelet 9, Puffcap 9 | 480 |
+| **Bracken** | Gardener | Grubbit 9, Vinelet 10 | 520 |
+| **Fern** | Leader | Vinelet 11, Puffcap 11, **Ivorn 13** (ace) | 1200 |
+
+Both Gardeners stand in dead-end alcoves off the walkway, looking straight
+across it. That way neither can ever become a wall — an NPC in a corridor is a
+wall — while their sight lanes still cover both walkway columns. Fern has no
+sight range at all: you come to her.
+
+### First-Gym balance
+
+Measured over hundreds of seeded battles in `tests/gymBalance.test.js`, driven
+by a stand-in for a reasonable player (best move by type, next creature when one
+faints, a potion when badly hurt):
+
+| Team at level 13 | Beats Fern |
+|------------------|-----------|
+| Fire starter + a Route 1 Flittle | ~100% |
+| Water starter + a Route 1 Flittle | ~67% |
+| Grass starter + a Route 1 Flittle | ~100% |
+| Fire starter alone | ~50%, 100% by level 15 |
+| Water starter alone | **0%**, at any sensible level |
+
+Every creature Fern fields is Grass or Grass/Poison. Fire walks it. Water is
+resisted outright and Drizzle carries no coverage, so a solo Water starter
+cannot win — **deliberately**. That is what a type-themed Hall is for, and the
+game says so three times over: Mose ("something with wings would do well in
+there"), Hesper ("bring something that can hurt a hedge") and the Hall's own
+theme. Flittle is the second most common Aether on Route 1, knows Peck (Flying,
+2x on every creature in the Hall) from level 1, has a catch rate of 255, and the
+player is handed two orbs on the way north. The answer is cheap, early and
+signposted — so the Hall asks for a **team**, never for a grind.
+
+Clearing the Hall pays 2200 coins: four Super Potions and a Great Orb.
+
+### Sigils
+
+"Sigil" is this world's word for a badge, and the game says Sigil everywhere.
+
+```js
+// src/data/badges.js
+verdantSigil: {
+  id: 'verdantSigil', name: 'Verdant Sigil', order: 1,
+  hall: 'The Verdant Hall', town: 'Thistlewood', leader: 'Fern',
+  leaderTrainerId: 'verdantLeaderFern',
+  description: '...', icon: 'leaf', color: 0x6fbf73,
+}
+```
+
+All three planned Halls have an entry from the first game, because the Sigil
+screen shows three slots and a locked slot the player can see is a promise the
+game intends to keep. An unbuilt Hall says so honestly with
+`leaderTrainerId: null`.
+
+**A Leader is an ordinary Phase 8 trainer with one extra field**, `badge`.
+Winning marks them defeated, plays their outro, and *then* awards the Sigil —
+after experience, level-ups, new moves and evolutions are all resolved. Losing
+awards nothing and marks nothing. `awardBadge()` refuses a duplicate, so even a
+doubled call cannot produce two. Nothing in `BattleScene` or `WorldScene` names
+Fern.
+
+**No story flag stands beside it.** A Sigil reads as a condition, `badge:<id>`,
+exactly the way a beaten trainer reads as `trainer:<id>`:
+
+```js
+{ when: 'badge:verdantSigil', pages: ['A Sigil already! ...'] },
+```
+
+`ProgressionSystem.getWorldConditions()` folds flags, beaten trainers and earned
+Sigils into one set, and dialogue, barriers and the menu all read it. That is
+why the design's old note about a `sigil_verdant` flag is now redundant: the
+Sigil itself answers the question, in one record rather than two that could
+disagree.
+
+### What the world does about it
+
+The Gate Warden, Hall Keeper Sorrel, Fern herself, Bryn, Mose, Hesper, Pell,
+Nan Thistle and the Mender's Hall challenger all have `when: 'badge:verdantSigil'`
+branches. Nine reactions, all ordinary conditional dialogue, no scene changes.
+
+### The Thornway
+
+Thistlewood's north-east road climbs to a shut gate with the Thornway — and
+Route 2 — behind it. The road beyond is visible, a keeper explains the bramble
+clearance, and a sign says CLOSED. It is a barrier with
+`openWhen: 'thornwayOpen'`, a flag nothing in this build sets: the seam for
+opening it later is already there and costs no code.
+
+### How the next Hall reuses all of this
+
+Tidewatch's Tidal Hall should be: a map with hedges swapped for whatever suits
+it, barriers and switches in its own data, two trainers and a Leader in
+`trainers.js`, and `badge: 'tidalSigil'` on the Leader. Nothing in
+`PuzzleSystem`, `BadgeSystem`, `TrainerSystem` or `WorldScene` should need to
+change. If it does, something here was built wrong.
+
+### Debug
+
+```js
+debug.gates()                  // barriers and switches on this map
+debug.toggle('rootWest')       // press a root switch from anywhere
+debug.resetPuzzle()            // put this map back how it was found
+debug.puzzleState('verdantHall')
+debug.sigils()                 // every Sigil and whether it is earned
+debug.sigil('verdantSigil')    // award one; pass false to take it back
 ```

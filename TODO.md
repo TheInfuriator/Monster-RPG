@@ -2,8 +2,12 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 8 — Trainers** ✅ complete
-Next phase: **Phase 9 — Thistlewood + First Gym**
+Current phase: **Phase 9 — Thistlewood + First Gym** ✅ complete
+Next phase: **Phase 10 — Save/Load + Persistence**
+
+**The first-badge vertical slice is playable end to end:** New Game → starter →
+Route 1 → its trainers → the north gate → Thistlewood → shop and Mender →
+the Verdant Hall → its puzzle → its Gardeners → Leader Fern → the Verdant Sigil.
 
 ---
 
@@ -167,21 +171,54 @@ Next phase: **Phase 9 — Thistlewood + First Gym**
 - [x] 1900 automated tests; browser-verified end to end; leak-tested over
       repeated trainer wins and blackouts
 
-## Phase 9 — Thistlewood + First Gym ← NEXT
+## Phase 9 — Thistlewood + First Gym ✅
+- [x] **Barriers** (`PuzzleSystem`): tiles that are solid only some of the time,
+      declared as map data. Two kinds — flag-driven (`openWhen`, a pure function
+      of a story flag or Sigil) and switch-driven (moved by root switches, saved
+      in `gameState.puzzles`). A barrier may be both.
+- [x] Barrier state lives in `TileMap`, so the player, NPCs, sight lines and
+      interaction all obey it from one place — the picture and the collision
+      cannot disagree
+- [x] **Route 1's north gate** opens when the warden is asked by a Warden with a
+      partner. No errand, no waiting: exactly what his Phase 2 dialogue promised
+- [x] **Thistlewood** (30x24): main road, east-west road, Verdant Hall,
+      Mender's Hall, Supply Post, Nan Thistle's cottage, pond, hedges, three
+      signs, a hidden Great Orb, and a shut Thornway gate
+- [x] Five townsfolk plus five more indoors — ten NPCs, all reacting to the Sigil
+- [x] **Second Mender's Hall** — no new healing code; it speaks as whoever the
+      player is talking to and sets its own map as the recovery point
+- [x] **Second Supply Post** — one stock list: Super Potions, Great Orbs and the
+      Rouser, none of which Emberhollow sells
+- [x] **The Verdant Hall** (21x19): a greenhouse whose walls are hedges, with a
+      walkway that meets only along the south so both Gardeners are unavoidable
+- [x] **The documented puzzle** — three root switches, each retracting one hedge
+      and extending another; reaching Fern needs two of them, in order
+- [x] A reset root by the door, and a proof (`tests/puzzle.test.js`) that walks
+      every reachable configuration to show the player can never be trapped
+- [x] **Gardeners Teal and Bracken** — ordinary Phase 8 trainers, no new pipeline
+- [x] **Leader Fern** — the canonical Vinelet 11 / Puffcap 11 / Ivorn 13, 1200
+      coins, and one extra field: `badge`
+- [x] **Sigils** — `src/data/badges.js`, `BadgeSystem`, a three-slot menu screen,
+      awarded once after a win and never on a loss
+- [x] Sigils read as `badge:<id>` conditions, so the world reacts through
+      ordinary conditional dialogue and no scene reads `gameState.badges`
+- [x] `debug.gates/toggle/resetPuzzle/puzzleState/sigils/sigil`
+- [x] 2168 automated tests; browser-verified end to end; balance measured over
+      hundreds of seeded battles; leak-tested over repeated town, puzzle and
+      blackout cycles
 
-## Phase 7 — Inventory + Economy
-- [ ] Item database, inventory with quantities
-- [ ] Money, shop UI
-- [ ] Mender's Hall full heal + respawn point
-
-## Phase 8 — Trainers
-- [ ] Trainer data + battles, defeated persistence
-- [ ] Line of sight detection and approach
-
-## Phase 9 — First Beacon Hall
-- [ ] Verdant Hall map + hedge-switch puzzle
-- [ ] 2 hall trainers + Leader Fern
-- [ ] Sigil award + victory screen + progression flag
+### Phase 9 deferrals
+- **Route 2 is not built.** Thistlewood's Thornway gate is visibly shut, the road
+  behind it is visible, and a keeper and a sign both explain why. The seam for
+  opening it is one flag (`thornwayOpen`) that nothing sets yet.
+- **No rival.** Kestrel belongs with world expansion, once save/load exists.
+- **No Gym rematches.** Fern stays beaten and gives post-victory lines.
+- **No leader AI profile.** Fern uses the same `BattleAI` as everyone else;
+  reliability mattered more than sophistication for a first Hall.
+- **A solo Water starter cannot beat this Hall.** That is the designed shape of a
+  type-themed Gym, not an oversight — see the balance note below.
+- **Puzzle state is per-session** until Phase 10 gives it a save file. It is
+  plain serialisable data and already lives on `GameState`.
 
 ## Phase 10 — Polish
 - [ ] Save/load (LocalStorage, versioned), autosave
@@ -202,11 +239,28 @@ Next phase: **Phase 9 — Thistlewood + First Gym**
 
 ## Decisions / Notes
 
+**First-Gym balance, measured rather than guessed** (`tests/gymBalance.test.js`
+plays hundreds of seeded battles against Fern):
+
+| Team at level 13 | Beats Fern |
+|------------------|-----------|
+| Fire starter + a Route 1 Flittle | ~100% |
+| Water starter + a Route 1 Flittle | ~67% |
+| Grass starter + a Route 1 Flittle | ~100% |
+| Fire starter alone | ~50%, rising to 100% at 15 |
+| Water starter alone | 0% at any sensible level |
+
+Every creature Fern fields is Grass or Grass/Poison, so Water is resisted
+outright and a solo Drizzle has no answer. That is the point of a type-themed
+Hall, and the game says so three times: Mose, Hesper and the Hall's own layout
+all point at "something with wings". Flittle is the second most common Aether on
+Route 1, knows Peck from level 1, has a catch rate of 255, and the player is
+handed two orbs on the way. The answer is cheap, early and signposted — so the
+Hall asks for a team rather than a grind.
+
 **Deferred deliberately (not forgotten):**
-- **Thistlewood town moved to Phase 11.** It exists to host Beacon Hall 1, which is
-  Phase 9 work. Building the town now would mean shipping an empty shell. Instead
-  Route 1 ends at a **closed gate** with a warden who explains why — a real,
-  story-appropriate block rather than an invisible wall.
+- **~~Thistlewood town moved to Phase 11~~ — built in Phase 9**, as planned, at
+  the same time as the Beacon Hall it exists to host.
 - **Ledge hopping is not implemented**, so no ledges were placed on Route 1.
   A `ledge_down` tile exists in the tile set, but placing terrain that looks
   like a one-way hop and does nothing would be worse than leaving it out.

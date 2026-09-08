@@ -4,6 +4,202 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 9 — Thistlewood and the First Sigil
+
+The vertical slice closes. New Game, a starter, Route 1, its trainers, a gate
+that opens because you asked, a second town, a Beacon Hall with a real puzzle,
+two Gardeners, a Leader, and the Verdant Sigil.
+
+### Added
+
+**Barriers — one mechanism for the gate and the hedges** (`PuzzleSystem`)
+
+Route 1's shut gate and the Verdant Hall's hedges are the same problem: tiles
+that are solid sometimes and not others, where the picture and the collision
+must never disagree. A map declares them as data and there is one rule for all
+of them. Two kinds, and a barrier may be both:
+
+- **flag-driven** (`openWhen: 'route1GateOpen'`) — its state is a pure function
+  of a story flag or a Sigil. Nothing is stored, so nothing can drift, and the
+  gate cannot open twice;
+- **switch-driven** — moved by root switches, saved in `gameState.puzzles` as
+  plain booleans.
+
+**The state lives in `TileMap`,** because everything already asks the map
+whether a tile is walkable: the player, every NPC, the trainer sight lines, the
+interaction check. One answer serves all of them, and a trainer can no more see
+through a closed hedge than the player can walk through it. The sprite is shown
+or hidden from the same call that decides collision.
+
+**A hedge never closes on anybody.** `pressSwitch()` is given the player's and
+every NPC's position and refuses — changing nothing — if extending would cover
+one. The maps are validated so no NPC, spawn or switch ever sits on a barrier
+tile, which makes that a safety net rather than a game rule.
+
+**Route 1's north gate is real progression.** The warden has said since Phase 2
+that the gate opens for Wardens with a partner. Now it does, in the
+conversation, with no errand invented to delay it.
+
+**Thistlewood** — 30x24, an overgrown timber town half-swallowed by hedges. A
+road north from Route 1 to the Verdant Hall's door, an east-west road serving
+the Mender's Hall and the Supply Post, a cottage, a pond, three signs, a hidden
+Great Orb, ten NPCs across the town and four interiors, and a shut Thornway gate
+with the road visible behind it.
+
+**A second Mender's Hall with no new healing code.** Mender Rell uses the same
+`action: 'heal'`, the same `HealingSystem` and the same `setRecoveryPoint()`
+with her own map's id. Healing here makes Thistlewood where you wake up; healing
+back in Emberhollow moves it back. Neither Hall knows the other exists. The one
+change this needed was that the heal now speaks as **whoever the player is
+talking to** rather than as a name written into the scene.
+
+**A second Supply Post that is one stock list.** Super Potions, Great Orbs and
+the Rouser — none of which Emberhollow sells. The Ultra Orb and the Clear Tonic
+are still held back.
+
+**The Verdant Hall** — a greenhouse whose walls are hedges. The walkway runs up
+the west side, up the east side and along the south, and the two sides meet
+**only** along the south, which is what makes both Gardeners unavoidable.
+
+**The puzzle the design document has always described:** three root switches,
+each retracting one hedge and extending another. Everything starts shut;
+reaching Fern needs the east and north hedges open together, which is the west
+root then the east root — and each sits past a Gardener's sight lane, so the
+fights are the puzzle's price rather than an obstacle beside it. The porch root
+is free: it opens a side pocket with a Super Potion and teaches what a switch
+does before anything is riding on it.
+
+Pressing a switch does not open a dialogue box. A hedge animates and a short
+note fades in, so experimenting stays cheap.
+
+**The player can never be trapped, and it is proved.** Every switch is on the
+walkway and no barrier ever is. `tests/puzzle.test.js` walks **every
+configuration any order of presses can reach** and asserts the door and all
+three switches are reachable from each one. The reset root in the porch is a
+convenience, not a rescue.
+
+**Gardeners Teal and Bracken** are ordinary Phase 8 trainers — data and two NPC
+fields, no second battle pipeline. Both stand in dead-end alcoves looking across
+the walkway, so neither can ever become a wall while their lanes still cover it.
+
+**Leader Fern** is an ordinary trainer with one extra field, `badge`. The
+canonical team: Vinelet 11, Puffcap 11 and Ivorn 13 as the ace, for 1200 coins.
+Nothing in `BattleScene` or `WorldScene` names her.
+
+**Sigils** — `src/data/badges.js`, `BadgeSystem`, and a three-slot menu screen
+that shows all three planned Halls from the first game, the unearned ones as
+visible blanks. Winning marks the Leader defeated, plays her outro, and *then*
+awards the Sigil — after experience, level-ups, new moves and evolutions have
+all resolved. Losing awards nothing. `awardBadge()` refuses a duplicate.
+
+**A Sigil needs no story flag beside it.** It reads as a condition,
+`badge:verdantSigil`, exactly the way a beaten trainer reads as `trainer:<id>`.
+`ProgressionSystem` folds flags, beaten trainers and Sigils into one set that
+dialogue, barriers and the menu all read — so nine NPCs react to the Sigil
+through ordinary conditional dialogue and no scene reads `gameState.badges`.
+
+**Debug** — `debug.gates()`, `debug.toggle(id)`, `debug.resetPuzzle()`,
+`debug.puzzleState(map)`, `debug.sigils()`, `debug.sigil(id, earned)`.
+
+### Rules chosen and documented
+
+- **Gate condition:** having a starter, and asking. Nothing else.
+- **Step precedence:** exit → root switch → trainer → wild encounter. The
+  switch claims the step, so pressing one and being spotted cannot collide.
+- **Puzzle persistence:** per map on `GameState`. Leaving the Hall, or blacking
+  out inside it, finds the hedges exactly as they were left.
+- **After the Sigil:** all three hedges stand open for good.
+- **Thistlewood shop:** Super Potion 550 and Great Orb 500 are the new options;
+  Ultra Orb stays out, because a 1200-coin orb on the first Gym's doorstep would
+  flatten every capture decision after it.
+- **Clearing the Hall pays 2200 coins** — four Super Potions and a Great Orb.
+
+### First-Gym balance, measured
+
+`tests/gymBalance.test.js` plays hundreds of seeded battles against Fern, driven
+by a stand-in for a reasonable player (best move by type, next creature when one
+faints, a potion when badly hurt):
+
+| Team at level 13 | Beats Fern |
+|------------------|-----------|
+| Fire starter + a Route 1 Flittle | ~100% |
+| Water starter + a Route 1 Flittle | ~67% |
+| Grass starter + a Route 1 Flittle | ~100% |
+| Fire starter alone | ~50%, 100% by level 15 |
+| Water starter alone | **0%**, at any sensible level |
+
+Every creature Fern fields is Grass or Grass/Poison. A solo Water starter cannot
+win — deliberately, because that is what a type-themed Hall is for. Three NPCs
+say to bring something with wings; Flittle is the second most common Aether on
+Route 1, knows Peck from level 1, has a catch rate of 255, and the player is
+handed two orbs on the way north. The answer is cheap, early and signposted, so
+the Hall asks for a team and never for a grind. These numbers are a test rather
+than a note, because balance rots silently.
+
+### Changed
+
+- The heal action, and any future action, now answers in the voice of whoever
+  triggered it — which is what let the second Mender's Hall be pure data.
+- `startDialogue()` gained an `onDone` hook, so a conversation can be followed
+  by something that is not another conversation.
+- The debug overlay lists this map's barriers and whether each is shut.
+
+### Verification
+
+- **2168 automated tests** pass (was 1900). New: 68 on barriers, switches and
+  the no-trap proof; 45 on Sigils and the Leader-victory chain; 18 on first-Gym
+  balance; plus the map, shop, Mender and Sigil checks that now run
+  automatically over every map and every Sigil.
+- **Lint clean; production build succeeds.**
+- **Browser-verified against the production build**, zero console errors: the
+  gate refusing and then opening, the walk to Thistlewood with party, money,
+  bag and flags intact, the Thornway staying shut, the second Mender and the
+  recovery point moving both ways, the second shop's new stock, every hedge and
+  every switch with the picture checked against the collision, the reset root,
+  both Gardeners, Fern, the Sigil awarded exactly once, the Sigil screen, and
+  nine NPCs reacting.
+- **A full New Game to first Sigil playthrough on the keyboard**, with no
+  teleporting: house to Lodge to starter, shop, Route 1, all three route
+  trainers, the warden, Thistlewood, both town services, the Hall, both
+  Gardeners, both roots, the solved corridor, Fern, and the Sigil.
+- **Losing verified too:** a Gym defeat blacks out for exactly 5%, wakes the
+  player at the Thistlewood Mender's Hall with a restored party, leaves the
+  Gardener undefeated and the hedges exactly as they were, and the fight can be
+  retried and won.
+- **All three starters** verified against Fern in the browser and over hundreds
+  of seeded battles in the test suite.
+- **Stress test:** four full cycles of town services, the Gym puzzle with a
+  trainer battle, and a blackout, leaving display objects, update lists, tweens,
+  timers, textures, animations, keyboard keys, listeners, scene instances, NPCs,
+  barrier sprites and step listeners unchanged — then the puzzle, a Leader
+  battle, the Sigil, the Sigil screen and map transitions all still working.
+- **Phases 1–8 re-verified** on the same build.
+
+### Fixed
+
+- **A shop shelf longer than seven items hid the rest.** The buy and sell lists
+  drew `rows.slice(0, 7)` and stopped, so Thistlewood's eighth item — the Great
+  Orb — could not be seen, selected or bought. The list now scrolls, the way the
+  Aether Index already did. Found by the browser suite reading the shop off the
+  screen rather than trusting the data.
+- **A barrier that was both switch-driven and Sigil-opened discarded its switch
+  state on every read**, which would have reset the puzzle constantly. Caught by
+  this phase's own tests before it ever ran in a browser.
+- A stray misindented block left inside `WorldScene.launchBattle` by Phase 8 —
+  harmless, but it nulled the trainer alert instead of destroying it.
+
+### Known limitations
+
+- Route 2 is not built. The Thornway gate is visibly shut with a keeper and a
+  sign that explain why; opening it later is one flag and no code.
+- No rival, no Gym rematches, and no leader AI profile.
+- A solo Water starter cannot beat this Hall. Recorded above and in a test.
+- Puzzle state is per session until Phase 10 gives it a save file; it is already
+  plain serialisable data on `GameState`.
+- Storage is still the Phase 6 summary, and there is still no nickname UI.
+
+---
+
 ## Phase 8 — Trainers
 
 The route stops being empty. Three people on Route 1 look up when you walk into

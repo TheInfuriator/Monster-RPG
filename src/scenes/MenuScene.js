@@ -1119,6 +1119,9 @@ export class MenuScene extends Phaser.Scene {
       this.text(ROW.x + 56, y + 34, slot.earned ? badge.description : 'Not yet earned.', {
         fontSize: '9px',
         color: CSS_COLORS.parchmentDim,
+        // Wrapped, because a Sigil's description is a sentence and a sentence
+        // that runs off the panel is worse than no sentence.
+        wordWrap: { width: ROW.width - 70 },
       });
     });
   }

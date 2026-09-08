@@ -6,14 +6,14 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 8 (Trainers) complete.**
-> Take a starter, buy supplies at the Supply Post, walk into Route 1's tall
-> grass, catch something, patch your team up from the Bag, get healed at the
-> Mender's Hall — and walk into a trainer's line of sight and have to fight your
-> way up the route. Battles, status, switching, running, experience, level-ups,
-> new moves, evolution, catching, storage, the Aether Index, money, shopping,
-> healing, blacking out and trainers all work. Thistlewood and the first Beacon
-> Hall are next — see [TODO.md](TODO.md).
+> **Status: Phase 9 (Thistlewood + the first Beacon Hall) complete — the
+> first-badge vertical slice is playable end to end.**
+> Take a starter, buy supplies, walk Route 1's tall grass, catch something,
+> fight the route's trainers, ask the warden to open the north gate, walk into
+> Thistlewood, shop and heal there, and challenge the Verdant Hall: solve its
+> hedge puzzle, beat its two Gardeners, beat Leader Fern and come away with the
+> **Verdant Sigil**. Everything from Phases 1–8 still works, and the world
+> reacts to the Sigil. Save/load is next — see [TODO.md](TODO.md).
 
 ---
 
@@ -84,6 +84,7 @@ src/
     encounters.js      Which wild Aethers live where
     shops.js           What each shop sells
     trainers.js        Every trainer: party, prize money and what they say
+    badges.js          The Sigils — one per Beacon Hall, built or not
     maps/              One file per map, plus the map registry
   entities/
     Player.js          The player character and grid movement
@@ -109,6 +110,9 @@ src/
     EncounterSystem.js Every rule about whether a step turns something up
     SightSystem.js     Whether a trainer can see you, and which one challenges
     TrainerSystem.js   What a trainer battle is, and who has been beaten
+    PuzzleSystem.js    Gates and hedges that open and close, and what moves them
+    BadgeSystem.js     Earning and reading Sigils
+    ProgressionSystem.js  Flags, beaten trainers and Sigils as one set of conditions
     WildBattle.js      Turning an encounter into a battle, and taking delivery
                        of anything caught
     CreatureIndex.js   What has been seen and what has been caught
@@ -164,6 +168,7 @@ main.js
                     ├── EncounterSystem    wild Aethers in tall grass
                     ├── SightSystem        who can see you
                     ├── TrainerSystem      what their battle is
+                    ├── PuzzleSystem       which gates and hedges are open
                     ├── InputManager       keys → actions
                     └── DebugOverlay
 ```
@@ -735,6 +740,11 @@ debug.trainerBattle('route1Scout')  // start a trainer battle from anywhere
 debug.beatTrainer('route1Scout')    // mark beaten (pass false to un-beat)
 debug.resetTrainers()         // clear every defeat
 debug.sight()                 // what each trainer here can currently see
+debug.gates()                 // barriers and switches on this map
+debug.toggle('rootWest')      // press a root switch from anywhere
+debug.resetPuzzle()           // put this map's hedges back how you found them
+debug.sigils()                // every Sigil and whether it is earned
+debug.sigil('verdantSigil')   // award one (pass false to take it back)
 ```
 
 Nothing in the game imports `DebugTools.js` — it only reaches in, so deleting it
@@ -849,6 +859,84 @@ back up the route.
 (Grubbit and Vinelet, both L7, 320 coins) and Warden Aspirant Halla (Flittle L8
 and Emberfly L9, 420 coins, by the gate).
 
+### Gates and hedges that open and close
+
+Some tiles are solid only some of the time: Route 1's north gate, the Verdant
+Hall's hedges. A map declares them as **barriers**, and there is one rule for
+all of them.
+
+```js
+barriers: [
+  { id: 'route1Gate', name: 'the north gate', tile: 'G',
+    tiles: [[10, 1], [11, 1]], closed: true, openWhen: 'route1GateOpen' },
+],
+switches: [
+  { id: 'rootWest', name: 'the west root', x: 2, y: 5,
+    retract: 'hedgeEast', extend: 'hedgeNorth' },
+],
+```
+
+`tile` is an ordinary character from `tiles.js` — what the barrier looks like
+and blocks like while it is closed. The map source underneath must be
+**walkable**, because that is what you walk through once it opens.
+
+**Two kinds.** One with `openWhen` and no switch is *flag-driven*: it is open
+exactly when that flag (or Sigil) is there, nothing is stored, and it cannot
+fall out of step — that is Route 1's gate. One a switch moves is *switch-driven*
+and its position is saved in `gameState.puzzles`. A barrier can be both: the
+Verdant Hall's hedges are moved by switches and then stand open for good once
+the Sigil is won.
+
+**The state lives in `TileMap`,** so the player, every NPC, the trainer sight
+lines and the interaction check all obey it from one place — and the sprite is
+shown or hidden by the same call that decides collision, so the picture and the
+rule cannot disagree.
+
+**Stepping on a switch** retracts one barrier and extends another. It never
+closes one on top of anybody: `pressSwitch()` is given everyone's position and
+refuses outright rather than half-applying.
+
+A completed step goes to **exits, then switches, then trainers, then wild
+encounters**, and the first to claim it stops the others.
+
+### Add a Beacon Hall
+
+The Verdant Hall is the worked example, and it needed no Gym-specific code:
+
+1. A map with `barriers` and `switches` (above), and hedges for walls.
+2. Two trainers and a Leader in `trainers.js`, exactly like Route 1's.
+3. `badge: 'verdantSigil'` on the Leader — the only field a Leader has that an
+   ordinary trainer does not.
+4. An entry in `src/data/badges.js` for the Sigil itself.
+
+Winning marks the Leader beaten, plays their outro, and *then* awards the Sigil
+— after experience, level-ups, new moves and evolutions have resolved. Losing
+awards nothing.
+
+**Design the puzzle so it cannot trap anyone.** In the Verdant Hall every switch
+stands on a walkway and no barrier ever does, so the door and all three switches
+are always reachable. `tests/puzzle.test.js` proves it by walking *every*
+configuration any order of presses can reach — if you build a second Hall, add
+its map to that test and let it check your work.
+
+### Sigils
+
+Sigils are this world's badges. They live in `gameState.badges` and read as
+conditions:
+
+```js
+{ when: 'badge:verdantSigil', pages: ['A Sigil already! ...'] },
+```
+
+exactly the way a beaten trainer reads as `trainer:<id>`. That is why the
+Verdant Sigil has **no story flag standing beside it** — the Sigil itself
+answers the question, in one record rather than two that could disagree. Nine
+NPCs react to it and not one of them needed code.
+
+Press **Cancel** → **Sigils** to see them: three slots from the first game, the
+unearned ones as visible blanks, because a locked slot the player can see is a
+promise the game intends to keep.
+
 ---
 
 ## Artwork
@@ -869,7 +957,7 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-1900 tests covering map parsing, collision, spawn fallbacks, map validation, game
+2168 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, inventory operations,
 interaction targeting, type effectiveness, the move and creature databases, stat
 and experience maths, the creature factory, the party, the starter-selection
@@ -883,7 +971,11 @@ does to the battle, the party and its storage overflow, and the Aether Index —
 and the economy: money, buying, selling, item use and its refusals, healing, the
 recovery point and blacking out — and trainers: sight geometry and every one of
 its boundaries, blockers and corners, which of several trainers challenges,
-trainer data, trainer battle configuration and the defeated-trainer record.
+trainer data, trainer battle configuration and the defeated-trainer record —
+and Phase 9: barriers and root switches, an exhaustive proof that the Verdant
+Hall can never trap a player, Sigil data, awarding a Sigil exactly once, and
+hundreds of seeded battles measuring whether each starter can win the first
+Beacon Hall.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -906,7 +998,18 @@ every map you add. They catch, without you writing a line of test code:
 - a dialogue asking for a shop or a trainer that does not exist
 - a trainer with no creatures, a species that does not exist, a level out of
   bounds, a negative reward, or missing intro or outro lines
-- a trainer NPC with no `sightRange`, or a `trainer:` id nothing defines
+- a trainer NPC with a `trainer:` id nothing defines, or a sight range that
+  could never work
+- a barrier standing on a solid tile (so opening it would change nothing), or
+  drawn as a tile that is not solid
+- two barriers on one tile, or an NPC, spawn point or switch standing where a
+  barrier can close
+- a switch pointing at a barrier that does not exist, doing nothing, or sitting
+  somewhere it could never be stepped on
+- a Sigil with a duplicate display order, an icon nothing can draw, or a Leader
+  who is not a trainer
+- a shop stocking the same item twice, and a `shop:` action naming no shop
+- a Mender's Hall with nowhere to wake up
 - an NPC with nothing to say to a brand new player
 - a tile with no artwork, or a key binding Phaser does not recognise
 - a move with an unknown type, impossible accuracy or malformed effect

@@ -71,6 +71,10 @@ export const TILE_DEFINITIONS = {
   // just write one in and get a permanent gate or hedge.
   'G': { id: 'gate', solid: true, texture: 'tile-gate' },
   'h': { id: 'hedge', solid: true, texture: 'tile-hedge' },
+  // A hedge with pale roots woven through it, in the same colour as a root
+  // switch. That is what tells the player WHICH hedges the coils can move —
+  // a movable hedge that looked like a wall would make the puzzle a guess.
+  'e': { id: 'hedge_gate', solid: true, texture: 'tile-hedge-gate' },
   'g': { id: 'garden_soil', solid: false, texture: 'tile-garden-soil' },
   // A root switch is stepped ON, so it must stay walkable. `object: true` draws
   // it over the map's objectBase floor, like any other piece of furniture.
