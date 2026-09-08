@@ -23,6 +23,7 @@ import { MAPS } from '../src/data/maps/index.js';
 import { verdantHall } from '../src/data/maps/verdantHall.js';
 import { route1 } from '../src/data/maps/route1.js';
 import { createNewGameState } from '../src/core/GameState.js';
+import { canSee } from '../src/systems/SightSystem.js';
 
 const freshState = () => createNewGameState();
 
@@ -574,5 +575,118 @@ describe('puzzle validation catches mistakes', () => {
 
   it('passes a sound map', () => {
     expect(findPuzzleProblems(testMap)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The specific ways this could have gone wrong
+// ---------------------------------------------------------------------------
+
+describe('the awkward cases', () => {
+  it('a gate cannot be "opened twice" — the flag is the whole state', () => {
+    const state = freshState();
+    const conditions = { route1GateOpen: true };
+
+    // However many times it is read, and whatever else has happened, the gate
+    // is exactly as open as the flag says.
+    for (let i = 0; i < 5; i += 1) {
+      expect(createBarrierState(route1, { conditions, state }).route1Gate).toBe(false);
+    }
+    expect(state.puzzles.route1 ?? {}).toEqual({});
+  });
+
+  it('a barrier never blocks a tile it does not cover', () => {
+    const map = new TileMap(verdantHall);
+    map.setBarrierState({ hedgeWest: true, hedgeEast: true, hedgeNorth: true });
+
+    const covered = new Set(
+      getBarriers(verdantHall).flatMap((b) => b.tiles.map(([x, y]) => `${x},${y}`))
+    );
+    for (let y = 0; y < map.height; y += 1) {
+      for (let x = 0; x < map.width; x += 1) {
+        if (covered.has(`${x},${y}`)) continue;
+        expect(
+          map.isBlockedByBarrier(x, y),
+          `(${x}, ${y}) is blocked by a barrier that does not cover it`
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('leaving and returning finds the hedges exactly as they were left', () => {
+    const state = freshState();
+    pressSwitch(verdantHall, 'rootWest', { state });
+    const left = createBarrierState(verdantHall, { state });
+
+    // A fresh TileMap, as a scene restart builds — the saved state is what
+    // puts it back, not anything the old scene was holding.
+    const returned = new TileMap(verdantHall);
+    returned.setBarrierState(createBarrierState(verdantHall, { state }));
+
+    for (const barrier of getBarriers(verdantHall)) {
+      expect(returned.isBarrierClosed(barrier.id)).toBe(left[barrier.id]);
+    }
+  });
+
+  it('a blackout does not disturb the hedges', () => {
+    const state = freshState();
+    pressSwitch(verdantHall, 'rootWest', { state });
+    pressSwitch(verdantHall, 'rootEast', { state });
+    const solved = createBarrierState(verdantHall, { state });
+
+    // Everything a blackout touches: money, the party, where you wake up.
+    state.money = Math.floor(state.money * 0.95);
+    state.respawn = { mapId: 'thistlewoodMendersHall', spawn: 'default' };
+
+    expect(createBarrierState(verdantHall, { state })).toEqual(solved);
+  });
+
+  it('every switch tile is somewhere a player can actually stand', () => {
+    const map = new TileMap(verdantHall);
+    for (const entry of getSwitches(verdantHall)) {
+      expect(map.isWalkable(entry.x, entry.y), `${entry.id} is not walkable`).toBe(true);
+      expect(map.getBarrierIdAt(entry.x, entry.y), `${entry.id} is under a barrier`).toBeNull();
+    }
+  });
+
+  it('no switch shares a tile with an exit, so one step cannot do both', () => {
+    for (const definition of Object.values(MAPS)) {
+      const exits = new Set((definition.exits || []).map((e) => `${e.x},${e.y}`));
+      for (const entry of getSwitches(definition)) {
+        expect(
+          exits.has(`${entry.x},${entry.y}`),
+          `${definition.id}: switch "${entry.id}" is standing on an exit`
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('no switch stands in a trainer\'s sight lane, so one step cannot do both', () => {
+    // Not a rule the code enforces — the step precedence already makes it safe
+    // — but a switch that also triggers a challenge would be confusing, and
+    // this is the cheapest way to keep noticing.
+    for (const definition of Object.values(MAPS)) {
+      const switches = getSwitches(definition);
+      if (switches.length === 0) continue;
+
+      const map = new TileMap(definition);
+      for (const npc of definition.npcs || []) {
+        if (!npc.trainer || !npc.sightRange) continue;
+
+        for (const entry of switches) {
+          const { visible } = canSee({
+            origin: { x: npc.x, y: npc.y },
+            facing: npc.facing,
+            range: npc.sightRange,
+            target: { x: entry.x, y: entry.y },
+            isBlocked: (x, y) => !map.isWalkable(x, y),
+          });
+          expect(
+            visible,
+            `${definition.id}: ${npc.id} watches switch "${entry.id}"`
+          ).toBe(false);
+        }
+      }
+    }
   });
 });
