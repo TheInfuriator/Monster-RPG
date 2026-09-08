@@ -1097,9 +1097,11 @@ export class MenuScene extends Phaser.Scene {
 
     slots.forEach((slot, i) => {
       const { badge } = slot;
-      const y = ROW.y + i * 58;
+      // Tall enough for a wrapped two-line description to sit inside its own
+      // row rather than on the seam between two.
+      const y = ROW.y + i * 64;
 
-      this.box(ROW.x - 6, y - 6, ROW.width, 52, COLORS.inkLight, slot.earned ? 1 : 0.4);
+      this.box(ROW.x - 6, y - 6, ROW.width, 58, COLORS.inkLight, slot.earned ? 1 : 0.4);
 
       const icon = this.add.image(ROW.x + 26, y + 20, badgeTextureKey(badge.id)).setOrigin(0.5);
       // An unearned Sigil is drawn as a shadow of itself rather than hidden, so
