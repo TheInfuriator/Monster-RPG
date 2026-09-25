@@ -69,6 +69,8 @@ import {
 import { healParty } from '../systems/HealingSystem.js';
 import { resolveBlackout, getRecoveryMessages } from '../systems/BlackoutSystem.js';
 import { BATTLE_RESULT } from '../systems/battle/BattleEngine.js';
+import { saveToSlot } from '../save/SaveManager.js';
+import { isSafeStandingTile } from '../save/RestorePosition.js';
 import { fadeIn } from '../utils/transitions.js';
 
 /**
@@ -83,6 +85,15 @@ const TRAINER_ALERT_MS = 620;
 
 /** How long a switch's "the west hedge draws back" note stays on screen. */
 const TOAST_MS = 1500;
+
+/** How long the small "Autosaved" note stays in the corner. */
+const AUTOSAVE_NOTE_MS = 1300;
+
+/**
+ * Whether the player has already been told this session that the autosave
+ * slot holds a newer game's save and is being left alone. Once is enough.
+ */
+let warnedAutosaveBlocked = false;
 
 export class WorldScene extends Phaser.Scene {
   constructor() {
@@ -118,14 +129,26 @@ export class WorldScene extends Phaser.Scene {
     this.badgePanel = null;
     /** Who spoke the dialogue that is running, so an action can answer as them. */
     this.lastSpeaker = null;
+    /**
+     * Why an autosave is wanted, or null. Set at a checkpoint and written the
+     * first frame the world is safe to save — see `flushAutosave()`. One slot,
+     * so several checkpoints in a row still make exactly one save.
+     */
+    this.autosavePending = null;
+    /** The small "Autosaved" note in the corner, or null. */
+    this.autosaveNote = null;
   }
 
   create() {
     this.controls = new InputManager(this);
 
+    // The order matters, most of all when a save is being restored: the
+    // hedges and gates are set first (inside loadMap), then everyone who
+    // lives on this map is put on their tile, and only then is the player
+    // placed — on a tile checked against all of that.
     this.loadMap();
-    this.createPlayer();
     this.createNpcs();
+    this.createPlayer();
     this.createGroundItems();
     this.setupCollision();
     this.setupCamera();
@@ -147,6 +170,14 @@ export class WorldScene extends Phaser.Scene {
     // player reads it in the room they woke up in.
     if (this.startData.arrival === 'blackout') {
       this.startDialogue(getRecoveryMessages(gameState.playerName));
+    }
+
+    // Arriving somewhere is a checkpoint — through a door, along a road, or
+    // waking at a Mender's Hall. Two arrivals are not: a game that has just
+    // been LOADED is already saved, and a brand new game has done nothing
+    // worth replacing the previous game's autosave with yet.
+    if (this.startData.mapId && this.startData.arrival !== 'continue') {
+      this.requestAutosave(this.startData.arrival === 'blackout' ? 'blackout' : 'arrival');
     }
   }
 
@@ -299,10 +330,11 @@ export class WorldScene extends Phaser.Scene {
   }
 
   createNpcs() {
-    this.npcManager = new NpcManager(this, this.map, () => ({
-      x: this.player.tileX,
-      y: this.player.tileY,
-    }));
+    // The NPCs are placed before the player (see create()), so for that one
+    // moment there is no player tile to keep them off.
+    this.npcManager = new NpcManager(this, this.map, () => (this.player
+      ? { x: this.player.tileX, y: this.player.tileY }
+      : null));
   }
 
   /**
@@ -356,7 +388,11 @@ export class WorldScene extends Phaser.Scene {
     const hasSavedPosition =
       saved.mapId === this.map.id && saved.x !== null && saved.y !== null;
 
-    if (hasSavedPosition && this.map.isWalkable(saved.x, saved.y)) {
+    // The same test a load already applied (RestorePosition.js), against the
+    // world as it now stands: walkable with the hedges as they are, and not
+    // an NPC's tile or an item's. A second check costs nothing, and it keeps
+    // any other way of arriving here just as safe.
+    if (hasSavedPosition && isSafeStandingTile(this.map, saved.x, saved.y, gameState)) {
       return { x: saved.x, y: saved.y, facing: saved.facing || 'down' };
     }
 
@@ -364,8 +400,8 @@ export class WorldScene extends Phaser.Scene {
     // would trap the player, so fall back to the map's default spawn.
     if (hasSavedPosition) {
       console.warn(
-        `[World] Saved position (${saved.x}, ${saved.y}) on "${this.map.id}" is not ` +
-          `walkable any more. Using the map's default spawn point instead.`
+        `[World] Saved position (${saved.x}, ${saved.y}) on "${this.map.id}" cannot be ` +
+          `stood on. Using the map's default spawn point instead.`
       );
     }
 
@@ -970,8 +1006,12 @@ export class WorldScene extends Phaser.Scene {
         for (const flag of flags) setFlag(flag);
 
         // A flag can open a gate — Route 1's warden sets one — so the world has
-        // to catch up before the player is handed back control.
-        if (flags.length > 0) this.syncBarriers({ animate: this.map.barriers.map((b) => b.id) });
+        // to catch up before the player is handed back control. Story progress
+        // is also worth an autosave.
+        if (flags.length > 0) {
+          this.syncBarriers({ animate: this.map.barriers.map((b) => b.id) });
+          this.requestAutosave('story');
+        }
 
         // An action runs INSTEAD of handing control back, because it usually
         // opens something of its own (a chooser, a battle) that will return
@@ -1080,6 +1120,106 @@ export class WorldScene extends Phaser.Scene {
     return true;
   }
 
+  // -------------------------------------------------------------------------
+  // Autosave
+  // -------------------------------------------------------------------------
+
+  /**
+   * Ask for an autosave at the next safe moment.
+   *
+   * Checkpoints call this — arriving on a map, a battle fully over, healing,
+   * story progress, a shop visit, a starter, an item picked up. None of them
+   * saves on the spot, because at that moment a dialogue or an award is
+   * usually still running. `flushAutosave()` waits for the world to settle.
+   */
+  requestAutosave(reason) {
+    this.autosavePending = reason;
+  }
+
+  /**
+   * Write the pending autosave, if the world is in a state worth saving.
+   *
+   * Never mid-battle, mid-dialogue, mid-map-change, mid-step, while a trainer
+   * is walking over or a Sigil is on screen: `isSafeToSave()` and a free,
+   * standing player cover all of those. Called every frame; almost always it
+   * has nothing to do.
+   */
+  flushAutosave() {
+    if (!this.autosavePending) return;
+    if (!this.isSafeToSave() || this.player.inputLocked || this.player.isMoving) return;
+
+    const reason = this.autosavePending;
+    this.autosavePending = null;
+
+    const result = saveToSlot('autosave', gameState);
+
+    // Read-only, for the console and the browser test suite.
+    if (typeof window !== 'undefined') {
+      window.__autosaves = (window.__autosaves || 0) + (result.ok ? 1 : 0);
+      window.__lastAutosave = {
+        reason, ok: result.ok, failure: result.reason, bytes: result.bytes,
+        durationMs: result.durationMs, mapId: gameState.location.mapId,
+      };
+    }
+
+    if (result.ok) {
+      console.info(`[Save] Autosaved (${reason}, ${result.bytes} bytes, ${result.durationMs.toFixed(1)} ms).`);
+      this.showAutosaveNote('Autosaved');
+      return;
+    }
+
+    console.warn(`[Save] Autosave skipped (${reason}): ${result.message}`);
+    if (result.reason === 'newerSave') {
+      // Protecting a newer game's save is right, but the player should know
+      // their progress is not being kept — once, not on every doorway.
+      if (!warnedAutosaveBlocked) {
+        warnedAutosaveBlocked = true;
+        this.showAutosaveNote('Autosave off: slot holds a newer save');
+      }
+      return;
+    }
+    this.showAutosaveNote('Autosave failed');
+  }
+
+  /**
+   * A small note in the corner that fades away. Deliberately quiet: saving
+   * should be reassuring, not an interruption, so it never takes input.
+   */
+  showAutosaveNote(message) {
+    this.clearAutosaveNote();
+
+    const note = this.add
+      .text(GAME_WIDTH - 8, 8, message, {
+        ...TEXT_STYLES.small,
+        fontSize: '10px',
+        color: CSS_COLORS.parchment,
+        backgroundColor: '#1b2230cc',
+        padding: { x: 6, y: 3 },
+      })
+      .setOrigin(1, 0)
+      .setScrollFactor(0)
+      .setDepth(DEPTHS.ui)
+      .setAlpha(0);
+
+    this.autosaveNote = note;
+    this.tweens.add({
+      targets: note,
+      alpha: { from: 0, to: 1 },
+      duration: 160,
+      hold: AUTOSAVE_NOTE_MS,
+      yoyo: true,
+      onComplete: () => this.clearAutosaveNote(),
+    });
+  }
+
+  clearAutosaveNote() {
+    if (this.autosaveNote) {
+      this.tweens.killTweensOf(this.autosaveNote);
+      this.autosaveNote.destroy();
+      this.autosaveNote = null;
+    }
+  }
+
   /** True when pressing Cancel should open the pause menu. */
   canOpenMenu() {
     if (this.isTransitioning || this.isEnteringBattle) return false;
@@ -1106,6 +1246,8 @@ export class WorldScene extends Phaser.Scene {
       ...options,
       onFinished: () => {
         this.scene.resume();
+        // Coins and the bag change hands at a shop counter.
+        if (options.mode === 'shop') this.requestAutosave('shop');
         this.releasePlayer();
       },
     });
@@ -1135,6 +1277,7 @@ export class WorldScene extends Phaser.Scene {
         this.scene.resume();
 
         if (speciesId) {
+          this.requestAutosave('starter');
           const species = getSpecies(speciesId);
           // Wick's closing line, shown once the chooser has closed.
           this.startDialogue(
@@ -1203,6 +1346,11 @@ export class WorldScene extends Phaser.Scene {
    * one HP each so the game stays playable, and the result is reported plainly.
    */
   onBattleFinished(result) {
+    // Every battle ends in something worth keeping — experience, a capture,
+    // a beaten trainer, a Sigil, or a blackout. The autosave waits until all
+    // of it has been narrated and the player is back in control.
+    this.requestAutosave('battle');
+
     // Renew the safe steps whatever the outcome. The player is usually standing
     // in the same patch of grass they were ambushed in, and walking out of one
     // fight straight into another reads as a bug rather than bad luck. Harmless
@@ -1245,6 +1393,7 @@ export class WorldScene extends Phaser.Scene {
    */
   healAtMender() {
     const outcome = healParty(gameState);
+    this.requestAutosave('heal');
 
     // Healing here makes this your recovery point. Every future Mender's Hall
     // does the same, which is all it takes for blackout to send you to the
@@ -1355,6 +1504,7 @@ export class WorldScene extends Phaser.Scene {
     const quantity = entry.quantity || 1;
     addItem(gameState.inventory, entry.item, quantity);
     setFlag(entry.flag);
+    this.requestAutosave('item');
 
     // Remove it from the world: the sprite goes, and so does the collision that
     // stopped the player walking onto the tile.
@@ -1385,6 +1535,10 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    // Before the player moves on: a step that has just finished has already
+    // recorded where they stand, so this frame is a clean point to save.
+    this.flushAutosave();
+
     if (!this.isTransitioning && this.controls.justPressed('confirm')) {
       this.handleInteract();
     }
@@ -1404,6 +1558,8 @@ export class WorldScene extends Phaser.Scene {
     this.clearTrainerAlert();
     this.clearToast();
     this.clearBadgePanel();
+    this.clearAutosaveNote();
+    this.autosavePending = null;
     this.trainerChallenge = null;
 
     if (this.mapRenderer) {

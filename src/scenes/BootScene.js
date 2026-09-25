@@ -13,6 +13,7 @@ import Phaser from 'phaser';
 import { SCENES, GAME_WIDTH, GAME_HEIGHT, COLORS, TEXT_STYLES } from '../config/gameConfig.js';
 import { generateAllTextures } from '../systems/TextureFactory.js';
 import { createCharacterAnimations } from '../entities/Player.js';
+import { getSettings, onSettingsChange } from '../core/Settings.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -39,6 +40,17 @@ export class BootScene extends Phaser.Scene {
     console.info(
       `[Boot] Generated ${textures} textures and ${animations} character animations.`
     );
+
+    // The master volume setting drives Phaser's sound manager, now and
+    // whenever the player changes it. There is no music or sound yet, so for
+    // now this is the whole of it: when audio arrives, every sound played
+    // through `this.sound` is already at the player's chosen volume. This
+    // scene runs exactly once, so the listener is added exactly once.
+    const applyVolume = (settings) => {
+      this.game.sound.volume = settings.masterVolume / 100;
+    };
+    applyVolume(getSettings());
+    onSettingsChange(applyVolume);
 
     this.scene.start(SCENES.TITLE);
   }
