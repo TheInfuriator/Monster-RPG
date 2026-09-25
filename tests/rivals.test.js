@@ -372,11 +372,18 @@ describe('the first meeting, at the Thornway gate', () => {
     expect(trainer.setFlags).toEqual(['thornwayOpen']);
   });
 
-  it('is pitched just above Fern, and below what the Thornway throws at you later', () => {
+  it('is pitched level with Fern\'s ace: a Leader-sized fight straight after her', () => {
     const fernTop = Math.max(...TRAINERS.verdantLeaderFern.party.map((e) => e.level));
     const top = Math.max(...trainer.party.map((e) => e.level));
-    expect(top).toBeGreaterThan(fernTop);
-    expect(top).toBeLessThanOrEqual(fernTop + 2);
+    expect(top).toBeGreaterThanOrEqual(fernTop);
+    expect(top).toBeLessThanOrEqual(fernTop + 1);
+  });
+
+  it('is stronger than anyone on Route 1', () => {
+    const route1Top = Math.max(...Object.values(TRAINERS)
+      .filter((t) => t.id.startsWith('route1'))
+      .flatMap((t) => t.party.map((e) => e.level)));
+    expect(Math.max(...trainer.party.map((e) => e.level))).toBeGreaterThan(route1Top);
   });
 
   it('fields a first-stage starter: nothing is evolved yet at these levels', () => {
@@ -387,6 +394,50 @@ describe('the first meeting, at the Thornway gate', () => {
       }
     }
   });
+});
+
+describe('the second meeting, below Mistvault', () => {
+  const trainer = TRAINERS.kestrelRoute2;
+
+  it('is Kestrel\'s second, and needs the first', () => {
+    expect(trainer.rival).toBe('kestrel');
+    expect(trainer.stage).toBe(2);
+    expect(trainer.requires).toBe('trainer:kestrelThornway');
+  });
+
+  it('gates nothing: Mistvault stays shut either way', () => {
+    expect(trainer.setFlags ?? []).toEqual([]);
+  });
+
+  it('fields the evolved starter, because the species data says so at this level', () => {
+    for (const starter of STARTER_IDS) {
+      const party = createTrainerParty(trainer.id, { state: stateWith(starter) });
+      const ace = party.at(-1);
+      const base = RIVALS.kestrel.starterFor[starter];
+      expect(ace.speciesId).toBe(getSpecies(base).evolution.to);
+      expect(ace.level).toBeGreaterThanOrEqual(getSpecies(base).evolution.level);
+    }
+  });
+
+  it('brings the Gustwing and Grubbit GAME_DESIGN.md planned for Kestrel', () => {
+    const partners = trainer.party.filter((e) => !e.rivalStarter).map((e) => e.species);
+    expect(partners).toEqual(['gustwing', 'grubbit']);
+  });
+
+  it('grows from the first meeting: more creatures, higher levels', () => {
+    const first = TRAINERS.kestrelThornway;
+    expect(trainer.party.length).toBeGreaterThan(first.party.length);
+    const top = (t) => Math.max(...t.party.map((e) => e.level));
+    expect(top(trainer)).toBeGreaterThan(top(first));
+  });
+
+  it('is stronger than every other trainer on Route 2', () => {
+    const top = (t) => Math.max(...t.party.map((e) => e.level));
+    for (const other of Object.values(TRAINERS).filter((t) => t.id.startsWith('route2'))) {
+      expect(top(trainer)).toBeGreaterThan(top(other));
+    }
+  });
+
 });
 
 // ---------------------------------------------------------------------------
@@ -490,8 +541,11 @@ describe('Kestrel on the map', () => {
         expect(isNpcPresent(npc, before)).toBe(true);
       });
 
-      it('is gone once beaten, so there is never a second fight', () => {
-        expect(isNpcPresent(npc, beaten)).toBe(false);
+      it('never offers a second fight once beaten', () => {
+        // Either they leave (the Thornway gate), or they stay and only talk
+        // (the cordon) — never a rematch.
+        if (!isNpcPresent(npc, beaten)) return;
+        expect(resolveDialogue(npc.dialogue, beaten).action).toBeNull();
       });
 
       it('uses the rival\'s own look', () => {
@@ -500,6 +554,7 @@ describe('Kestrel on the map', () => {
 
       it('says the same thing when spoken to as when they spot you, then fights', () => {
         for (const starter of [...STARTER_IDS, null]) {
+          // (With every other meeting still to come, so no after-lines apply.)
           const conditions = { ...before, ...(starter ? { [`starter:${starter}`]: true } : {}) };
           const talk = resolveDialogue(npc.dialogue, conditions);
           expect(talk.pages).toEqual(resolveDialogue(trainer.intro, conditions).pages);
@@ -509,6 +564,10 @@ describe('Kestrel on the map', () => {
 
       it('walks off along open ground once the flags they set are in place', () => {
         const exit = npc.exitAfterDefeat;
+        if (isNpcPresent(npc, beaten)) {
+          expect(exit, 'a rival who stays should not also walk off').toBeUndefined();
+          return;
+        }
         expect(exit, 'a rival who leaves needs somewhere to go').toBeDefined();
 
         const state = createNewGameState();

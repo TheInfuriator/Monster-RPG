@@ -64,6 +64,47 @@ export const ENCOUNTER_TABLES = {
     { species: 'emberfly', minLevel: 4, maxLevel: 6, weight: 3 },
   ],
 
+  /**
+   * Route 2 — the Thornway, in its THICKETS (tall grass). Phase 11.
+   *
+   * Pitched from real progression: a player arrives from Kestrel's first
+   * fight with a starter around 15 and partners around 14 (see
+   * tests/route2.test.js), and GAME_DESIGN.md puts Route 2 at 14-18. Two of
+   * the new families are the commons; the old Route 1 faces return a few
+   * levels on; Zaplet is the canonical Route 2 find; Gustwing and the new
+   * Burrzap are the rare ones.
+   */
+  route2Thicket: [
+    { species: 'jabbit', minLevel: 13, maxLevel: 16, weight: 24 },
+    { species: 'glimmote', minLevel: 13, maxLevel: 15, weight: 18 },
+    { species: 'flittle', minLevel: 14, maxLevel: 16, weight: 16 },
+    { species: 'vinelet', minLevel: 14, maxLevel: 16, weight: 14 },
+    { species: 'grubbit', minLevel: 14, maxLevel: 16, weight: 12 },
+    { species: 'zaplet', minLevel: 14, maxLevel: 16, weight: 10 },
+    // Deliberately rare.
+    { species: 'gustwing', minLevel: 17, maxLevel: 18, weight: 3 },
+    { species: 'burrzap', minLevel: 15, maxLevel: 17, weight: 3 },
+  ],
+
+  /**
+   * Route 2 — the Thornway, on its SCREE slope below Mistvault. Phase 11.
+   *
+   * A different habitat on the same map (encounters.byTerrain): rock and
+   * earth, a level higher than the thickets because it is further up the
+   * road. Umbrat, a cave-dweller, has come OUT of Mistvault — one of the
+   * signs that something in there is wrong.
+   */
+  route2Scree: [
+    { species: 'delvit', minLevel: 14, maxLevel: 17, weight: 28 },
+    { species: 'pebblit', minLevel: 14, maxLevel: 17, weight: 24 },
+    { species: 'jabbit', minLevel: 15, maxLevel: 17, weight: 14 },
+    { species: 'zaplet', minLevel: 15, maxLevel: 17, weight: 12 },
+    { species: 'carapex', minLevel: 16, maxLevel: 18, weight: 10 },
+    { species: 'umbrat', minLevel: 15, maxLevel: 17, weight: 8 },
+    // Deliberately rare.
+    { species: 'gustwing', minLevel: 17, maxLevel: 18, weight: 4 },
+  ],
+
   /** The patch on Emberhollow's northern edge — a safe taste of the mechanic. */
   emberhollowEdge: [
     { species: 'nibbit', minLevel: 2, maxLevel: 3, weight: 60 },

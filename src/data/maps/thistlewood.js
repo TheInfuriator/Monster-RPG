@@ -16,7 +16,8 @@
  * THE ROADS
  * One road comes up from Route 1 in the south and runs to the Verdant Hall's
  * door. It crosses an east-west road that serves the Mender's Hall and the
- * Supply Post. A third road climbs north-east to the Thornway gate.
+ * Supply Post. A third road climbs north-east to the Thornway gate, and on
+ * through it to Route 2 (src/data/maps/route2.js).
  *
  * THE THORNWAY GATE (Phase 11)
  * The gate opens for a Warden with the Verdant Sigil — but Kestrel, the rival,
@@ -36,8 +37,8 @@ export const thistlewood = {
   tiles: [
     // 0         1         2
     // 0123456789012345678901234567890
-    'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT', //  0
-    'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT', //  1
+    'TTTTTTTTTTTTTTTTTTTTTTTTTT--TT', //  0  north exit to Route 2
+    'TTTTTTTTTTTTTTTTTTTTTTTTTT--TT', //  1
     'TTTTTTTTTTTTTTTTTTTTTTTTTT--TT', //  2  the Thornway, beyond the gate
     'TT........h.........h.FFFF--TT', //  3  THE THORNWAY GATE at (26,3),(27,3)
     'TT.........KKKKKKKK......S--TT', //  4  the Verdant Hall
@@ -89,6 +90,9 @@ export const thistlewood = {
     fromMendersHall: { x: 6, y: 12, facing: 'down' },
     fromSupplyPost: { x: 22, y: 12, facing: 'down' },
     fromCottage: { x: 6, y: 19, facing: 'down' },
+    // Coming back down the Thornway: just inside the treeline, north of the
+    // gate — which is open, since nobody reaches Route 2 any other way.
+    fromRoute2: { x: 26, y: 1, facing: 'down' },
   },
 
   exits: [
@@ -99,6 +103,8 @@ export const thistlewood = {
     { x: 6, y: 11, to: 'thistlewoodMendersHall', spawn: 'default' },
     { x: 22, y: 11, to: 'thistlewoodSupplyPost', spawn: 'default' },
     { x: 6, y: 18, to: 'thistlewoodCottage', spawn: 'default' },
+    { x: 26, y: 0, to: 'route2', spawn: 'fromThistlewood' },
+    { x: 27, y: 0, to: 'route2', spawn: 'fromThistlewood' },
   ],
 
   npcs: [

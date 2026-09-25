@@ -259,7 +259,7 @@ export const TRAINERS = {
     rewardMoney: 960,
     party: [
       { species: 'flittle', level: 12 },
-      { rivalStarter: true, level: 14 },
+      { rivalStarter: true, level: 13 },
     ],
     setFlags: ['thornwayOpen'],
     intro: [
@@ -303,6 +303,154 @@ export const TRAINERS = {
     victoryLines: [
       'Ha! One step ahead. Like always.',
       'Go and get patched up. I will be right here — I am not going through until you have had a proper go.',
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // Route 2 — the Thornway (Phase 11)
+  // -------------------------------------------------------------------------
+  //
+  // Four people who work or wander the road, each a step up from Route 1 and
+  // the Verdant Hall, pitched at the levels a player really has when they
+  // walk it (tests/route2.test.js measures the walk). Low on the road the
+  // teams mirror the thicket; high on it, the scree.
+
+  /** At the bramble cutting, just north of Thistlewood. */
+  route2Cutter: {
+    id: 'route2Cutter',
+    name: 'Hollis',
+    title: 'Bramble-Cutter',
+    rewardMoney: 540,
+    party: [
+      { species: 'jabbit', level: 13 },
+      { species: 'vinelet', level: 14 },
+    ],
+    intro: [
+      'The crew said a Warden might come up the cutting. Nobody said I could not test one!',
+    ],
+    outro: [
+      'Clean work. You would make a decent cutter.',
+    ],
+  },
+
+  /** In the tall grass on the thicket's western road. */
+  route2Forager: {
+    id: 'route2Forager',
+    name: 'Maren',
+    title: 'Forager',
+    rewardMoney: 580,
+    party: [
+      { species: 'glimmote', level: 14 },
+      { species: 'puffcap', level: 14 },
+    ],
+    intro: [
+      'Mind where you tread — I have been gathering in this grass since sunrise.',
+    ],
+    outro: [
+      'My basket is full and my team is flat. A fair trade, I suppose.',
+    ],
+  },
+
+  /** On the thicket's eastern road, watching the weather come off the Brow. */
+  route2Lookout: {
+    id: 'route2Lookout',
+    name: 'Tamsin',
+    title: 'Lookout',
+    rewardMoney: 600,
+    party: [
+      { species: 'flittle', level: 14 },
+      { species: 'zaplet', level: 14 },
+    ],
+    intro: [
+      'Storm coming off the Brow. My Zaplet can feel it in its fur — and it wants a fight first.',
+    ],
+    outro: [
+      'Well, that cleared the air. Watch the sky up on the scree.',
+    ],
+  },
+
+  /** On a gravel spur beside the scree road. */
+  route2ScreeWalker: {
+    id: 'route2ScreeWalker',
+    name: 'Dunmore',
+    title: 'Scree-Walker',
+    rewardMoney: 680,
+    party: [
+      { species: 'delvit', level: 15 },
+      { species: 'umbrat', level: 15 },
+    ],
+    intro: [
+      'The whole slope has been shifting all week. This Umbrat came up out of Mistvault on its own — they never do that.',
+    ],
+    outro: [
+      'Steady feet. The cavern is up the gully — for all the good it will do you.',
+    ],
+  },
+
+  /**
+   * Kestrel's second meeting: at the top of the Thornway, below the Wardens'
+   * cordon across Mistvault Cavern. GAME_DESIGN.md's appearance 3 — the
+   * evolved starter with a Gustwing and a Grubbit — belongs here, at the
+   * levels the species data evolves them.
+   *
+   * No flags: this fight gates nothing. Mistvault stays shut either way
+   * (Phase 12 opens it), so it is a rivalry beat and a reason to be here,
+   * and Kestrel stays by the cordon afterwards rather than walking off.
+   *
+   * BALANCE: see tests/rivalBalance.test.js.
+   */
+  kestrelRoute2: {
+    id: 'kestrelRoute2',
+    name: 'Kestrel',
+    title: 'Rival',
+    rival: 'kestrel',
+    stage: 2,
+    requires: 'trainer:kestrelThornway',
+    rewardMoney: 1000,
+    party: [
+      { species: 'gustwing', level: 14 },
+      { species: 'grubbit', level: 13 },
+      { rivalStarter: true, level: 16 },
+    ],
+    intro: [
+      {
+        when: 'starter:pyrret',
+        pages: [
+          'There you are! The Wardens have Mistvault roped off, and it is the only road to Tidewatch.',
+          'They will not say why. So I am stuck here — and I am not wasting it.',
+          'Drizzle turned into a Puddlurk on the way up. Want to see what Water does to a fire NOW?',
+        ],
+      },
+      {
+        when: 'starter:drizzle',
+        pages: [
+          'There you are! The Wardens have Mistvault roped off, and it is the only road to Tidewatch.',
+          'They will not say why. So I am stuck here — and I am not wasting it.',
+          'Sproutle turned into a Bramblit on the way up. Roots, meet water. Again.',
+        ],
+      },
+      {
+        when: 'starter:sproutle',
+        pages: [
+          'There you are! The Wardens have Mistvault roped off, and it is the only road to Tidewatch.',
+          'They will not say why. So I am stuck here — and I am not wasting it.',
+          'Pyrret turned into a Cindraw on the way up. Grass still burns.',
+        ],
+      },
+      {
+        pages: [
+          'There you are! The Wardens have Mistvault roped off, and it is the only road to Tidewatch.',
+          'They will not say why. So I am stuck here — and I am not wasting it.',
+        ],
+      },
+    ],
+    outro: [
+      'Again?! Two for two. I am keeping count, you know.',
+      'Fine. FINE. I am staying right here until that cordon comes down — and I am going in first.',
+    ],
+    victoryLines: [
+      'Ha! That makes it one each.',
+      'Go and get patched up. The cordon is not going anywhere, and neither am I.',
     ],
   },
 };

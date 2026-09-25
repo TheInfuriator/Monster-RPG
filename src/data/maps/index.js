@@ -22,6 +22,7 @@ import { thistlewood } from './thistlewood.js';
 import { thistlewoodMendersHall } from './thistlewoodMendersHall.js';
 import { thistlewoodSupplyPost } from './thistlewoodSupplyPost.js';
 import { thistlewoodCottage } from './thistlewoodCottage.js';
+import { route2 } from './route2.js';
 import { verdantHall } from './verdantHall.js';
 
 export const MAPS = {
@@ -35,6 +36,7 @@ export const MAPS = {
   thistlewoodMendersHall,
   thistlewoodSupplyPost,
   thistlewoodCottage,
+  route2,
   verdantHall,
 };
 

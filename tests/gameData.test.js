@@ -17,7 +17,7 @@ import {
   CHARACTER_PALETTES,
   characterTextureKey,
 } from '../src/config/assets.js';
-import { ENCOUNTER_TABLES } from '../src/data/encounters.js';
+import { ENCOUNTER_TABLES, getEncounterConfig } from '../src/data/encounters.js';
 import { CREATURES } from '../src/data/creatures.js';
 import { CREATURE_BODY_SET, creatureTextureKey } from '../src/config/assets.js';
 import { CREATURE_BODY_DRAWER_NAMES } from '../src/systems/TextureFactory.js';
@@ -209,21 +209,31 @@ describe('every registered map is well-formed', () => {
         }
       });
 
-      it('uses an encounter table that exists, if it declares one', () => {
-        if (definition.encounterTable) {
-          expect(
-            ENCOUNTER_TABLES[definition.encounterTable],
-            `map "${id}" wants encounter table "${definition.encounterTable}"`
-          ).toBeDefined();
+      it('uses encounter tables that exist, if it declares any', () => {
+        // Short form, long form, and every per-terrain table (Phase 11).
+        const config = getEncounterConfig(definition);
+        if (!config) return;
+        for (const table of [config.tableId, ...Object.values(config.terrainTables || {})]) {
+          expect(ENCOUNTER_TABLES[table], `map "${id}" wants encounter table "${table}"`).toBeDefined();
+        }
+        for (const tileId of Object.keys(config.terrainTables || {})) {
+          const tile = Object.values(TILE_DEFINITIONS).find((t) => t.id === tileId);
+          expect(tile?.encounter, `map "${id}" gives "${tileId}" a table, but it is not encounter terrain`)
+            .toBe(true);
         }
       });
 
-      it('only has tall grass on maps that define an encounter table', () => {
-        const hasTallGrass = definition.tiles.some((row) => row.includes('"'));
-        if (hasTallGrass) {
+      it('only has encounter terrain on maps that define an encounter table', () => {
+        const encounterChars = Object.entries(TILE_DEFINITIONS)
+          .filter(([, tile]) => tile.encounter)
+          .map(([char]) => char);
+        const hasEncounterTerrain = definition.tiles.some(
+          (row) => encounterChars.some((char) => row.includes(char))
+        );
+        if (hasEncounterTerrain) {
           expect(
-            definition.encounterTable,
-            `map "${id}" has tall grass but no encounterTable, so it would never spawn anything`
+            getEncounterConfig(definition),
+            `map "${id}" has encounter terrain but no encounter table, so it would never spawn anything`
           ).toBeTruthy();
         }
       });

@@ -24,89 +24,15 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { BattleEngine, BATTLE_RESULT } from '../src/systems/battle/BattleEngine.js';
-import { createTrainerBattleConfig } from '../src/systems/TrainerSystem.js';
-import { createCreature, getCreatureSpecies } from '../src/systems/CreatureFactory.js';
-import { getEffectiveness } from '../src/systems/TypeChart.js';
 import { TRAINERS } from '../src/data/trainers.js';
 import { ENCOUNTER_TABLES } from '../src/data/encounters.js';
 import { SHOPS } from '../src/data/shops.js';
-import { ITEMS } from '../src/data/items.js';
-import { createSeededRandom } from '../src/utils/rng.js';
-
-/** The move that will do the most damage to what is standing opposite. */
-function bestMove(engine) {
-  const me = engine.player.creature;
-  const foeTypes = getCreatureSpecies(engine.opponent.creature).types;
-
-  let best = null;
-  let bestScore = -1;
-  for (const entry of me.moves) {
-    if (entry.pp <= 0) continue;
-    const move = entry.move || entry;
-    if (!move.power) continue;
-
-    const stab = getCreatureSpecies(me).types.includes(move.type) ? 1.5 : 1;
-    const score = move.power
-      * stab
-      * getEffectiveness(move.type, foeTypes)
-      * ((move.accuracy ?? 100) / 100);
-
-    if (score > bestScore) {
-      bestScore = score;
-      best = entry;
-    }
-  }
-  return best || me.moves.find((m) => m.pp > 0) || me.moves[0];
-}
-
-/**
- * Play one battle to a decision.
- *
- * @param {string} trainerId
- * @param {Array<[string, number]>} party  [speciesId, level] pairs
- * @param {number} seed
- * @param {number} potions  Super Potions the player is willing to spend
- */
-function playBattle(trainerId, party, seed, potions = 3) {
-  const team = party.map(([id, level]) => createCreature(id, level));
-  const engine = new BattleEngine({
-    ...createTrainerBattleConfig(trainerId, team),
-    random: createSeededRandom(seed),
-  });
-  engine.start();
-
-  let left = potions;
-  for (let i = 0; i < 400 && !engine.isOver(); i += 1) {
-    if (engine.awaitingPlayerSwitch) {
-      const next = team.findIndex((c) => c.currentHp > 0);
-      if (next === -1) break;
-      engine.sendOutAfterFaint(next);
-      continue;
-    }
-
-    const me = engine.player.creature;
-    if (left > 0 && me.currentHp < me.stats.hp * 0.4) {
-      left -= 1;
-      me.currentHp = Math.min(me.stats.hp, me.currentHp + ITEMS.superPotion.effect.amount);
-      engine.submitPlayerAction({ type: 'item', itemId: 'superPotion' });
-      continue;
-    }
-
-    engine.submitPlayerAction({ type: 'move', moveEntry: bestMove(engine) });
-  }
-
-  return engine.result?.outcome;
-}
-
-/** How often this team beats this trainer, over a fixed set of seeds. */
-function winRate(trainerId, party, { seeds = 30, potions = 3 } = {}) {
-  let wins = 0;
-  for (let seed = 1; seed <= seeds; seed += 1) {
-    if (playBattle(trainerId, party, seed, potions) === BATTLE_RESULT.WIN) wins += 1;
-  }
-  return wins / seeds;
-}
+// The battle driver is shared with the rival and Route 2 balance tests, so all
+// of them measure the same player. (Phase 11: it used to live here, and read
+// `entry.power` off a creature's move entry — which only holds { id, pp,
+// maxPp } — so it never found a damaging move and always used the FIRST one.
+// The numbers below were re-measured with the fixed driver.)
+import { winRate } from './helpers/battleSim.js';
 
 // The three starters, and the capture the world points every player at.
 const STARTERS = [
