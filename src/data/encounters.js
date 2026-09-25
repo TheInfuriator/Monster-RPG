@@ -26,10 +26,16 @@
  *       rate: 0.11,           // optional — chance per step, defaults to balance.js
  *       cooldownSteps: 3,     // optional — safe steps after an encounter
  *       terrain: ['tall_grass'],  // optional — narrow which encounter tiles count
- *     }
+ *       byTerrain: { scree: 'route2Scree' },  // optional — another table on
+ *     }                                        // some encounter tiles
  *
  *   `terrain` lists TILE IDS (from src/data/tiles.js). Leave it out and every
  *   tile marked `encounter: true` counts, which is what tall grass already is.
+ *
+ *   `byTerrain` (Phase 11) maps a TILE ID to a table, for a map with more than
+ *   one habitat: Route 2's thickets and its scree slope turn up different
+ *   Aethers. Encounter tiles it does not name use `table`. The rate and the
+ *   cooldown are shared — it is one route, walked in one go.
  *
  * TO ADD A SPECIES to an area: add one row to its table. Nothing else changes —
  * no scene, no system, no test. The data tests below pick it up automatically.
@@ -99,7 +105,8 @@ export function getEncounterTable(id) {
  *
  * @param {object} definition a map definition from src/data/maps/
  * @returns {{tableId: string, rate: number, cooldownSteps: number,
- *            terrain: string[]|null} | null} null if the map has no encounters
+ *            terrain: string[]|null, terrainTables: object|null} | null}
+ *          null if the map has no encounters
  */
 export function getEncounterConfig(definition) {
   if (!definition) return null;
@@ -118,6 +125,8 @@ export function getEncounterConfig(definition) {
     cooldownSteps: Math.max(0, settings?.cooldownSteps ?? ENCOUNTERS.cooldownSteps),
     // null means "any tile marked encounter: true", which is the normal case.
     terrain: settings?.terrain ? [...settings.terrain] : null,
+    // null means "every encounter tile uses tableId", also the normal case.
+    terrainTables: settings?.byTerrain ? { ...settings.byTerrain } : null,
   };
 }
 

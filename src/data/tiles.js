@@ -82,6 +82,25 @@ export const TILE_DEFINITIONS = {
   'p': { id: 'planter', solid: true, object: true, texture: 'tile-planter' },
   'k': { id: 'timber_wall', solid: true, texture: 'tile-timber-wall' },
   'K': { id: 'timber_roof', solid: true, texture: 'tile-timber-roof' },
+
+  // --- Route 2, the Thornway (Phase 11) -----------------------------------
+  //
+  // Scree is the Thornway's SECOND encounter terrain. It has to read as
+  // "wild creatures here" as plainly as tall grass does, so it is loose, busy
+  // and darker than the plain gravel road beside it — and the route's map
+  // gives it its own encounter table (encounters.byTerrain).
+  '*': { id: 'scree', solid: false, encounter: true, texture: 'tile-scree' },
+  '%': { id: 'rock_face', solid: true, texture: 'tile-rock-face' },
+  '@': { id: 'boulder', solid: true, texture: 'tile-boulder' },
+  '&': { id: 'bramble', solid: true, texture: 'tile-bramble' },
+  // The dry spring: walkable, and wrong — this used to be water.
+  'u': { id: 'cracked_earth', solid: false, texture: 'tile-cracked-earth' },
+  // A surveyor's stake, driven into the ground by someone who did not ask.
+  'j': { id: 'survey_stake', solid: true, texture: 'tile-survey-stake' },
+  // Mistvault Cavern's mouth. Solid: Phase 11 ends here (see route2.js).
+  'X': { id: 'cave_mouth', solid: true, texture: 'tile-cave-mouth' },
+  // The Wardens' rope cordon across it — a barrier look, like `G` and `h`.
+  '+': { id: 'cordon', solid: true, texture: 'tile-cordon' },
 };
 
 /** The tile used when a map contains a character this file does not define. */

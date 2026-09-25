@@ -27,6 +27,7 @@ import { MAPS } from '../../src/data/maps/index.js';
 export function buildRichState() {
   const state = createNewGameState();
   state.playerName = 'Robin';
+  state.starter = 'pyrret';
 
   // The starter, levelled past its evolution and evolved for real.
   const starter = createCreature('pyrret', 5, { metAt: "Warden's Lodge" });

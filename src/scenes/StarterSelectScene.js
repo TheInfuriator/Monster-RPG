@@ -28,7 +28,7 @@ import {
 } from '../config/gameConfig.js';
 import { creatureTextureKey } from '../config/assets.js';
 import { InputManager } from '../core/InputManager.js';
-import { STARTER_IDS, STARTER_LEVEL, getSpecies } from '../data/creatures.js';
+import { STARTER_IDS, STARTER_LEVEL, STARTER_MET_AT, getSpecies } from '../data/creatures.js';
 import { getTypeName } from '../data/types.js';
 import { getTypeColor } from '../systems/TypeChart.js';
 import { createCreature } from '../systems/CreatureFactory.js';
@@ -286,7 +286,7 @@ export class StarterSelectScene extends Phaser.Scene {
     }
 
     const creature = createCreature(speciesId, STARTER_LEVEL, {
-      metAt: "Warden's Lodge",
+      metAt: STARTER_MET_AT,
     });
 
     if (!creature) {
@@ -307,6 +307,9 @@ export class StarterSelectScene extends Phaser.Scene {
     markCaught(speciesId);
 
     setFlag(STARTER_FLAG);
+    // Which starter was taken is a fact the rest of the game builds on — the
+    // rival takes the one strong against it — so it is recorded, not guessed.
+    gameState.starter = speciesId;
     console.info(
       `[StarterSelect] ${creature.speciesId} joined the party at level ${creature.level}.`
     );

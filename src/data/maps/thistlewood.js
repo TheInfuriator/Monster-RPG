@@ -5,8 +5,8 @@
  *
  * An overgrown timber town half-swallowed by hedges, built around the Verdant
  * Hall. It has everything Emberhollow has — a Mender, a Supply Post, people
- * with opinions — plus the region's first Beacon Hall and a road north that is
- * not open yet.
+ * with opinions — plus the region's first Beacon Hall and the Thornway gate,
+ * the road north to Route 2.
  *
  *   .  ,  grass      -  path        f  flowers      h  hedge      p  planter
  *   T     tree       K  turf roof   k  timber wall  w  window     D  door
@@ -16,10 +16,17 @@
  * THE ROADS
  * One road comes up from Route 1 in the south and runs to the Verdant Hall's
  * door. It crosses an east-west road that serves the Mender's Hall and the
- * Supply Post. A third road climbs north-east to the Thornway gate, which is
- * shut: Route 2 is a later phase, and a road that visibly stops at a gate is
- * more honest than an invisible wall.
+ * Supply Post. A third road climbs north-east to the Thornway gate.
+ *
+ * THE THORNWAY GATE (Phase 11)
+ * The gate opens for a Warden with the Verdant Sigil — but Kestrel, the rival,
+ * is waiting in front of it once the player has one. Beating Kestrel sets
+ * `thornwayOpen` (see src/data/trainers.js, kestrelThornway.setFlags), the
+ * gate swings open while the player watches, and Kestrel walks off up the
+ * road ahead of them. Nothing in the code names this gate or this rival.
  */
+
+import { TRAINERS } from '../trainers.js';
 
 export const thistlewood = {
   id: 'thistlewood',
@@ -58,10 +65,9 @@ export const thistlewood = {
   /**
    * The Thornway gate.
    *
-   * `openWhen: 'thornwayOpen'` is a flag NOTHING sets in this build, so the
-   * gate is shut and the road behind it is visible but unreachable. That is
-   * deliberate: Route 2 is a later phase, and the seam for opening it is
-   * already here — one flag, no code.
+   * `openWhen: 'thornwayOpen'` — set by beating Kestrel at the gate, which in
+   * turn only happens once the player holds the Verdant Sigil (Kestrel is not
+   * there before then). One flag, no code.
    */
   barriers: [
     {
@@ -196,19 +202,54 @@ export const thistlewood = {
       movement: 'static',
       dialogue: [
         {
+          when: 'thornwayOpen',
+          pages: [
+            'Gate is open. The Thornway runs north through the thickets and up onto the scree.',
+            'At the very top is Mistvault Cavern. The Wardens have that roped off — do not argue with them.',
+          ],
+        },
+        {
           when: 'badge:verdantSigil',
           pages: [
-            'Sigil on you? Then the gate is not the problem any more — the road is.',
-            'Half the Thornway is under bramble. Give the crews a while yet.',
+            'A Sigil! Then the Thornway is yours to walk — as soon as your friend there has had their say.',
+            'Kestrel has been at my gate since dawn. Would not let me open it until you turned up.',
           ],
         },
         {
           pages: [
-            'Thornway is shut. Bramble took the whole cutting last winter.',
-            'Even with a Sigil you would not get far. Try the Hall instead.',
+            'The Thornway opens for Sigil-bearers only. The wild ones up there are no Cinderpath rabbits.',
+            'Earn one in the Verdant Hall and I will swing this gate for you myself.',
           ],
         },
       ],
+    },
+    {
+      // THE RIVAL — first meeting (Phase 11). Here only once the player holds
+      // the Verdant Sigil, gone for good once beaten: the NpcPresence fields
+      // below say exactly when, and the save loader asks the same question.
+      //
+      // Standing in the western lane of the gate road, looking down it, so a
+      // player walking up that lane is spotted. One who comes up the other lane
+      // still meets a shut gate and can talk to them instead — either way the
+      // battle is the same trainer, from the same data.
+      id: 'kestrel',
+      name: 'Kestrel',
+      trainer: 'kestrelThornway',
+      sightRange: 5,
+      x: 26,
+      y: 5,
+      facing: 'down',
+      sprite: 'rival',
+      movement: 'static',
+      presentWhen: 'badge:verdantSigil',
+      absentWhen: 'trainer:kestrelThornway',
+      // After the win: through the open gate and away up the Thornway.
+      exitAfterDefeat: { direction: 'up', steps: 3 },
+      // Talking to them says exactly what being spotted does, then fights.
+      dialogue: TRAINERS.kestrelThornway.intro.map((branch) => ({
+        ...branch,
+        action: 'trainer:kestrelThornway',
+      })),
     },
   ],
 
@@ -236,8 +277,19 @@ export const thistlewood = {
       y: 4,
       type: 'sign',
       dialogue: [
-        'THE THORNWAY — north to Route 2',
-        'CLOSED. Bramble clearance in progress. Do not climb the gate.',
+        {
+          when: 'thornwayOpen',
+          pages: [
+            'THE THORNWAY — north to Route 2',
+            'Mistvault Cavern at the far end. Keep to the road; mind the scree.',
+          ],
+        },
+        {
+          pages: [
+            'THE THORNWAY — north to Route 2',
+            'Open to holders of a Beacon Sigil only. Ask the keeper. Do not climb the gate.',
+          ],
+        },
       ],
     },
     {

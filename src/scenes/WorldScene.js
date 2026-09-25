@@ -34,6 +34,7 @@ import { InputManager } from '../core/InputManager.js';
 import { TileMap } from '../systems/TileMap.js';
 import { MapRenderer } from '../systems/MapRenderer.js';
 import { NpcManager } from '../systems/NpcManager.js';
+import { stepsToLeave } from '../systems/NpcPresence.js';
 import { EncounterSystem } from '../systems/EncounterSystem.js';
 import { findInteractionTarget } from '../systems/InteractionSystem.js';
 import { resolveDialogue } from '../systems/DialogueResolver.js';
@@ -50,7 +51,7 @@ import { getScriptedBattle } from '../data/battles.js';
 import { getShop } from '../data/shops.js';
 import { getTrainer, getTrainerDisplayName } from '../data/trainers.js';
 import {
-  createTrainerBattleConfig, isTrainerDefeated, markTrainerDefeated,
+  createTrainerBattleConfig, isTrainerDefeated, recordTrainerVictory,
 } from '../systems/TrainerSystem.js';
 import { findChallenger } from '../systems/SightSystem.js';
 import {
@@ -334,9 +335,12 @@ export class WorldScene extends Phaser.Scene {
   createNpcs() {
     // The NPCs are placed before the player (see create()), so for that one
     // moment there is no player tile to keep them off.
+    // Some NPCs come and go with the story — Kestrel waits at the Thornway
+    // only once there is a Sigil to compare — so presence reads the same
+    // conditions dialogue does.
     this.npcManager = new NpcManager(this, this.map, () => (this.player
       ? { x: this.player.tileX, y: this.player.tileY }
-      : null));
+      : null), { conditions: getWorldConditions(gameState) });
   }
 
   /**
@@ -660,7 +664,9 @@ export class WorldScene extends Phaser.Scene {
         this.player.faceTowards(npc.tileX, npc.tileY);
 
         const trainer = getTrainer(npc.definition.trainer);
-        this.startDialogue(trainer.intro, {
+        // Ordinary dialogue, so a trainer can react to the story — Kestrel
+        // names the starter they took against the player's.
+        this.startDialogue(this.trainerLines(trainer.intro), {
           speaker: getTrainerDisplayName(trainer),
           action: `trainer:${trainer.id}`,
         });
@@ -738,15 +744,59 @@ export class WorldScene extends Phaser.Scene {
     // there, and the Sigil is still theirs.
     if (result.outcome !== BATTLE_RESULT.WIN) return false;
 
-    markTrainerDefeated(trainer.id);
+    // Beaten, and any story flags they carry set — Kestrel's opens the
+    // Thornway. One pure call, so the rule is tested without a scene.
+    const { flagsSet } = recordTrainerVictory(trainer.id, gameState);
+    // Story progress, not just another fight: say so in the autosave. It is
+    // still ONE pending autosave, written once everything below has played.
+    if (flagsSet.length > 0) this.requestAutosave('story');
 
-    // A Leader's Sigil, if they carry one. Trainer DATA decides this — nothing
-    // here names Fern, and a second Hall needs no code at all.
-    this.startDialogue(trainer.outro, {
+    // Their last word, then the gate, their exit and any Sigil — all from
+    // trainer DATA. Nothing here names Fern or Kestrel.
+    this.startDialogue(this.trainerLines(trainer.outro), {
       speaker: getTrainerDisplayName(trainer),
-      onDone: () => this.awardTrainerBadge(trainer),
+      onDone: () => this.finishTrainerWin(trainer, flagsSet),
     });
     return true;
+  }
+
+  /** A trainer's lines, resolved against the story like any dialogue. */
+  trainerLines(lines) {
+    return resolveDialogue(lines, getWorldConditions(gameState)).pages;
+  }
+
+  /**
+   * What happens after a beaten trainer's last word, in order: the world
+   * catches up with any flags they set (a gate opens while the player
+   * watches), a trainer who is leaving walks off, then any Sigil is awarded
+   * and control comes back. The player stays frozen throughout, so none of it
+   * can be walked away from or saved half-way.
+   */
+  finishTrainerWin(trainer, flagsSet = []) {
+    if (flagsSet.length > 0 && this.map.barriers.length > 0) {
+      this.syncBarriers({ animate: this.map.barriers.map((b) => b.id) });
+    }
+
+    const npc = this.npcManager.npcs.find((entry) => entry.definition.trainer === trainer.id);
+    const exit = npc?.definition.exitAfterDefeat;
+    if (!npc || !exit) {
+      this.awardTrainerBadge(trainer);
+      return;
+    }
+
+    // Walk off, then fade: if the player happens to be standing in the way,
+    // they simply stop short and fade there rather than walking through them.
+    npc.walkLine(exit.direction, stepsToLeave(npc, exit), () => {
+      this.tweens.add({
+        targets: npc,
+        alpha: 0,
+        duration: 220,
+        onComplete: () => {
+          this.npcManager.remove(npc);
+          this.awardTrainerBadge(trainer);
+        },
+      });
+    });
   }
 
   /**
@@ -844,6 +894,8 @@ export class WorldScene extends Phaser.Scene {
   checkForEncounter(x, y) {
     const encounter = this.encounters.step({
       onEncounterTile: this.map.hasEncounters(x, y),
+      // Route 2's scree and its thickets are different habitats.
+      tableId: this.map.getEncounterTableAt(x, y),
       dialogueOpen: this.dialogueBox.isOpen,
       transitioning: this.isTransitioning,
       battleActive: this.isEnteringBattle || this.scene.isActive(SCENES.BATTLE),
@@ -1367,6 +1419,17 @@ export class WorldScene extends Phaser.Scene {
       // The BATTLE decides whether losing has consequences, not this scene and
       // not the name of whoever you were fighting.
       if (result.blackoutOnDefeat) {
+        // A trainer who has something to say about winning says it first —
+        // Kestrel promises to wait for the rematch — then the ordinary
+        // blackout runs. Nothing is recorded: they are not beaten.
+        const winner = result.trainerId ? getTrainer(result.trainerId) : null;
+        if (winner && winner.victoryLines) {
+          this.startDialogue(this.trainerLines(winner.victoryLines), {
+            speaker: getTrainerDisplayName(winner),
+            onDone: () => this.startBlackout(),
+          });
+          return;
+        }
         this.startBlackout();
         return;
       }

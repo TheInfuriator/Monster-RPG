@@ -13,6 +13,7 @@
  */
 
 import { Npc } from '../entities/Npc.js';
+import { isNpcPresent } from './NpcPresence.js';
 
 export class NpcManager {
   /**
@@ -20,8 +21,11 @@ export class NpcManager {
    * @param {import('./TileMap.js').TileMap} map
    * @param {() => {x: number, y: number}} getPlayerTile
    *        so NPCs never wander into the player
+   * @param {object} [options]
+   * @param {Record<string, boolean>} [options.conditions] world conditions, for
+   *        NPCs who only appear at some point in the story (see NpcPresence)
    */
-  constructor(scene, map, getPlayerTile) {
+  constructor(scene, map, getPlayerTile, { conditions = {} } = {}) {
     this.scene = scene;
     this.map = map;
     this.getPlayerTile = getPlayerTile;
@@ -30,7 +34,7 @@ export class NpcManager {
     this.npcs = [];
 
     for (const definition of map.definition.npcs || []) {
-      this.spawn(definition);
+      if (isNpcPresent(definition, conditions)) this.spawn(definition);
     }
   }
 
@@ -78,6 +82,18 @@ export class NpcManager {
       npc.isBusy = busy;
       if (busy) npc.halt();
     }
+  }
+
+  /**
+   * Take one NPC off the map for the rest of this visit — Kestrel, walking off
+   * through the Thornway. Their presence conditions keep them away after that.
+   */
+  remove(npc) {
+    const index = this.npcs.indexOf(npc);
+    if (index === -1) return false;
+    this.npcs.splice(index, 1);
+    npc.destroy();
+    return true;
   }
 
   destroy() {

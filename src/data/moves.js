@@ -282,6 +282,13 @@ export const MOVES = {
     power: 80, accuracy: 100, pp: 15, priority: 0,
     description: 'Stamps hard enough to split the ground underfoot.',
   },
+  // Phase 11: the Route 2 burrowers needed a Ground attack between Mud Slap's
+  // 30 and Quake Stomp's 80 — there was nothing for the mid-teens.
+  burrowStrike: {
+    id: 'burrowStrike', name: 'Burrow Strike', type: 'ground', category: PHYSICAL,
+    power: 60, accuracy: 95, pp: 20, priority: 0,
+    description: 'Ducks into loose scree and bursts up under the target.',
+  },
 
   // ---------------------------------------------------------------- Flying
   peck: {
@@ -311,6 +318,20 @@ export const MOVES = {
     power: null, accuracy: null, pp: 20, priority: 0,
     description: 'Sets the thorns outward. Sharply raises Defense.',
     effect: { kind: EFFECT_KINDS.STAT_CHANGE, target: 'self', stat: 'defense', stages: 2, chance: 1 },
+  },
+  // Phase 11: the first Fighting FAMILY (Jabbit, Brawnhare) needed a starting
+  // Fighting move below Close Jab, and a second one that plays differently.
+  hopKick: {
+    id: 'hopKick', name: 'Hop Kick', type: 'fighting', category: PHYSICAL,
+    power: 40, accuracy: 100, pp: 30, priority: 0,
+    description: 'Springs up and lands both hind feet. May make the target flinch.',
+    effect: { kind: EFFECT_KINDS.FLINCH, chance: 0.1 },
+  },
+  flurryJabs: {
+    id: 'flurryJabs', name: 'Flurry Jabs', type: 'fighting', category: PHYSICAL,
+    power: 18, accuracy: 100, pp: 20, priority: 0,
+    description: 'A blur of short punches that lands two to five times.',
+    effect: { kind: EFFECT_KINDS.MULTI_HIT, min: 2, max: 5 },
   },
 
   // ---------------------------------------------------------------- Poison
@@ -356,6 +377,21 @@ export const MOVES = {
     power: 65, accuracy: 100, pp: 10, priority: 0,
     description: 'Draws warmth out of the target and into the user.',
     effect: { kind: EFFECT_KINDS.DRAIN, fraction: 0.5 },
+  },
+
+  // ----------------------------------------------------------------- Fairy
+  // Phase 11: Fairy was in the type chart from the start but no creature or
+  // move used it. Glimmote and Brambelle are the first; these are theirs.
+  glimmer: {
+    id: 'glimmer', name: 'Glimmer', type: 'fairy', category: SPECIAL,
+    power: 40, accuracy: 100, pp: 30, priority: 0,
+    description: 'A soft flash of light that stings more than it looks.',
+  },
+  moonpetal: {
+    id: 'moonpetal', name: 'Moonpetal', type: 'fairy', category: SPECIAL,
+    power: 75, accuracy: 100, pp: 15, priority: 0,
+    description: 'A storm of pale petals. May sap the target\'s special strength.',
+    effect: { kind: EFFECT_KINDS.STAT_CHANGE, target: 'foe', stat: 'spAttack', stages: -1, chance: 0.2 },
   },
 
   // ------------------------------------------------------------------ Dark

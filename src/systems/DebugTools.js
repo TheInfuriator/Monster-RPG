@@ -24,15 +24,17 @@ import {
 import { addItem } from './InventorySystem.js';
 import { grantExperience } from './battle/ExperienceSystem.js';
 import { experienceForLevel } from './StatCalculator.js';
-import { CREATURE_IDS, getSpecies } from '../data/creatures.js';
+import { CREATURE_IDS, STARTER_IDS, getSpecies } from '../data/creatures.js';
 import { STATUS_IDS } from '../data/statuses.js';
 import { SCRIPTED_BATTLES } from '../data/battles.js';
 import { MAPS } from '../data/maps/index.js';
 import { getItem } from '../data/items.js';
 import { TRAINERS, getTrainerDisplayName } from '../data/trainers.js';
 import {
-  isTrainerDefeated, markTrainerDefeated, clearTrainerDefeat, countDefeatedTrainers,
+  isTrainerDefeated, recordTrainerVictory, clearTrainerDefeat, countDefeatedTrainers,
 } from './TrainerSystem.js';
+import { RIVALS } from '../data/rivals.js';
+import { getPlayerStarter, getRivalStarterBase, resolvePartyEntry } from './RivalSystem.js';
 import { getSightTiles } from './SightSystem.js';
 import {
   getBarriers, getSwitches, pressSwitch, resetPuzzle, createBarrierState,
@@ -149,7 +151,9 @@ export function installDebugTools(game) {
           '  debug.index() / .clearIndex()   index progress, or wipe it',
           '  debug.trainers()                every trainer and whether beaten',
           '  debug.trainerBattle(id)         fight a trainer from anywhere',
-          '  debug.beatTrainer(id, bool)     mark a trainer beaten or not',
+          '  debug.beatTrainer(id, bool)     mark a trainer beaten (and set their flags) or not',
+          '  debug.rival()                   the rival meetings, starters and what is left',
+          '  debug.starter(id)               show, or change, the recorded starter',
           '  debug.resetTrainers()           forget every trainer battle',
           '  debug.sight()                   what the trainers here can see',
           '  debug.trainer(id)               start a scripted battle',
@@ -424,7 +428,9 @@ export function installDebugTools(game) {
       const rows = Object.values(TRAINERS).map((trainer) => ({
         id: trainer.id,
         who: getTrainerDisplayName(trainer),
-        party: trainer.party.map((e) => `${e.species} L${e.level}`).join(', '),
+        party: trainer.party
+          .map((e) => `${resolvePartyEntry(e, trainer).species} L${e.level}`)
+          .join(', '),
         reward: trainer.rewardMoney,
         beaten: isTrainerDefeated(trainer.id),
       }));
@@ -445,10 +451,49 @@ export function installDebugTools(game) {
 
     /** Mark a trainer beaten, or un-beat them, without fighting. */
     beatTrainer(id, beaten = true) {
-      if (beaten) markTrainerDefeated(id);
-      else clearTrainerDefeat(id);
-      console.info(`[debug] ${id} beaten -> ${isTrainerDefeated(id)}`);
+      if (beaten) {
+        // Exactly what a real win records, flags included — so beating Kestrel
+        // this way opens the Thornway too.
+        const { flagsSet } = recordTrainerVictory(id);
+        if (flagsSet.length > 0) world(game)?.syncBarriers();
+      } else {
+        // Un-beating does NOT clear flags a win set: use debug.flag for that.
+        clearTrainerDefeat(id);
+      }
+      console.info(`[debug] ${id} beaten -> ${isTrainerDefeated(id)} (re-enter the map to see NPCs change)`);
       return isTrainerDefeated(id);
+    },
+
+    /** Every rival meeting: who they field against THIS player, and whether it is done. */
+    rival() {
+      const playerStarter = getPlayerStarter();
+      const rows = Object.values(TRAINERS).filter((t) => t.rival).map((trainer) => ({
+        id: trainer.id,
+        rival: RIVALS[trainer.rival]?.name,
+        stage: trainer.stage,
+        requires: [].concat(trainer.requires || []).join(', '),
+        starter: getRivalStarterBase(trainer.rival).base,
+        party: trainer.party
+          .map((e) => `${resolvePartyEntry(e, trainer).species} L${e.level}`)
+          .join(', '),
+        sets: (trainer.setFlags || []).join(', '),
+        beaten: isTrainerDefeated(trainer.id),
+      }));
+      console.info(`[debug] player starter: ${playerStarter ?? 'unknown'} (recorded: ${gameState.starter ?? 'none'})`);
+      console.table ? console.table(rows) : console.info('[debug] rival:', rows);
+      return { playerStarter, meetings: rows };
+    },
+
+    /** Show the recorded starter, or change it (a starter id, or null). */
+    starter(id) {
+      if (id === undefined) return gameState.starter;
+      if (id !== null && !STARTER_IDS.includes(id)) {
+        console.warn(`[debug] "${id}" is not a starter. Try: ${STARTER_IDS.join(', ')}.`);
+        return gameState.starter;
+      }
+      gameState.starter = id;
+      console.info(`[debug] starter -> ${id}`);
+      return id;
     },
 
     /** Forget every trainer battle, so the route can be walked again. */

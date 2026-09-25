@@ -4,11 +4,12 @@
  * Everything the world is allowed to ask about the player's progress, as one
  * flat set of true/false conditions.
  *
- * Three kinds of progress, one vocabulary:
+ * Four kinds of progress, one vocabulary:
  *
  *   gotStarter                a story flag
  *   trainer:route1Scout       a trainer who has been beaten
  *   badge:verdantSigil        a Sigil the player holds
+ *   starter:drizzle           which starter the player took (Phase 11)
  *
  * A map file writes `when: 'badge:verdantSigil'` on a dialogue branch, or
  * `openWhen: 'route1GateOpen'` on a barrier, and both go through here. That is
@@ -22,6 +23,7 @@
 
 import { getDialogueConditions } from './TrainerSystem.js';
 import { getBadgeConditions } from './BadgeSystem.js';
+import { getPlayerStarter } from './RivalSystem.js';
 import { gameState } from '../core/GameState.js';
 
 /**
@@ -29,10 +31,17 @@ import { gameState } from '../core/GameState.js';
  * @returns {Record<string, boolean>}
  */
 export function getWorldConditions(state = gameState) {
-  return {
+  const conditions = {
     ...getDialogueConditions(state),
     ...getBadgeConditions(state),
   };
+
+  // Which starter the player took reads as `starter:pyrret` and so on, so a
+  // line can react to it — the rival's, especially — with ordinary `when`.
+  const starter = getPlayerStarter(state);
+  if (starter) conditions[`starter:${starter}`] = true;
+
+  return conditions;
 }
 
 /**

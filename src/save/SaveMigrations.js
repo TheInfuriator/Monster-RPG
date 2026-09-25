@@ -29,6 +29,7 @@
  */
 
 import { SAVE_VERSION, SAVE_GAME_ID } from './SaveSchema.js';
+import { findLodgeStarter } from '../systems/RivalSystem.js';
 
 /** Shown for a save made by a newer build of the game. */
 export const FUTURE_VERSION_MESSAGE =
@@ -112,9 +113,35 @@ export function migrateV1toV2(v1) {
   };
 }
 
+/**
+ * Version 2 → 3.
+ *
+ * Version 3 records which starter the player took (`starter`), because the
+ * rival's choice depends on it. Versions 1 and 2 never wrote it down — but the
+ * starter is always in the save regardless: it is the creature met at the
+ * Warden's Lodge, and starters cannot be released or traded. So the answer is
+ * recovered from there, as the base of its family (a Cindraw means Pyrret).
+ *
+ * A save with no starter yet gets null, exactly like a new game. A save that
+ * somehow has none to find also gets null, and the rival reads the party
+ * again at battle time (see RivalSystem.getPlayerStarter).
+ *
+ * Nothing else changes, and the summary is kept: a Phase 10 save shows the
+ * same place and time on the Continue screen after migrating as before.
+ */
+export function migrateV2toV3(v2) {
+  const file = copy(v2);
+  if (isPlainObject(file.gameState) && file.gameState.starter === undefined) {
+    file.gameState.starter = findLodgeStarter(file.gameState);
+  }
+  file.version = 3;
+  return file;
+}
+
 /** Version n → n + 1, for every version that has ever existed. */
 export const MIGRATIONS = {
   1: migrateV1toV2,
+  2: migrateV2toV3,
 };
 
 // ---------------------------------------------------------------------------

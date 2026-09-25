@@ -85,6 +85,18 @@ export const CHARACTER_PALETTES = {
     boots: 0x2a2018,
     accent: 0xffffff,
   },
+  // Kestrel, the rival: a sharp teal travelling coat and a red scarf, dark
+  // hair — nothing like the player's blue tunic, and nobody else wears teal.
+  rival: {
+    hair: 0x1f1c22,
+    skin: 0xd4a27c,
+    skinShade: 0xb3825c,
+    tunic: 0x2a8f86,
+    tunicShade: 0x1d6a63,
+    trousers: 0x2e2a36,
+    boots: 0x1a171c,
+    accent: 0xd8423a,
+  },
   // Professor Wick and the Mender both wear the Warden Order's white coat.
   researcher: {
     hair: 0x5c5148,

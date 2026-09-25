@@ -20,6 +20,22 @@
  *   outro        what they say once beaten, before control returns
  *   badge        optional Sigil id awarded for beating them (Leaders only)
  *
+ *   intro and outro are ordinary dialogue: a list of lines, or a list of
+ *   conditional branches (`{ when: 'starter:pyrret', pages: [...] }`, ending in
+ *   one with no condition) so a trainer can react to the player's progress.
+ *
+ * FIELDS FOR STORY TRAINERS (Phase 11) — all optional
+ *   setFlags     story flags set when the player WINS, e.g. ['thornwayOpen']
+ *   victoryLines what they say when THEY win, before the player blacks out
+ *   rival        a rival id from src/data/rivals.js — this is one of their meetings
+ *   stage        which meeting it is, counting from 1
+ *   requires     the condition that must hold for the meeting to happen (the
+ *                NPC's `presentWhen` on the map says the same, and a test
+ *                checks the two agree)
+ *   party entry  `{ rivalStarter: true, level }` — the rival's starter at that
+ *                level, grown into whatever form the species data says (see
+ *                src/systems/RivalSystem.js). Only in a rival's meetings.
+ *
  * The lines an already-beaten trainer says afterwards live with the NPC in the
  * map file, because that is ordinary conditional dialogue —
  * `when: 'trainer:route1Scout'` — and needs no special machinery.
@@ -39,6 +55,7 @@
 
 import { CREATURES } from './creatures.js';
 import { BADGES } from './badges.js';
+import { RIVALS } from './rivals.js';
 import { PROGRESSION } from '../config/balance.js';
 
 export const TRAINERS = {
@@ -195,6 +212,99 @@ export const TRAINERS = {
       'You read the hedges and then you read my Ivorn. That is a Warden.',
     ],
   },
+
+  // -------------------------------------------------------------------------
+  // Kestrel, the rival (GAME_DESIGN.md sections 8 and 22)
+  // -------------------------------------------------------------------------
+  //
+  // Each meeting is one ordinary trainer. The one new thing is the first party
+  // slot: Kestrel's starter, which depends on the player's (RivalSystem).
+  //
+  // The first meeting the player actually has is GAME_DESIGN.md's appearance
+  // 3 — the two in the vertical slice were never built — so these lines
+  // introduce Kestrel as well as challenging the player. Kestrel picked right
+  // after the player did, which is how they could take the starter that beats
+  // it, and they have been one step ahead ever since.
+
+  /**
+   * At the Thornway gate in Thistlewood, once the player holds the Verdant
+   * Sigil. Winning opens the gate (`thornwayOpen`); losing does not, and
+   * Kestrel waits for a rematch.
+   *
+   * BALANCE — MEASURED, AND REVISED FROM THE ORIGINAL PLAN
+   * GAME_DESIGN.md first planned "evolved starter L15 + Gustwing L14 + Grubbit
+   * L13", written before the stat curve existed. Played out against a real
+   * post-Fern team (starter 14, Flittle 13, both still first stages) it won
+   * 0% of the time for EVERY starter: two second-stage creatures against none
+   * is a wall, not a rival. Three first stages led by the starter was still
+   * 3% for a Fire starter, because every one of them hit a Grass player hard.
+   *
+   * So this is the shape of the plan's appearance 2 — the starter and a
+   * Flittle — at post-Fern levels, with the starter saved for last as the ace.
+   * tests/rivalBalance.test.js holds the numbers (60 seeds, a sensible player
+   * with 3 Super Potions): starter 14 + Flittle 13 wins about half the time
+   * as Fire or Grass and nearly always as Water, whose Flittle answers
+   * Kestrel's Sproutle; one more level or a third creature makes it
+   * comfortable for everyone; the starter alone almost never wins. The
+   * evolved starter and Gustwing the plan wanted come at the SECOND meeting,
+   * on Route 2, where the species data puts them.
+   */
+  kestrelThornway: {
+    id: 'kestrelThornway',
+    name: 'Kestrel',
+    title: 'Rival',
+    rival: 'kestrel',
+    stage: 1,
+    requires: 'badge:verdantSigil',
+    rewardMoney: 960,
+    party: [
+      { species: 'flittle', level: 12 },
+      { rivalStarter: true, level: 14 },
+    ],
+    setFlags: ['thornwayOpen'],
+    intro: [
+      {
+        when: 'starter:pyrret',
+        pages: [
+          'So YOU are the one Wick would not stop talking about. I am Kestrel.',
+          'I picked right after you did. You took the fire one, so I took Drizzle. Water puts fires out.',
+          'The keeper opens the Thornway for Sigil-bearers now. I am not walking it until I know which of us is ahead.',
+        ],
+      },
+      {
+        when: 'starter:drizzle',
+        pages: [
+          'So YOU are the one Wick would not stop talking about. I am Kestrel.',
+          'I picked right after you did. You took the water one, so I took Sproutle. Roots drink water.',
+          'The keeper opens the Thornway for Sigil-bearers now. I am not walking it until I know which of us is ahead.',
+        ],
+      },
+      {
+        when: 'starter:sproutle',
+        pages: [
+          'So YOU are the one Wick would not stop talking about. I am Kestrel.',
+          'I picked right after you did. You took the grass one, so I took Pyrret. Grass burns.',
+          'The keeper opens the Thornway for Sigil-bearers now. I am not walking it until I know which of us is ahead.',
+        ],
+      },
+      {
+        pages: [
+          'So YOU are the one Wick would not stop talking about. I am Kestrel.',
+          'The keeper opens the Thornway for Sigil-bearers now. I am not walking it until I know which of us is ahead.',
+        ],
+      },
+    ],
+    outro: [
+      'Okay. OKAY. That was a real fight.',
+      'You are good. Annoyingly good.',
+      'Keeper! Open it up — we are both going through.',
+      'See you on the Thornway. Try to keep up.',
+    ],
+    victoryLines: [
+      'Ha! One step ahead. Like always.',
+      'Go and get patched up. I will be right here — I am not going through until you have had a proper go.',
+    ],
+  },
 };
 
 /**
@@ -245,17 +355,27 @@ export function findTrainerProblems(trainer, id = 'trainer') {
     problems.push(`${id}: rewardMoney must be a whole number, never negative`);
   }
 
+  if (trainer.rival !== undefined) {
+    if (!Object.hasOwn(RIVALS, trainer.rival)) problems.push(`${id}: no such rival "${trainer.rival}"`);
+    if (!Number.isInteger(trainer.stage) || trainer.stage < 1) {
+      problems.push(`${id}: a rival meeting needs a stage of 1 or more`);
+    }
+  }
+
   if (!Array.isArray(trainer.party) || trainer.party.length === 0) {
     problems.push(`${id}: needs at least one creature`);
   } else {
     trainer.party.forEach((entry, index) => {
       const where = `${id}.party[${index}]`;
 
-      if (!entry || typeof entry.species !== 'string') {
+      if (entry && entry.rivalStarter === true) {
+        // The rival's starter: the species is decided at battle time.
+        if (trainer.rival === undefined) problems.push(`${where}: rivalStarter outside a rival's meeting`);
+        if (entry.species !== undefined) problems.push(`${where}: rivalStarter must not also name a species`);
+      } else if (!entry || typeof entry.species !== 'string') {
         problems.push(`${where}: needs a species id`);
         return;
-      }
-      if (!CREATURES[entry.species]) {
+      } else if (!CREATURES[entry.species]) {
         problems.push(`${where}: no such species "${entry.species}"`);
       }
       if (!Number.isInteger(entry.level)) {
@@ -274,12 +394,50 @@ export function findTrainerProblems(trainer, id = 'trainer') {
   }
 
   for (const field of ['intro', 'outro']) {
-    if (!Array.isArray(trainer[field]) || trainer[field].length === 0) {
-      problems.push(`${id}: needs ${field} lines`);
-    } else if (trainer[field].some((line) => typeof line !== 'string' || !line.length)) {
-      problems.push(`${id}: every ${field} line must be text`);
+    problems.push(...findLinesProblems(trainer[field], id, field));
+  }
+  if (trainer.victoryLines !== undefined) {
+    problems.push(...findLinesProblems(trainer.victoryLines, id, 'victoryLines'));
+  }
+
+  if (trainer.setFlags !== undefined) {
+    const ok = Array.isArray(trainer.setFlags)
+      && trainer.setFlags.every((flag) => typeof flag === 'string' && flag.length > 0);
+    if (!ok) problems.push(`${id}: setFlags must be a list of flag names`);
+  }
+  if (trainer.requires !== undefined) {
+    const list = Array.isArray(trainer.requires) ? trainer.requires : [trainer.requires];
+    if (list.length === 0 || list.some((flag) => typeof flag !== 'string' || !flag.length)) {
+      problems.push(`${id}: requires must be a condition name or a list of them`);
     }
   }
 
+  return problems;
+}
+
+/**
+ * Trainer lines are ordinary dialogue: either plain lines, or branches that
+ * end in one with no condition — so they always resolve to something.
+ */
+function findLinesProblems(lines, id, field) {
+  const where = `${id}.${field}`;
+  if (!Array.isArray(lines) || lines.length === 0) return [`${id}: needs ${field} lines`];
+
+  if (lines.every((line) => typeof line === 'string')) {
+    return lines.some((line) => !line.length) ? [`${id}: every ${field} line must be text`] : [];
+  }
+
+  const problems = [];
+  lines.forEach((branch, index) => {
+    const pages = branch && typeof branch === 'object' ? branch.pages : null;
+    if (!Array.isArray(pages) || pages.length === 0
+      || pages.some((page) => typeof page !== 'string' || !page.length)) {
+      problems.push(`${where}[${index}]: a branch needs pages of text`);
+    }
+  });
+  const last = lines[lines.length - 1];
+  if (!last || last.when !== undefined || last.unless !== undefined) {
+    problems.push(`${where}: the last branch must have no condition, so something is always said`);
+  }
   return problems;
 }

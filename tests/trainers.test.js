@@ -22,7 +22,9 @@ import { isItemUsableInBattle } from '../src/systems/battle/BattleItems.js';
 import { resolveDialogue } from '../src/systems/DialogueResolver.js';
 import { TileMap } from '../src/systems/TileMap.js';
 import { MAPS } from '../src/data/maps/index.js';
-import { CREATURES } from '../src/data/creatures.js';
+import { CREATURES, STARTER_IDS } from '../src/data/creatures.js';
+import { resolvePartyEntry } from '../src/systems/RivalSystem.js';
+import { isNpcPresent } from '../src/systems/NpcPresence.js';
 import { MOVES } from '../src/data/moves.js';
 import { ITEMS } from '../src/data/items.js';
 import { getBadge } from '../src/data/badges.js';
@@ -31,6 +33,7 @@ import { createSeededRandom } from '../src/utils/rng.js';
 
 const freshState = () => createNewGameState();
 const at = (x, y) => ({ x, y });
+const asList = (value) => (value === undefined ? [] : [].concat(value));
 
 // ---------------------------------------------------------------------------
 // Sight geometry
@@ -287,10 +290,16 @@ describe('trainer data', () => {
 
       it('has a party of real species at sensible levels', () => {
         expect(trainer.party.length).toBeGreaterThan(0);
-        for (const entry of trainer.party) {
-          expect(CREATURES[entry.species], `unknown species "${entry.species}"`).toBeDefined();
-          expect(entry.level).toBeGreaterThanOrEqual(1);
-          expect(entry.level).toBeLessThanOrEqual(PROGRESSION.maxLevel);
+        // A rival's starter slot names no species: it is resolved per player,
+        // so check it against every starter the player could have taken.
+        for (const starter of STARTER_IDS) {
+          const state = { ...createNewGameState(), starter };
+          for (const entry of trainer.party) {
+            const { species } = resolvePartyEntry(entry, trainer, state);
+            expect(CREATURES[species], `unknown species "${species}"`).toBeDefined();
+            expect(entry.level).toBeGreaterThanOrEqual(1);
+            expect(entry.level).toBeLessThanOrEqual(PROGRESSION.maxLevel);
+          }
         }
       });
 
@@ -300,11 +309,13 @@ describe('trainer data', () => {
       });
 
       it('builds a usable party through CreatureFactory', () => {
-        const party = createTrainerParty(id);
+        const state = { ...createNewGameState(), starter: 'drizzle' };
+        const party = createTrainerParty(id, { state });
         expect(party).toHaveLength(trainer.party.length);
 
         party.forEach((creature, index) => {
-          expect(creature.speciesId).toBe(trainer.party[index].species);
+          expect(creature.speciesId)
+            .toBe(resolvePartyEntry(trainer.party[index], trainer, state).species);
           expect(creature.level).toBe(trainer.party[index].level);
           expect(creature.stats.hp).toBeGreaterThan(0);
           expect(creature.currentHp).toBe(creature.stats.hp);
@@ -317,7 +328,8 @@ describe('trainer data', () => {
       });
 
       it('makes a battle that runs without throwing', () => {
-        const config = createTrainerBattleConfig(id, [createCreature('pyrret', 10)]);
+        const state = { ...createNewGameState(), starter: 'pyrret' };
+        const config = createTrainerBattleConfig(id, [createCreature('pyrret', 10)], { state });
         expect(config).not.toBeNull();
         const engine = new BattleEngine({ ...config, random: createSeededRandom(3) });
         expect(() => engine.start()).not.toThrow();
@@ -473,11 +485,18 @@ describe('every trainer NPC on every map', () => {
       });
 
       it('has something to say before and after being beaten', () => {
-        const before = resolveDialogue(npc.dialogue, {});
-        const after = resolveDialogue(npc.dialogue, { [`trainer:${npc.trainer}`]: true });
+        // Whatever it takes for them to be standing there at all.
+        const arrived = Object.fromEntries(asList(npc.presentWhen).map((key) => [key, true]));
+        const before = resolveDialogue(npc.dialogue, arrived);
+        const beaten = { ...arrived, [`trainer:${npc.trainer}`]: true };
+        const after = resolveDialogue(npc.dialogue, beaten);
 
         expect(before.pages.length).toBeGreaterThan(0);
         expect(before.action).toBe(`trainer:${npc.trainer}`);
+
+        // Someone who LEAVES once beaten (Kestrel) is never there to be
+        // spoken to again, so they need no after-lines — only to be gone.
+        if (!isNpcPresent(npc, beaten)) return;
 
         expect(after.pages.length).toBeGreaterThan(0);
         // Beaten trainers must not offer another fight.

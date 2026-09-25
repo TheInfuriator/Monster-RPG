@@ -49,8 +49,11 @@ import { getDisplayName } from '../systems/CreatureFactory.js';
  *   1  Phases 1-9: the in-memory GameState, never actually written anywhere.
  *   2  Phase 10: the save file envelope; settings moved out to their own
  *      storage key; derived caches (stats, maxPp) no longer stored.
+ *   3  Phase 11: `starter` — which starter the player took, which the rival's
+ *      choice depends on. Earlier saves never recorded it; the 2 -> 3
+ *      migration recovers it from the creature met at the Warden's Lodge.
  */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 /** Written into every save so an unrelated JSON value is never loaded as one. */
 export const SAVE_GAME_ID = 'aetheria-chronicles';
@@ -65,6 +68,7 @@ export const SAVE_SOURCES = ['manual', 'autosave'];
  */
 export const PERSISTENT_FIELDS = [
   'playerName',
+  'starter',
   'location',
   'respawn',
   'money',
@@ -130,6 +134,7 @@ export function serializeCreature(creature) {
 export function serializeGameState(state) {
   return {
     playerName: state.playerName,
+    starter: state.starter ?? null,
     location: {
       mapId: state.location.mapId,
       x: state.location.x,

@@ -31,6 +31,7 @@ import { MAPS, STARTING_MAP_ID } from '../data/maps/index.js';
 import { TileMap } from '../systems/TileMap.js';
 import { createBarrierState } from '../systems/PuzzleSystem.js';
 import { getWorldConditions } from '../systems/ProgressionSystem.js';
+import { isNpcPresent } from '../systems/NpcPresence.js';
 import { DIRECTIONS } from '../config/controls.js';
 
 function getMap(mapId) {
@@ -64,9 +65,11 @@ export function isSafeStandingTile(map, x, y, state) {
   // Walls, water, the map's edge — and any gate or hedge that is shut.
   if (!map.isWalkable(x, y)) return false;
 
-  // Every NPC is placed on their own tile when a map loads, wherever they
-  // had walked to before.
-  const npcs = map.definition.npcs || [];
+  // Every NPC who is on this map right now is placed on their own tile when
+  // it loads, wherever they had walked to before. One the story has sent away
+  // (see NpcPresence) leaves their tile free.
+  const conditions = getWorldConditions(state);
+  const npcs = (map.definition.npcs || []).filter((npc) => isNpcPresent(npc, conditions));
   if (npcs.some((npc) => npc.x === x && npc.y === y)) return false;
 
   // An item still on the ground blocks its tile.

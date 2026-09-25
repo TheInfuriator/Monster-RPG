@@ -34,7 +34,7 @@
  */
 
 import { MAPS } from '../data/maps/index.js';
-import { CREATURES, getMovesAtLevel } from '../data/creatures.js';
+import { CREATURES, STARTER_IDS, getMovesAtLevel } from '../data/creatures.js';
 import { MOVES } from '../data/moves.js';
 import { ITEMS } from '../data/items.js';
 import { STATUS_CONDITIONS } from '../data/statuses.js';
@@ -558,6 +558,22 @@ function validatePlayerName(raw, fallback, report) {
   return fallback;
 }
 
+/**
+ * Which starter the player took: null before the Lodge, otherwise one of the
+ * three. Anything else is dropped with a warning — the rival then works it out
+ * from the creature met at the Lodge instead (see RivalSystem).
+ */
+function validateStarter(raw, report) {
+  if (raw === null) return null;
+  if (raw === undefined) {
+    report.warn('No starter recorded in the save; it will be read from the party.');
+    return null;
+  }
+  if (STARTER_IDS.includes(raw)) return raw;
+  report.warn(`Starter ${show(raw)} is not a starter; it will be read from the party.`);
+  return null;
+}
+
 function validateCount(raw, name, fallback, report) {
   if (isFiniteNumber(raw) && raw >= 0) return Math.floor(raw);
   report.warn(`${name} ${show(raw)} is not usable; using ${fallback}.`);
@@ -586,6 +602,7 @@ export function validateGameState(raw) {
   const state = createNewGameState();
 
   state.playerName = validatePlayerName(raw.playerName, state.playerName, report);
+  state.starter = validateStarter(raw.starter, report);
   state.respawn = validateRespawn(raw.respawn, state.respawn, report);
   state.location = validateLocation(raw.location, state.respawn, report);
 

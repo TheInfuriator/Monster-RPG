@@ -171,6 +171,19 @@ export class TileMap {
     return this.encounterConfig?.tableId || null;
   }
 
+  /**
+   * Which table a step on this tile rolls against, or null if it cannot start
+   * an encounter at all. Usually the map's one table; a map with habitats
+   * (`encounters.byTerrain`) can name another for particular tiles.
+   */
+  getEncounterTableAt(x, y) {
+    if (!this.hasEncounters(x, y)) return null;
+    const tile = this.getTile(x, y);
+    const byTerrain = this.encounterConfig?.terrainTables;
+    if (byTerrain && Object.hasOwn(byTerrain, tile.id)) return byTerrain[tile.id];
+    return this.encounterTableId;
+  }
+
   /** True if this map is indoors (no wild encounters, different music later). */
   get isInterior() {
     return Boolean(this.definition.interior);

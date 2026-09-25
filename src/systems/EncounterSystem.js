@@ -55,6 +55,15 @@ export class EncounterSystem {
     this.table = getEncounterTable(this.tableId);
 
     /**
+     * Every table this map's habitats use (`encounters.byTerrain`), looked up
+     * once. A step says which one it is on; see `step()`.
+     */
+    this.tables = this.tableId ? { [this.tableId]: this.table } : {};
+    for (const id of Object.values(settings.terrainTables || {})) {
+      if (!Object.hasOwn(this.tables, id)) this.tables[id] = getEncounterTable(id);
+    }
+
+    /**
      * Steps of guaranteed safety remaining. Set after every encounter so the
      * player is never ambushed on two consecutive tiles, which reads as broken
      * rather than random.
@@ -80,9 +89,11 @@ export class EncounterSystem {
    * player only announces a step once it has finished moving onto a new tile.
    *
    * @param {object|boolean} context
-   *   `{ onEncounterTile, dialogueOpen, transitioning, battleActive,
+   *   `{ onEncounterTile, tableId, dialogueOpen, transitioning, battleActive,
    *      overlayActive, inputLocked }`. A bare boolean is read as
-   *   `onEncounterTile`, which is all a test usually cares about.
+   *   `onEncounterTile`, which is all a test usually cares about. `tableId` is
+   *   the table for the tile stepped on (TileMap.getEncounterTableAt); left
+   *   out, the map's own table is used.
    * @returns {{species: string, level: number} | null} the encounter, or null
    */
   step(context = {}) {
@@ -110,15 +121,19 @@ export class EncounterSystem {
 
     this.forceNext = false;
     this.cooldown = this.cooldownSteps;
-    return this.roll();
+    return this.roll(facts.tableId);
   }
 
   /**
-   * Pick a species and level from the table. Exposed separately so debug tools
-   * and tests can force an encounter without waiting for a lucky roll.
+   * Pick a species and level from a table — the map's own, unless one of its
+   * other habitat tables is named. Exposed separately so debug tools and tests
+   * can force an encounter without waiting for a lucky roll.
+   *
+   * @param {string} [tableId]
    */
-  roll() {
-    const entry = pickWeighted(this.table, this.random);
+  roll(tableId = null) {
+    const named = tableId && Object.hasOwn(this.tables, tableId) ? this.tables[tableId] : null;
+    const entry = pickWeighted(named || this.table, this.random);
     if (!entry) return null;
 
     return {
@@ -154,6 +169,7 @@ function normaliseConfig(config) {
       tableId: config.tableId || null,
       rate: config.rate ?? ENCOUNTERS.chancePerStep,
       cooldownSteps: config.cooldownSteps ?? ENCOUNTERS.cooldownSteps,
+      terrainTables: config.terrainTables || null,
     };
   }
 

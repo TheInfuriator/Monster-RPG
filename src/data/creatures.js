@@ -550,6 +550,142 @@ export const CREATURES = {
       { level: 38, move: 'shadowSneak' },
     ],
   },
+
+  // =========================================================================
+  // ROUTE 2 — THE THORNWAY (Phase 11)
+  // =========================================================================
+  // Three new families and one rare find. Each fills a gap the first 27 left:
+  // the first real Fighting family, the first Fairy anything, a Ground line
+  // that grows into Steel, and a dual type nothing else has. Their stat totals
+  // sit with the other route families (about 270 first stage, 400 evolved).
+
+  jabbit: {
+    id: 'jabbit', number: 28, name: 'Jabbit',
+    description: 'A long-eared hare that boxes with its hind feet. Bramble crews find their fence posts dented at dawn.',
+    types: ['fighting'],
+    baseStats: { hp: 44, attack: 62, defense: 38, spAttack: 28, spDefense: 36, speed: 64 },
+    growthRate: 'medium', baseExp: 58, catchRate: 170,
+    evolution: { method: 'level', level: 24, to: 'brawnhare' },
+    appearance: { body: 'quadruped', main: 0xc98a5a, dark: 0x8f5d38 },
+    learnset: [
+      { level: 1, move: 'tackle' },
+      { level: 1, move: 'hopKick' },
+      { level: 8, move: 'quickJab' },
+      { level: 13, move: 'cowerCry' },
+      { level: 18, move: 'flurryJabs' },
+      { level: 24, move: 'closeJab' },
+      { level: 31, move: 'thornGuard' },
+    ],
+  },
+  brawnhare: {
+    id: 'brawnhare', number: 29, name: 'Brawnhare',
+    description: 'It stands its ground by standing on one leg. Nobody on the Thornway has yet seen it lose its balance.',
+    types: ['fighting'],
+    baseStats: { hp: 64, attack: 92, defense: 58, spAttack: 40, spDefense: 54, speed: 92 },
+    growthRate: 'medium', baseExp: 150, catchRate: 75,
+    evolution: null,
+    appearance: { body: 'quadruped', main: 0xa8603c, dark: 0x6f3d24 },
+    learnset: [
+      { level: 1, move: 'hopKick' },
+      { level: 1, move: 'quickJab' },
+      { level: 1, move: 'flurryJabs' },
+      { level: 24, move: 'closeJab' },
+      { level: 30, move: 'thornGuard' },
+      { level: 36, move: 'recklessCharge' },
+      { level: 43, move: 'crunchBite' },
+    ],
+  },
+
+  glimmote: {
+    id: 'glimmote', number: 30, name: 'Glimmote',
+    description: 'A mote of pale light that drifts over the thickets at dusk. It hums when it is pleased with itself.',
+    types: ['fairy'],
+    baseStats: { hp: 40, attack: 28, defense: 38, spAttack: 58, spDefense: 56, speed: 50 },
+    growthRate: 'medium', baseExp: 60, catchRate: 150,
+    evolution: { method: 'level', level: 22, to: 'brambelle' },
+    appearance: { body: 'wisp' },
+    learnset: [
+      { level: 1, move: 'glimmer' },
+      { level: 1, move: 'cowerCry' },
+      { level: 11, move: 'lullHum' },
+      { level: 16, move: 'sapDrain' },
+      { level: 22, move: 'moonpetal' },
+      { level: 29, move: 'rootheal' },
+    ],
+  },
+  brambelle: {
+    id: 'brambelle', number: 31, name: 'Brambelle',
+    description: 'Where a Brambelle settles, brambles flower out of season. The Thornway crews cut around those patches.',
+    types: ['fairy', 'grass'],
+    baseStats: { hp: 62, attack: 44, defense: 58, spAttack: 84, spDefense: 82, speed: 70 },
+    growthRate: 'medium', baseExp: 148, catchRate: 70,
+    evolution: null,
+    appearance: { body: 'plant', main: 0xd98bb8, dark: 0x5d9a4e },
+    learnset: [
+      { level: 1, move: 'glimmer' },
+      { level: 1, move: 'sapDrain' },
+      { level: 1, move: 'lullHum' },
+      { level: 22, move: 'moonpetal' },
+      { level: 28, move: 'rootheal' },
+      { level: 35, move: 'brambleSlam' },
+    ],
+  },
+
+  delvit: {
+    id: 'delvit', number: 32, name: 'Delvit',
+    description: 'A blunt-nosed burrower that surfaces in scree slides. It hoards shiny stones and will not share them.',
+    types: ['ground'],
+    baseStats: { hp: 50, attack: 58, defense: 56, spAttack: 30, spDefense: 36, speed: 40 },
+    growthRate: 'medium', baseExp: 60, catchRate: 160,
+    evolution: { method: 'level', level: 26, to: 'ironvole' },
+    appearance: { body: 'quadruped' },
+    learnset: [
+      { level: 1, move: 'scratch' },
+      { level: 1, move: 'mudSlap' },
+      { level: 8, move: 'rockToss' },
+      { level: 13, move: 'burrowStrike' },
+      { level: 19, move: 'hardenShell' },
+      { level: 26, move: 'metalClaw' },
+      { level: 33, move: 'quakeStomp' },
+    ],
+  },
+  ironvole: {
+    id: 'ironvole', number: 33, name: 'Ironvole',
+    description: 'It plates its claws with iron it grinds out of the rock. Tunnels an Ironvole digs never fall in.',
+    types: ['ground', 'steel'],
+    baseStats: { hp: 70, attack: 88, defense: 92, spAttack: 40, spDefense: 56, speed: 54 },
+    growthRate: 'medium', baseExp: 152, catchRate: 70,
+    evolution: null,
+    appearance: { body: 'rock', main: 0x8e8a86, dark: 0x5e5a56 },
+    learnset: [
+      { level: 1, move: 'mudSlap' },
+      { level: 1, move: 'rockToss' },
+      { level: 1, move: 'burrowStrike' },
+      { level: 26, move: 'metalClaw' },
+      { level: 32, move: 'quakeStomp' },
+      { level: 38, move: 'ironSweep' },
+      { level: 45, move: 'stoneHammer' },
+    ],
+  },
+
+  burrzap: {
+    id: 'burrzap', number: 34, name: 'Burrzap',
+    description: 'A burr that stores the static of everything that brushes past it. Rare, and best not picked up.',
+    types: ['electric', 'grass'],
+    baseStats: { hp: 50, attack: 40, defense: 60, spAttack: 72, spDefense: 58, speed: 62 },
+    growthRate: 'medium', baseExp: 90, catchRate: 90,
+    evolution: null,
+    appearance: { body: 'plant', main: 0xd6c24a, dark: 0x5d7a36 },
+    learnset: [
+      { level: 1, move: 'spark' },
+      { level: 1, move: 'leafDart' },
+      { level: 10, move: 'staticWeb' },
+      { level: 16, move: 'sapDrain' },
+      { level: 22, move: 'shockJolt' },
+      { level: 30, move: 'brambleSlam' },
+      { level: 38, move: 'thunderLance' },
+    ],
+  },
 };
 
 /** Every species id. */
@@ -560,6 +696,12 @@ export const STARTER_IDS = ['pyrret', 'drizzle', 'sproutle'];
 
 /** The level a starter is handed over at. */
 export const STARTER_LEVEL = 5;
+
+/**
+ * Where a starter is recorded as met. The Lodge's chooser writes it, and the
+ * save migration reads it to find which starter an older save's player took.
+ */
+export const STARTER_MET_AT = "Warden's Lodge";
 
 /**
  * Look up a species. Returns null and warns for an unknown id rather than

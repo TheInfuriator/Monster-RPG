@@ -126,16 +126,18 @@ export function readSlot(slot, { storage = getStorage() } = {}) {
   }
 
   const migrated = migration.status === 'migrated';
-  // An older save never had a summary, so its absence is expected, not damage.
-  const result = validateSaveFile(migration.file, { expectMetadata: !migrated });
+  // A version 1 save never had a summary, so its absence is expected, not
+  // damage. A version 2 save did, and keeps it.
+  const hadSummary = migration.file.metadata !== null && migration.file.metadata !== undefined;
+  const result = validateSaveFile(migration.file, { expectMetadata: !migrated || hadSummary });
   if (!result.ok) {
     return { ...base, status: 'corrupt', message: SLOT_MESSAGES.corrupt, errors: result.errors, warnings: result.warnings };
   }
 
-  // A migrated save has no summary of its own, so one is built from its data.
-  // It is labelled with the slot it was found in, since that is where it
-  // lives, and its time is unknown — so it sorts as the oldest.
-  const metadata = migrated
+  // A version 1 save has no summary of its own, so one is built from its
+  // data. It is labelled with the slot it was found in, since that is where
+  // it lives, and its time is unknown — so it sorts as the oldest.
+  const metadata = migrated && !hadSummary
     ? buildSaveMetadata(result.state, { source: slot, savedAt: 0 })
     : result.metadata;
 

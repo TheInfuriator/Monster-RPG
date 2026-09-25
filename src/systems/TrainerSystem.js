@@ -14,6 +14,7 @@
  */
 
 import { createCreature } from './CreatureFactory.js';
+import { resolvePartyEntry } from './RivalSystem.js';
 import { getTrainer, getTrainerDisplayName } from '../data/trainers.js';
 import { gameState } from '../core/GameState.js';
 
@@ -26,18 +27,24 @@ import { gameState } from '../core/GameState.js';
  * with the ordinary learnset rules, so a trainer's Aether is exactly as real as
  * a wild one.
  *
+ * A rival's starter slot (`{ rivalStarter: true, level }`) is resolved here,
+ * from the player's own starter — see RivalSystem. Everything after that is
+ * the same as for anyone else.
+ *
  * @param {string} trainerId
+ * @param {object} [options]
+ * @param {object} [options.state] GameState, for the player's starter
  * @returns {object[]} creatures in the declared order; empty if it cannot build
  */
-export function createTrainerParty(trainerId) {
+export function createTrainerParty(trainerId, { state = gameState } = {}) {
   const trainer = getTrainer(trainerId);
   if (!trainer) return [];
 
   const party = trainer.party
-    .map((entry) => createCreature(entry.species, entry.level, {
-      nickname: entry.nickname ?? null,
-      metAt: null,
-    }))
+    .map((entry) => resolvePartyEntry(entry, trainer, state))
+    .map((entry) => (entry.species
+      ? createCreature(entry.species, entry.level, { nickname: entry.nickname, metAt: null })
+      : null))
     .filter(Boolean);
 
   if (party.length !== trainer.party.length) {
@@ -59,9 +66,11 @@ export function createTrainerParty(trainerId) {
  *
  * @param {string} trainerId
  * @param {object[]} playerParty the live party from GameState
+ * @param {object} [options]
+ * @param {object} [options.state] GameState, for a rival's starter slot
  * @returns {object|null} an engine config, or null if it cannot be built
  */
-export function createTrainerBattleConfig(trainerId, playerParty) {
+export function createTrainerBattleConfig(trainerId, playerParty, { state = gameState } = {}) {
   const trainer = getTrainer(trainerId);
   if (!trainer) return null;
 
@@ -70,7 +79,7 @@ export function createTrainerBattleConfig(trainerId, playerParty) {
     return null;
   }
 
-  const opponentParty = createTrainerParty(trainerId);
+  const opponentParty = createTrainerParty(trainerId, { state });
   if (opponentParty.length === 0) return null;
 
   return {
@@ -115,6 +124,26 @@ export function markTrainerDefeated(trainerId, state = gameState) {
 
 export function isTrainerDefeated(trainerId, state = gameState) {
   return Boolean(getDefeatedMap(state)[trainerId]);
+}
+
+/**
+ * Everything a WIN over a trainer changes, in one place: they are beaten, and
+ * any story flags they carry (`setFlags`, e.g. Kestrel's 'thornwayOpen') are
+ * set. Called once the battle has decided it; a loss never gets here.
+ *
+ * @returns {{ recorded: boolean, flagsSet: string[] }}
+ */
+export function recordTrainerVictory(trainerId, state = gameState) {
+  const trainer = getTrainer(trainerId);
+  if (!trainer) return { recorded: false, flagsSet: [] };
+
+  markTrainerDefeated(trainer.id, state);
+
+  const flagsSet = [...(trainer.setFlags || [])];
+  if (!state.flags) state.flags = {};
+  for (const flag of flagsSet) state.flags[flag] = true;
+
+  return { recorded: true, flagsSet };
 }
 
 /** Undo a defeat. Debug only — nothing in the game calls it. */

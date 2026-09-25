@@ -29,6 +29,12 @@ export function createNewGameState() {
   return {
     // --- Player identity ---
     playerName: 'Warden',
+    /**
+     * Which starter the player took at the Warden's Lodge, as its species id
+     * ('pyrret', 'drizzle' or 'sproutle'), or null before they have one. The
+     * rival takes the starter strong against it (see src/data/rivals.js).
+     */
+    starter: null,
 
     // --- Where the player is ---
     location: {

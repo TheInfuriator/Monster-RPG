@@ -45,7 +45,7 @@ export default [
     // plus Node globals for reading fixture files.
     files: ['tests/**/*.js'],
     languageOptions: {
-      globals: { process: 'readonly' },
+      globals: { process: 'readonly', URL: 'readonly', structuredClone: 'readonly' },
     },
   },
   {

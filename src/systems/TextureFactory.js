@@ -559,6 +559,147 @@ const TILE_GENERATORS = {
     return canvas;
   },
 
+  // ---- Route 2, the Thornway (Phase 11) -----------------------------------
+
+  // Loose scree: encounter terrain, so it must be busy and obvious — a dark
+  // gravel bed crowded with stones, nothing like the smooth road.
+  'tile-scree': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x7d7266);
+    speckle(ctx, 0x5f564c, 26, 20001, 3);
+    const random = createSeededRandom(20002);
+    for (let i = 0; i < 9; i += 1) {
+      const x = 1 + Math.floor(random() * (TILE_SIZE - 9));
+      const y = 1 + Math.floor(random() * (TILE_SIZE - 7));
+      const w = 5 + Math.floor(random() * 4);
+      rect(ctx, x, y + 1, w, 4, 0x9f9484);     // stone
+      rect(ctx, x + 1, y, w - 2, 2, 0xbdb3a3); // lit top
+      rect(ctx, x + 1, y + 5, w - 1, 1, 0x4d453d); // shadow
+    }
+    return canvas;
+  },
+
+  'tile-rock-face': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x6c6256);
+    // Stepped strata with a lit lip on each, and a couple of cracks.
+    for (const y of [2, 13, 24]) {
+      rect(ctx, 0, y, TILE_SIZE, 3, 0x877c6d);
+      rect(ctx, 0, y + 3, TILE_SIZE, 1, 0x4a4239);
+    }
+    rect(ctx, 9, 5, 2, 8, 0x4a4239);
+    rect(ctx, 22, 16, 2, 8, 0x4a4239);
+    speckle(ctx, 0x5a5147, 10, 20011);
+    return canvas;
+  },
+
+  'tile-boulder': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x8a7f71);
+    speckle(ctx, 0x6c6256, 10, 20021);
+    rect(ctx, 5, 8, 22, 20, 0x857b6f);   // body
+    rect(ctx, 3, 12, 26, 12, 0x857b6f);
+    rect(ctx, 8, 5, 14, 5, 0x857b6f);
+    rect(ctx, 8, 7, 9, 5, 0xa89e91);     // lit face
+    rect(ctx, 17, 18, 10, 8, 0x5f564c);  // shade
+    rect(ctx, 5, 27, 22, 2, 0x4d453d);   // ground shadow
+    return canvas;
+  },
+
+  // Wild bramble: the Thornway's walls. Rougher and darker than a trimmed
+  // Thistlewood hedge, with thorns catching the light.
+  'tile-bramble': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x2f4724);
+    speckle(ctx, 0x40602f, 30, 20031, 4);
+    ctx.strokeStyle = hex(0x5e4128);
+    ctx.lineWidth = 2;
+    for (const [x1, y1, x2, y2] of [[0, 24, 32, 6], [0, 8, 30, 30], [10, 0, 22, 32]]) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+    speckle(ctx, 0xd9cfa8, 9, 20032, 1); // thorns
+    speckle(ctx, 0xc97fa6, 3, 20033, 2); // a few out-of-season flowers
+    return canvas;
+  },
+
+  'tile-cracked-earth': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xa58b66);
+    speckle(ctx, 0xb89e78, 10, 20041);
+    ctx.strokeStyle = hex(0x6b5638);
+    ctx.lineWidth = 1;
+    for (const path of [[[2, 6], [11, 10], [14, 20], [9, 30]], [[11, 10], [24, 6], [30, 14]],
+      [[14, 20], [26, 23], [31, 30]], [[24, 6], [22, 0]]]) {
+      ctx.beginPath();
+      ctx.moveTo(path[0][0] + 0.5, path[0][1] + 0.5);
+      for (const [x, y] of path.slice(1)) ctx.lineTo(x + 0.5, y + 0.5);
+      ctx.stroke();
+    }
+    return canvas;
+  },
+
+  // A pale stake with a grey tag on it, stamped with a hollow weathervane.
+  // Somebody surveyed this spring before it ran dry.
+  'tile-survey-stake': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xa58b66);
+    speckle(ctx, 0x8c7453, 10, 20051);
+    rect(ctx, 14, 6, 4, 24, 0xd8cdb4);   // stake
+    rect(ctx, 17, 6, 1, 24, 0xa99e86);
+    rect(ctx, 14, 28, 4, 2, 0x5b4630);   // driven in
+    rect(ctx, 8, 9, 16, 9, 0x6f7680);    // grey tag
+    ctx.strokeStyle = hex(0xe3e6ea);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(16, 13.5, 3, 0, Math.PI * 2); // the hollow vane
+    ctx.moveTo(10, 13.5);
+    ctx.lineTo(22, 13.5);
+    ctx.stroke();
+    return canvas;
+  },
+
+  'tile-cave-mouth': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x6c6256);
+    rect(ctx, 0, 3, TILE_SIZE, 2, 0x877c6d);
+    // The dark, with a faint cold mist lying in it.
+    rect(ctx, 3, 9, 26, 23, 0x141018);
+    rect(ctx, 6, 6, 20, 4, 0x141018);
+    rect(ctx, 5, 24, 22, 2, 0x2c3140);
+    rect(ctx, 9, 20, 14, 1, 0x2c3140);
+    return canvas;
+  },
+
+  // The Wardens' cordon: posts, a sagging rope and red pennants. Drawn over
+  // scree, which is what lies under it on the slope.
+  'tile-cordon': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x7d7266);
+    speckle(ctx, 0x5f564c, 16, 20061, 3);
+    rect(ctx, 2, 8, 4, 22, 0x6f5637);
+    rect(ctx, 26, 8, 4, 22, 0x6f5637);
+    ctx.strokeStyle = hex(0xd9c79a);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 12);
+    ctx.quadraticCurveTo(16, 20, 32, 12);
+    ctx.stroke();
+    for (const x of [9, 16, 23]) {
+      const y = x === 16 ? 17 : 15;
+      ctx.fillStyle = hex(0xd8423a);
+      ctx.beginPath();
+      ctx.moveTo(x - 3, y);
+      ctx.lineTo(x + 3, y);
+      ctx.lineTo(x, y + 6);
+      ctx.closePath();
+      ctx.fill();
+    }
+    return canvas;
+  },
+
   // A deliberately hideous magenta/black check, so an unknown map character is
   // impossible to miss on screen.
   'tile-void': () => {

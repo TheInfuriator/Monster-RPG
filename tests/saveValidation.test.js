@@ -562,3 +562,34 @@ describe('a refused save changes nothing', () => {
     expect(raw).toEqual(copy);
   });
 });
+
+describe('the player\'s starter (Phase 11)', () => {
+  it('keeps a valid starter', () => {
+    const raw = damaged();
+    const result = validateGameState(raw);
+    expect(result.warnings).toEqual([]);
+    expect(result.state.starter).toBe('pyrret');
+  });
+
+  it('accepts "unknown" without complaint', () => {
+    const raw = damaged();
+    raw.starter = null;
+    const result = validateGameState(raw);
+    expect(result.warnings).toEqual([]);
+    expect(result.state.starter).toBeNull();
+  });
+
+  it('repairs a missing starter to "unknown", to be read from the party', () => {
+    const raw = damaged();
+    delete raw.starter;
+    expect(expectRepaired(raw, /No starter recorded/).starter).toBeNull();
+  });
+
+  it('repairs something that is not a starter', () => {
+    for (const junk of ['flittle', 'toString', 7, {}, '']) {
+      const raw = damaged();
+      raw.starter = junk;
+      expect(expectRepaired(raw, /is not a starter/).starter).toBeNull();
+    }
+  });
+});

@@ -17,6 +17,7 @@ import {
 } from '../src/save/RestorePosition.js';
 import { MAPS, STARTING_MAP_ID } from '../src/data/maps/index.js';
 import { awardBadge } from '../src/systems/BadgeSystem.js';
+import { recordTrainerVictory } from '../src/systems/TrainerSystem.js';
 
 function stateAt(mapId, x, y, facing = 'left') {
   const state = createNewGameState();
@@ -127,6 +128,42 @@ describe('the world as it will be rebuilt', () => {
         }
       }
     });
+  });
+});
+
+describe('the Thornway gate and the rival in front of it (Phase 11)', () => {
+  const KESTREL = MAPS.thistlewood.npcs.find((npc) => npc.trainer === 'kestrelThornway');
+  const GATE = [26, 3];
+
+  it('lets a player stand on Kestrel\'s tile before Kestrel has turned up', () => {
+    const state = stateAt('thistlewood', KESTREL.x, KESTREL.y);
+    expect(resolveRestorePosition(state).source).toBe('saved');
+  });
+
+  it('moves a player off it while Kestrel is waiting there', () => {
+    const state = stateAt('thistlewood', KESTREL.x, KESTREL.y);
+    awardBadge('verdantSigil', state);
+    const result = resolveRestorePosition(state);
+    expect(result.source).toBe('spawn');
+    expect([result.x, result.y]).not.toEqual([KESTREL.x, KESTREL.y]);
+  });
+
+  it('lets them stand there again once Kestrel has gone', () => {
+    const state = stateAt('thistlewood', KESTREL.x, KESTREL.y);
+    awardBadge('verdantSigil', state);
+    recordTrainerVictory('kestrelThornway', state);
+    expect(resolveRestorePosition(state).source).toBe('saved');
+  });
+
+  it('refuses the gate tile while the gate is shut, allows it once it is open', () => {
+    const shut = stateAt('thistlewood', ...GATE);
+    awardBadge('verdantSigil', shut);
+    expect(resolveRestorePosition(shut).source).not.toBe('saved');
+
+    const open = stateAt('thistlewood', ...GATE);
+    awardBadge('verdantSigil', open);
+    recordTrainerVictory('kestrelThornway', open);
+    expect(resolveRestorePosition(open).source).toBe('saved');
   });
 });
 
