@@ -137,6 +137,8 @@ export class WorldScene extends Phaser.Scene {
     this.autosavePending = null;
     /** The small "Autosaved" note in the corner, or null. */
     this.autosaveNote = null;
+    /** Where a blackout is taking the player, while its message is read. */
+    this.blackoutRecovery = null;
   }
 
   create() {

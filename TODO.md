@@ -2,12 +2,14 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 9 — Thistlewood + First Gym** ✅ complete
-Next phase: **Phase 10 — Save/Load + Persistence**
+Current phase: **Phase 10 — Save/Load + Persistence + Settings** ✅ complete
+Next phase: **Phase 11 — World Expansion I: the Rival + Route 2** (recommended)
 
 **The first-badge vertical slice is playable end to end:** New Game → starter →
 Route 1 → its trainers → the north gate → Thistlewood → shop and Mender →
 the Verdant Hall → its puzzle → its Gardeners → Leader Fern → the Verdant Sigil.
+**And it survives closing the tab:** save anywhere quiet, autosave as you go,
+Continue exactly where you were.
 
 ---
 
@@ -217,23 +219,92 @@ the Verdant Hall → its puzzle → its Gardeners → Leader Fern → the Verdan
   reliability mattered more than sophistication for a first Hall.
 - **A solo Water starter cannot beat this Hall.** That is the designed shape of a
   type-themed Gym, not an oversight — see the balance note below.
-- **Puzzle state is per-session** until Phase 10 gives it a save file. It is
-  plain serialisable data and already lives on `GameState`.
+- ~~**Puzzle state is per-session** until Phase 10 gives it a save file.~~ —
+  saved and restored since Phase 10, hedge for hedge. ✅
 
-## Phase 10 — Polish
-- [ ] Save/load (LocalStorage, versioned), autosave
-- [ ] Main menu (Party/Inventory/Trainer/Sigils/Save/Settings)
-- [ ] Creature index (seen/captured)
-- [ ] Settings (volumes, text speed)
-- [ ] Audio system with silent fallbacks
-- [ ] Battle animations and transitions
-- [ ] Debug tools panel (teleport, give, heal, badges, reset)
+## Phase 10 — Save/Load + Persistence + Settings ✅
+- [x] **Audit first:** every piece of state sorted into canonical (saved),
+      derived (rebuilt on load), preferences (own key) and never-saved — see
+      GAME_DESIGN.md section 21
+- [x] `src/save/` — one owner of persistence: `SaveManager` over a schema,
+      a validator, a migration pipeline, a position resolver and a storage
+      adapter. Nothing else touches `localStorage`
+- [x] Versioned save file (`version: 2`) with metadata the title screen can
+      show without loading anything; deterministic, sorted, plain JSON
+- [x] Whitelist serialiser: fields picked by name, so no Phaser object, timer,
+      dialogue or battle state can ever reach a save
+- [x] Derived caches (stats, max PP) left out and rebuilt — one source of truth
+- [x] **Two slots:** Manual and Autosave, same format, judged independently
+- [x] Atomic writes: built, proved to load, then written in one `setItem`; a
+      refused or full write leaves the previous save exactly as it was
+- [x] Pause menu **Save** with an overwrite confirmation, offered only when the
+      world is in a safe state
+- [x] **Autosave** at stable checkpoints — map arrival, battle fully over,
+      healing, story progress, shop, starter, item — never mid-battle,
+      mid-dialogue, mid-step or mid-approach; one save per checkpoint chain;
+      a quiet corner note
+- [x] **Title Continue:** disabled without a valid save; one save loads; two
+      open a chooser with place, lead, Sigils, catches, play time and save
+      time, newest highlighted
+- [x] Load pipeline: read → parse → migrate → validate → fresh state → safe tile
+      → only then the live game; a failure changes nothing and says why
+- [x] Restore order: switch positions → gates and hedges → NPCs → player. The
+      saved tile is checked against shut hedges, NPC home tiles and ground items,
+      with a fallback chain (map spawn → recovery point → start)
+- [x] Creature identity: ids kept forever; loaded ids reserved so new ones can
+      never collide; duplicates repaired, never merged
+- [x] Migration pipeline (v1 → v2) with legacy fixtures for Phases 2, 3, 6-9
+- [x] Newer-version saves refused with the exact player-facing message, never
+      migrated down, never overwritten by the autosave
+- [x] Corruption handling: refuse vs repair, every repair reported, damaged
+      saves never deleted, named on the title screen
+- [x] New Game confirmation when anything is saved; it deletes nothing
+- [x] **Settings:** text speed and master volume (0-100) in a global
+      preferences key, one panel for the title and the pause menu, applied at
+      once, surviving New Game; volume drives Phaser's sound manager
+- [x] Play time is counted at last (`PlayClock`)
+- [x] `debug.saves/save/dumpSave/clearSave/injectLegacySave/corruptSave/
+      saveVersion/settings`
+- [x] 2460 automated tests; browser-verified with **true page reloads** across
+      manual save, autosave, the chooser, damaged and newer saves, legacy saves,
+      mid-puzzle, after-Sigil, party/storage, Index, recovery point through a
+      real blackout, settings and New Game safety
 
-## Phase 11 — Expansion
-- [ ] Route 2, Mistvault Cavern, Tidewatch Harbor
+### Phase 10 deferrals
+- **No battle saves.** Closing the page mid-battle returns you to the last
+  save, before the battle. Saving a battle would mean serialising the battle
+  engine's internals (stat stages, sleep counters, whose turn it is) — a second
+  format to keep correct for no real gain in a game whose battles last a minute.
+- **No saving mid-dialogue or mid-cutscene.** Save is simply not offered.
+- **No player naming.** The name field is saved and validated; there is still
+  no text-entry screen, same as nicknames (Phase 6 deferral).
+- **No storage-management screen** (export, import, delete a slot). The debug
+  tools can do all three; the game itself never deletes a save.
+- **No audio.** The master volume setting is stored, shown, and pushed to
+  Phaser's sound manager — there is simply nothing to play yet. Per-channel
+  music/effects volume waits for there to be music and effects.
+- **A trainer who walked over to you is back on their own tile after a load**,
+  exactly as after leaving the map (Phase 8 deferral) — and the load checks
+  that tile so the player is never restored inside them.
+- **Settings from a version 1 save are dropped**, not imported: preferences
+  belong to the player now, and no version 1 save was ever written to storage.
+
+## Phase 11 — World Expansion I (recommended next)
+- [ ] The rival, Kestrel: first encounter and battle, reacting to your starter
+- [ ] Route 2 behind Thistlewood's Thornway gate (`thornwayOpen` is the seam)
+- [ ] New wild Aethers for Route 2, and its trainers
+
+## Later — Expansion
+- [ ] Mistvault Cavern, Tidewatch Harbor
 - [ ] Beacon Halls 2 & 3, rival encounters 3+
 - [ ] Hollow Vane story arc
 - [ ] Champion gauntlet, 30+ creatures, 50+ moves
+
+## Later — Polish
+- [ ] Audio system with silent fallbacks (the volume setting is already wired)
+- [ ] Battle animations and transitions
+- [ ] Debug tools panel (teleport, give, heal, badges, reset)
+- [ ] A Trainer card screen in the menu
 
 ---
 
@@ -367,11 +438,11 @@ Hall asks for a team rather than a grind.
   level-up flow, which belongs with battles in Phase 4.
 
 **Still outstanding:**
-- Audio is not yet implemented; `AudioSystem` arrives in Phase 10 with silent fallbacks.
+- Audio is not yet implemented. The master volume setting already drives
+  Phaser's sound manager, so sounds added later start at the player's volume.
 - Placeholder art is procedurally generated. Real sprites can be dropped in later by
   changing only `src/systems/TextureFactory.js` + the asset keys in `src/config/assets.js`.
-- Saving is Phase 10, so progress is lost on reload. Story flags, the bag and
-  position are all already stored on GameState, ready to be serialised.
+- ~~Saving is Phase 10, so progress is lost on reload.~~ — done in Phase 10. ✅
 
 ## Known Issues
 - None currently open. Bugs found during Phases 1-2 are listed in CHANGELOG.md,

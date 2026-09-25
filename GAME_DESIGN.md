@@ -609,8 +609,8 @@ defaulting to wild battles only. Nothing checks an NPC, a map or a scene name.
 Six travel with you. A capture past that goes to **storage**, automatically,
 with a message saying so — the player is never asked to throw one away
 mid-battle, and nothing is ever lost or overwritten. Storage is a plain array on
-GameState, so it serialises with the save. It is a *summary* in Phase 6: you can
-see what is waiting, not move it back.
+GameState, and it is saved and loaded in order (Phase 10). It is a *summary*:
+you can see what is waiting, not move it back.
 
 Reordering is a swap: pick one up with Shift, choose a slot, Confirm. The first
 slot is the creature that goes out first, so the order matters immediately.
@@ -635,7 +635,9 @@ index directly. Unknown species ids are refused with a warning.
 
 ### The menu
 
-Cancel opens it over a paused overworld. Party, Index, Storage, Close.
+Cancel opens it over a paused overworld. Party, Bag, Index, Sigils, Storage,
+Save, Settings, Close (Bag arrived in Phase 7, Sigils in Phase 9, Save and
+Settings in Phase 10).
 
 | Screen | Keys |
 |--------|------|
@@ -1041,8 +1043,8 @@ reachable from each one, and that Fern is reachable from at least one. The reset
 root in the porch is a convenience for a tangled player, not a rescue.
 
 **Persistence.** Switch positions are saved per map on `GameState`, so leaving
-and re-entering the Hall — or blacking out inside it — finds the hedges exactly
-as they were left. Winning the Sigil sets `openWhen: 'badge:verdantSigil'` on
+and re-entering the Hall — or blacking out inside it, or closing the game and
+coming back (Phase 10) — finds the hedges exactly as they were left. Winning the Sigil sets `openWhen: 'badge:verdantSigil'` on
 all three, and they stand open for good.
 
 ### Precedence — what one step can trigger
@@ -1165,4 +1167,231 @@ debug.resetPuzzle()            // put this map back how it was found
 debug.puzzleState('verdantHall')
 debug.sigils()                 // every Sigil and whether it is earned
 debug.sigil('verdantSigil')    // award one; pass false to take it back
+```
+
+---
+
+## 21. Saving, loading and settings (Phase 10)
+
+A game you can close is a game you can play. Phase 10 makes the first-badge
+slice survive a closed tab: everything the player has done comes back exactly,
+from any safe moment, and nothing about the save system can lose a creature,
+duplicate an item or strand the player in a wall.
+
+### What is saved — every piece of state, sorted
+
+Before any code was written, every piece of state in the game was put in one of
+four boxes. The save system is simply that table, enforced.
+
+| Kind | What | Where it lives |
+|------|------|----------------|
+| **Canonical — saved** | player name; map, tile and facing; recovery point; coins; party and storage (each creature's id, species, nickname, level, experience, current HP, moves and their PP, status, where it was met); the bag; Sigils; story flags; beaten trainers; switch positions per map; seen and caught; play time; start date | `gameState`, written by `src/save/SaveSchema.js` |
+| **Derived — rebuilt on load** | a creature's stats; each move's maximum PP; which gates and hedges are shut; where NPCs stand; whether a ground item is still there; the place name shown on a save slot | worked out from the canonical state, so it can never disagree with it |
+| **Preferences — their own key** | text speed, master volume | `src/core/Settings.js`, stored apart from every save |
+| **Never saved** | anything on screen: sprites, tweens, timers, keys, an open dialogue box, a menu cursor, a battle in progress (stat stages, sleep counters), a trainer's "!" or the tile they walked to, the encounter cooldown | the running scenes, and thrown away |
+
+Leaving the derived state out is deliberate. A save that stored both a level
+and the stats for that level could hold stats that disagree with the level —
+after a balance change, after a hand edit, after a bug. Storing only the level
+means there is one source of truth, and a balance change reaches old saves
+without a migration.
+
+### The save file
+
+```js
+{
+  game: 'aetheria-chronicles',     // never mistake some other JSON for a save
+  version: 2,                      // the shape of everything below
+  metadata: {                      // what the Continue screen shows
+    source: 'manual', savedAt, playerName, mapId, locationName,
+    badgeCount, partySize, caughtCount, playTimeMs, lead: { speciesId, name, level },
+  },
+  gameState: { ...the canonical state above... },
+}
+```
+
+The serialiser picks every field **by name**; it never copies an object
+wholesale. That is what makes "no Phaser object is ever saved" a guarantee
+rather than a hope. Keys are sorted, so the same facts always produce the same
+text. A save with eight creatures, a bag, a Sigil and a half-solved Hall is
+about 3 KB and takes well under a millisecond to write or read.
+
+| Storage key | Holds |
+|-------------|-------|
+| `aetheria-chronicles/save/manual` | the Manual Save |
+| `aetheria-chronicles/save/autosave` | the Autosave |
+| `aetheria-chronicles/settings` | text speed and volume |
+
+Nothing else in the game touches `localStorage` — `src/save/SaveStorage.js` is
+the only file that does. If the browser refuses storage outright (a privacy
+mode, a page opened from disk), the game still runs, keeps saves in memory, and
+the title screen says progress will last only until the page closes.
+
+### Two slots
+
+- **Manual** — written only when the player chooses Save in the pause menu.
+- **Autosave** — written by the game at safe moments. It never touches the
+  manual slot, and a manual save never touches it.
+
+Each slot is judged on its own — *empty*, *valid*, *corrupt* or *incompatible*
+(from a newer version) — so a damaged manual save never hides a good autosave.
+
+**A save is all or nothing.** The whole file is built, turned into text, and
+checked by parsing it back and validating it exactly as a load would. Only
+then is it written, in one `setItem` call — which either replaces the old value
+completely or throws (storage full, storage refused) and leaves it exactly
+where it was. The old save is never removed first. A state that would not load
+is never written at all.
+
+### When the game autosaves — and when it never does
+
+A checkpoint *asks* for an autosave; nothing saves on the spot. The save is
+written on the first frame the world is safe:
+
+| Checkpoint | Why it matters |
+|------------|----------------|
+| arriving on a map | through a door, along a road, waking after a blackout |
+| a battle fully over | experience, captures, a beaten trainer, a Sigil, prize money |
+| healing at a Mender's Hall | the recovery point has moved |
+| story flags set by a conversation | Route 1's gate opening |
+| leaving a shop counter | coins and the bag changed hands |
+| choosing a starter | the first real progress |
+| picking up a ground item | so it is never lying there again after a reload |
+
+**Never** mid-battle, mid-dialogue, mid-map-change, mid-step, while a trainer
+is walking over, while a Sigil is on screen, during a blackout, during the
+starter chooser, or with the player not in control (`WorldScene.isSafeToSave`).
+There is one pending slot, so a battle, the trainer's outro and the Sigil
+award together make **exactly one** autosave.
+
+Two arrivals are deliberately **not** checkpoints: straight after Continue (the
+game was just loaded — it is already saved, and saving again could replace a
+newer autosave with the older manual save the player happened to pick), and
+the start of a New Game (it has done nothing worth replacing the previous
+game's autosave with yet; the first door does).
+
+**The indicator** is a small "Autosaved" note in the top-right corner that
+fades in and out over about a second and a half. It never takes input and never
+pauses anything. A failed autosave says "Autosave failed" the same way.
+
+The autosave will **not** overwrite a save from a newer version of the game.
+The player is told once per session — "Autosave off: slot holds a newer save" —
+and can still save manually.
+
+### Continue
+
+| What is saved | What Continue does |
+|---------------|--------------------|
+| nothing usable | shown, greyed out |
+| one valid save, the other slot empty | loads it at once |
+| two valid saves | opens the chooser, the more recent highlighted |
+| a valid save and a damaged/newer one | opens the chooser, so the problem can be explained |
+
+The chooser shows each slot's place ("Thistlewood — The Verdant Hall"), lead
+creature and level, Sigils, catches, play time and when it was saved. A tie in
+time goes to the manual save. Damaged and newer-version slots are listed but
+cannot be highlighted, and are also named under the title menu, so a greyed
+Continue always has a reason on screen.
+
+### Loading
+
+    read → parse → migrate → validate → build a fresh state → find a safe tile
+         → only now: make it the live game → start the map
+
+Nothing touches the running game until every step has succeeded. A failure
+shows the reason and stays on the title screen with nothing changed.
+
+The map is then built in a fixed order: **switch positions and flags → gates
+and hedges (collision and picture, from one call) → every NPC on their tile →
+the player**. The saved tile must be walkable *with the hedges as saved*, not
+an NPC's home tile (a trainer who had walked over to challenge, or a villager
+who had wandered, is back home after a load) and not an uncollected item's
+tile. If it fails, the player goes to the first safe choice of: that map's
+spawn point → the recovery point → the start of the game. Each fallback is
+logged; none can put the player in a wall.
+
+**Creature identity.** Every creature keeps its id through any number of saves
+and loads. After a load, every loaded id is *reserved*, so a creature caught
+later can never be given an id that is already taken — even though the id
+counter restarts with the page. `giveCreature()` also re-ids anything arriving
+with an id the player already owns.
+
+### Damage: repair or refuse
+
+A save is untrusted input. `SaveValidator.js` builds a brand new state from it
+and copies across only what checks out.
+
+| Refused — the save cannot be loaded | Repaired — loads, with a warning |
+|---|---|
+| not JSON, not an object, not this game's | a collection missing entirely (older saves) |
+| a version that is not a number | a number out of range: clamped (negative coins → 0) |
+| a collection of the wrong type (party not a list, coins not a number) | an id for content that does not exist: dropped |
+| a creature whose species or level cannot be read | a missing or duplicated creature id: a fresh one issued, both creatures kept |
+| | a position off the map, or a facing that is not a direction |
+| | a creature with no usable moves: given its natural ones |
+
+The line is simple: refuse when we can no longer tell what the player *had*;
+repair when the intent is obvious and nothing real is lost. Every repair is
+reported. A damaged save is **never deleted** by the game — it stays until the
+player saves over it.
+
+A save from a **newer** version is refused with exactly: *"This save was
+created by a newer version of the game and cannot be loaded here."* It is never
+migrated down and never overwritten automatically.
+
+### Migrations
+
+`SaveMigrations.js` holds one function per version step. Loading a version 1
+save runs `1→2`; when version 3 exists, the same save runs `1→2` then `2→3`.
+Each migration is pure — a copy in, a new object out — and has its own tests.
+
+Version 1 is the GameState of Phases 1–9, which lived only in memory. Its
+migration wraps it in the envelope, moves settings out, drops the derived
+caches, and fills in anything an early phase lacked (storage, the Index, the
+recovery point, beaten trainers, puzzles, Sigils). `legacyFixtures.js` holds a
+hand-built version 1 save for the end of Phases 2, 3, 6, 7, 8 and 9; every one
+loads.
+
+### Settings
+
+| Setting | Values | Default |
+|---------|--------|---------|
+| Text speed | Slow (55 ms a letter), Normal (30), Fast (12), Instant | Normal |
+| Master volume | 0 to 100, in steps of 10 | 80 |
+
+Settings belong to the **player**, not to a playthrough. They are stored under
+their own key, load before the title screen appears, survive a New Game, and
+are never written into, or read from, a save — loading an old save cannot put
+someone's volume back. One Settings panel serves both the title screen and the
+pause menu. Every change applies and is stored at once: the text speed is read
+as each page of dialogue starts, and a sample line types itself out at the
+chosen speed. The volume drives Phaser's sound manager (`game.sound.volume`,
+0–1). There is no music or sound yet, so for now that is all it does — when
+audio arrives, it is already at the player's chosen volume.
+
+### New Game with a save
+
+New Game asks first, defaulting to **Back**, and says plainly: nothing is
+deleted, the Manual Save stays until the player saves over it, and Continue can
+still load it; the Autosave follows the new game once it next autosaves.
+
+### The standing rule
+
+**Any future persistent gameplay field added to GameState must be added to
+serialization, validation/defaults, migration where required, and round-trip
+tests.** `tests/saveSchema.test.js` compares GameState's fields with the
+serialiser's list and fails the build until a new field has been given a fate.
+
+### Debug
+
+```js
+debug.saves()                     // both slots: status, place, time, problems
+debug.save('manual')              // force a save into a slot ('autosave' too)
+debug.dumpSave('autosave')        // the raw stored text
+debug.clearSave('manual', true)   // DESTRUCTIVE — needs the true; 'all' for both
+debug.injectLegacySave('phase9')  // put a version 1 save in a slot
+debug.corruptSave('manual', 'json')  // json, root, version, future, party,
+                                     // species, wall, duplicateIds
+debug.saveVersion()               // 2
+debug.settings({ textSpeed: 'fast' })
 ```

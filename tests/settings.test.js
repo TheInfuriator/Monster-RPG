@@ -19,7 +19,8 @@ import { createMemoryStorage, STORAGE_KEYS } from '../src/save/SaveStorage.js';
 import { TEXT_SPEEDS, DIALOGUE } from '../src/config/balance.js';
 import { createNewGameState, startNewGame } from '../src/core/GameState.js';
 import { createSaveFile } from '../src/save/SaveSchema.js';
-import { addPlayTime, formatPlayTime, MAX_FRAME_MS } from '../src/core/PlayClock.js';
+import { addPlayTime, formatPlayTime, startPlayClock, MAX_FRAME_MS } from '../src/core/PlayClock.js';
+import { gameState, setGameState } from '../src/core/GameState.js';
 
 let storage;
 
@@ -218,5 +219,63 @@ describe('the play clock', () => {
     expect(formatPlayTime((84 * 60 + 5) * 1000)).toBe('1:24');
     expect(formatPlayTime(12 * 3_600_000 + 3 * 60_000)).toBe('12:03');
     expect(formatPlayTime(-5)).toBe('0:00');
+  });
+});
+
+describe('the play clock on the game loop', () => {
+  /** Just enough of a Phaser game: an event emitter and one scene's status. */
+  function fakeGame(status) {
+    const handlers = new Map();
+    const world = { sys: { isActive: () => status.active, isPaused: () => status.paused } };
+    return {
+      events: {
+        on: (name, fn) => handlers.set(name, fn),
+        off: (name) => handlers.delete(name),
+      },
+      scene: { getScene: () => (status.exists ? world : null) },
+      step: (delta) => handlers.get('step')?.(0, delta),
+      listening: () => handlers.has('step'),
+    };
+  }
+
+  it('counts while the overworld runs, and while it is paused under a battle or menu', () => {
+    setGameState(createNewGameState());
+    const status = { exists: true, active: true, paused: false };
+    const game = fakeGame(status);
+    startPlayClock(game);
+
+    game.step(16);
+    status.active = false;
+    status.paused = true;
+    game.step(16);
+    expect(gameState.playTimeMs).toBe(32);
+  });
+
+  it('does not count on the title screen', () => {
+    setGameState(createNewGameState());
+    const game = fakeGame({ exists: true, active: false, paused: false });
+    startPlayClock(game);
+    game.step(16);
+    expect(gameState.playTimeMs).toBe(0);
+  });
+
+  it('counts into whichever game is live — a loaded one included', () => {
+    const status = { exists: true, active: true, paused: false };
+    const game = fakeGame(status);
+    startPlayClock(game);
+
+    const loaded = createNewGameState();
+    loaded.playTimeMs = 60_000;
+    setGameState(loaded);
+    game.step(20);
+    expect(loaded.playTimeMs).toBe(60_020);
+  });
+
+  it('stops when asked, leaving no listener behind', () => {
+    const game = fakeGame({ exists: true, active: true, paused: false });
+    const stop = startPlayClock(game);
+    expect(game.listening()).toBe(true);
+    stop();
+    expect(game.listening()).toBe(false);
   });
 });

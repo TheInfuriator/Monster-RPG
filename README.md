@@ -6,14 +6,15 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 9 (Thistlewood + the first Beacon Hall) complete — the
-> first-badge vertical slice is playable end to end.**
+> **Status: Phase 10 (save, load and settings) complete — the first-badge
+> vertical slice is playable end to end, and survives closing the tab.**
 > Take a starter, buy supplies, walk Route 1's tall grass, catch something,
 > fight the route's trainers, ask the warden to open the north gate, walk into
 > Thistlewood, shop and heal there, and challenge the Verdant Hall: solve its
 > hedge puzzle, beat its two Gardeners, beat Leader Fern and come away with the
-> **Verdant Sigil**. Everything from Phases 1–8 still works, and the world
-> reacts to the Sigil. Save/load is next — see [TODO.md](TODO.md).
+> **Verdant Sigil**. Save from the menu at any quiet moment, let the game
+> autosave as you go, close the page, and **Continue** exactly where you were.
+> Rival and Route 2 are next — see [TODO.md](TODO.md).
 
 ---
 
@@ -50,6 +51,11 @@ Then open the URL it prints (usually <http://localhost:5173>).
 In the browser console, `__gs()` returns the current playthrough — your position,
 story flags and bag, and `debug.help()` lists the developer tools.
 
+**Saving:** Esc → **Save** writes the Manual Save. The game also **autosaves**
+into a separate slot as you play — a small "Autosaved" note appears in the
+corner. **Continue** on the title screen picks up where you left off.
+**Settings** (text speed, volume) is on both the title screen and the menu.
+
 **To see a battle:** talk to Professor Wick and choose a starter, then talk to
 Assistant Bly or Warden Tace in the Warden's Lodge — both offer a repeatable
 practice bout. Or type `debug.wild('nibbit', 5)` in the console.
@@ -72,6 +78,16 @@ src/
   core/
     GameState.js       Everything about the current playthrough
     InputManager.js    Turns key presses into named actions
+    Settings.js        Text speed and volume — the player's, not the save's
+    PlayClock.js       Counts time played
+  save/                Saving and loading — the only code that touches storage
+    SaveManager.js     The one owner: the two slots, saving, loading, Continue
+    SaveSchema.js      What a save file looks like; GameState -> save
+    SaveValidator.js   Untrusted save -> a fresh, valid GameState (or refuse)
+    SaveMigrations.js  Older save versions -> the current one, step by step
+    RestorePosition.js Where a loaded player may safely stand
+    SaveStorage.js     The storage keys, and the localStorage adapter
+    legacyFixtures.js  Hand-built old-version saves for testing migration
   data/                Game CONTENT — no logic, just data
     tiles.js           What each map character means
     types.js           The 18 types and the effectiveness chart
@@ -91,10 +107,11 @@ src/
     Npc.js             Non-player characters
   scenes/
     BootScene.js       Generates artwork, then hands off
-    TitleScene.js      Title screen and main menu
+    TitleScene.js      Title screen: New Game, Continue, Settings
     WorldScene.js      The overworld — connects the systems below
     StarterSelectScene.js  Choosing your first Aether
     BattleScene.js     The battle screen — presentation only
+    MenuScene.js       The pause menu, the Save screen, and the shop counter
   systems/             Reusable logic
     TileMap.js         Parses map data, answers "can I walk here?"
     MapRenderer.js     Draws a TileMap
@@ -134,6 +151,8 @@ src/
   ui/
     Menu.js            Reusable keyboard menu
     DialogueBox.js     The text box at the bottom of the screen
+    SettingsPanel.js   The one Settings screen, for the title and the menu
+    saveText.js        How a save slot is described on screen
     DebugOverlay.js    Developer readout
   utils/
     rng.js             Random helpers (seeded, weighted picks)
@@ -154,9 +173,9 @@ tests/                 Vitest tests for logic and data integrity
 ## How the pieces fit together
 
 ```
-main.js
+main.js             loads Settings, starts the play clock
   └── BootScene      generates every texture, registers animations
-        └── TitleScene    menu → starts a new game
+        └── TitleScene    New Game / Continue (SaveManager) / Settings
               └── WorldScene
                     ├── TileMap            what is walkable, where the exits are
                     ├── MapRenderer        drawing
@@ -178,8 +197,9 @@ released in its `cleanup()`, which is why you can walk in and out of buildings
 all day without the game slowly filling up with dead objects.
 
 `GameState` sits beside all of it. Scenes read and write that one shared object,
-which is what lets the player's position survive a scene change — and what the
-save system will serialise later.
+which is what lets the player's position survive a scene change — and it is
+what `src/save/` writes to a save file and reads back. Nothing else in the game
+touches the browser's storage.
 
 ---
 
@@ -460,6 +480,60 @@ The **Aether Index** fills itself in: a creature is *seen* the moment it stands
 on the battlefield in any kind of battle, and *caught* when you catch one or are
 given one (your starter counts). An unseen species shows only its number, a seen
 one its name and types, and a caught one its write-up too.
+
+### Saving, loading and settings
+
+There are **two save slots**, stored in the browser's `localStorage`:
+
+- **Manual Save** — Esc → **Save**. The screen shows what is in the slot now,
+  says what will be replaced, and needs a second Confirm. Only offered when
+  nothing is half-finished (no dialogue, battle, map change or challenge).
+- **Autosave** — written by the game after a map change, a finished battle,
+  healing, story progress, a shop visit, choosing a starter or picking up an
+  item. Never mid-battle, mid-dialogue or mid-step. It never touches the
+  Manual Save.
+
+**Continue** is greyed out until there is a save that loads. With one save it
+loads straight away; with two it shows both, newest highlighted. A damaged
+save, or one from a newer version of the game, is named on the title screen and
+is never loaded, never deleted and never quietly overwritten.
+
+**New Game** asks first when anything is saved, and deletes nothing.
+
+**Settings** — text speed (Slow / Normal / Fast / Instant) and master volume
+(0–100) — are the player's, not the save's. They are stored under their own key,
+kept for every game including a New Game, and changing them takes effect at once.
+
+The full rules are in [GAME_DESIGN.md](GAME_DESIGN.md) section 21.
+
+### Add something that should be saved
+
+**The standing rule:** any future persistent gameplay field added to GameState
+must be added to serialization, validation/defaults, migration where required,
+and round-trip tests. In practice:
+
+1. Add the field to `createNewGameState()` in `src/core/GameState.js`.
+2. Add it to `PERSISTENT_FIELDS` and `serializeGameState()` in
+   `src/save/SaveSchema.js` — picked by name, copied, never by reference.
+3. Validate it in `validateGameState()` in `src/save/SaveValidator.js`: a
+   missing value gets a default and a warning; a value of the wrong type
+   refuses the save.
+4. If saves already written would lack it and the default is not good enough,
+   bump `SAVE_VERSION` and add a migration (next section).
+5. Give it a value in `tests/helpers/richState.js`, so the round-trip tests
+   prove it comes back.
+
+`tests/saveSchema.test.js` fails until steps 1 and 2 agree, so the rule cannot
+be forgotten quietly. Anything that can be *worked out* from saved state — like
+a creature's stats — should be recalculated on load instead of saved.
+
+### Change the shape of a save
+
+1. Bump `SAVE_VERSION` in `src/save/SaveSchema.js`.
+2. Add `MIGRATIONS[oldVersion]` in `src/save/SaveMigrations.js`: a pure
+   function from the old shape to the new one. Never edit an old migration.
+3. Add a fixture of the old shape to `src/save/legacyFixtures.js`; the tests
+   load every fixture automatically.
 
 ### Add a tile type
 
@@ -745,6 +819,13 @@ debug.toggle('rootWest')      // press a root switch from anywhere
 debug.resetPuzzle()           // put this map's hedges back how you found them
 debug.sigils()                // every Sigil and whether it is earned
 debug.sigil('verdantSigil')   // award one (pass false to take it back)
+debug.saves()                 // both save slots: status, place, time
+debug.save('autosave')        // force a save into a slot
+debug.dumpSave('manual')      // the raw saved text
+debug.corruptSave('manual', 'json')  // damage a slot on purpose, to test
+debug.injectLegacySave('phase9')     // put an old-version save in a slot
+debug.clearSave('all', true)  // DESTRUCTIVE: delete saves (needs the true)
+debug.settings({ textSpeed: 'fast' })
 ```
 
 Nothing in the game imports `DebugTools.js` — it only reaches in, so deleting it
@@ -957,7 +1038,7 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-2175 tests covering map parsing, collision, spawn fallbacks, map validation, game
+2476 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, inventory operations,
 interaction targeting, type effectiveness, the move and creature databases, stat
 and experience maths, the creature factory, the party, the starter-selection
@@ -975,7 +1056,13 @@ trainer data, trainer battle configuration and the defeated-trainer record —
 and Phase 9: barriers and root switches, an exhaustive proof that the Verdant
 Hall can never trap a player, Sigil data, awarding a Sigil exactly once, and
 hundreds of seeded battles measuring whether each starter can win the first
-Beacon Hall.
+Beacon Hall — and Phase 10's saving and loading: a rich playthrough round-tripped
+through JSON and compared field for field, creature ids forced to collide and
+proved never to, every refusal and every repair the validator makes, every
+migration and every legacy fixture, the two slots independently, writes that
+fail half way (storage full, storage refused) leaving the last save intact,
+newer-version saves protected, every rule for where a loaded player may stand,
+settings, and the play clock.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -1021,6 +1108,9 @@ every map you add. They catch, without you writing a line of test code:
 - a move whose effect kind the battle engine cannot run
 - an item whose battle effect the scene does not understand
 - a scripted battle referencing a species that does not exist
+- a GameState field that has not been given a fate in the save format
+- a map whose default spawn point a loaded player could not stand on
+- two maps that would show the same place name on a save slot
 
 Twenty-five seeded battles are also played to completion in the test suite, and
 every one of the 56 moves is used in a real battle to check nothing throws and
@@ -1047,6 +1137,7 @@ Everything below works end to end, on the keyboard, from a new game:
 9. Fight **Gardeners Teal and Bracken** on the way to the ones that matter
 10. Walk the solved corridor to **Leader Fern** and beat her
 11. Receive the **Verdant Sigil**, and watch the town notice
+12. **Save**, close the page, come back, and **Continue** — at any point above
 
 ---
 

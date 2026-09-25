@@ -4,6 +4,134 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 10 — Save, Load and Settings
+
+The first-badge slice now survives closing the tab. Save from the menu at any
+quiet moment, let the game autosave as you go, close the page, and Continue
+exactly where you were — the same tile, the same facing, the same hedges, the
+same creatures with the same ids.
+
+### Added
+
+**An audit before any code.** Every piece of state was sorted into one of four
+boxes — canonical (saved), derived (rebuilt on load), preferences (their own
+key) and never-saved (anything on screen). The save system is that table,
+enforced. GAME_DESIGN.md section 21 has it in full.
+
+**`src/save/` — one owner of persistence.** `SaveManager` sits over a schema, a
+validator, a migration pipeline, a position resolver and a storage adapter.
+Scenes ask it to save or load; nothing else in the game touches `localStorage`.
+
+- **`SaveSchema`** — a versioned envelope (`game`, `version: 2`, `metadata`,
+  `gameState`). The serialiser picks every field by name, so no Phaser object,
+  timer, open dialogue or battle state can reach a save. Keys are sorted, so the
+  same facts always give the same text. Derived caches — creature stats and
+  maximum PP — are left out and rebuilt on load: one source of truth.
+- **`SaveValidator`** — builds a brand new GameState from untrusted JSON.
+  It **refuses** when we can no longer tell what the player had (wrong container
+  types, an unreadable species or level) and **repairs with a warning** when the
+  intent is obvious (missing collections, out-of-range numbers, unknown ids,
+  duplicate creature ids, off-map positions). Nothing is fixed silently.
+- **`SaveMigrations`** — one pure function per version step. Version 1 (the
+  Phases 1-9 in-memory state) migrates to 2. Hand-built version 1 saves for the
+  end of Phases 2, 3, 6, 7, 8 and 9 all load. A newer-version save is refused
+  with *"This save was created by a newer version of the game and cannot be
+  loaded here."* and never migrated down.
+- **`RestorePosition`** — the saved tile is checked against the world as it will
+  be rebuilt: gates and hedges from flags, Sigils and switches; every NPC back on
+  their home tile; ground items still lying there. A failure falls back to the
+  map's spawn, then the recovery point, then the start — never into a wall.
+
+**Two slots.** A Manual Save written only by the player, and an Autosave written
+only by the game. Each is judged on its own, so a damaged manual save never
+hides a good autosave. **Writes are all or nothing:** the save is built, proved
+to load, and written in one `setItem`; a full or refused write leaves the
+previous save exactly as it was.
+
+**Save in the pause menu.** It shows what is in the slot, says what will be
+replaced, and needs a second Confirm. It is offered only when the world is safe
+to save — no dialogue, battle, map change, trainer approach or Sigil panel.
+
+**Autosave at stable checkpoints** — arriving on a map, a battle fully over,
+healing, story progress, a shop visit, a starter, a picked-up item. A checkpoint
+only *asks*; the save is written the first frame the world is safe. One pending
+slot means a Leader's battle, outro and Sigil make exactly one autosave. A small
+"Autosaved" note fades in the corner. It will not overwrite a newer version's
+save, and says so once.
+
+**Continue.** Greyed out without a valid save. One save loads straight away;
+two open a chooser showing place, lead, Sigils, catches, play time and save
+time, newest highlighted. Damaged and newer-version saves are named under the
+menu and cannot be chosen. A failed load says why and changes nothing.
+
+**New Game asks first** when anything is saved, defaults to Back, and deletes
+nothing.
+
+**Settings.** Text speed (Slow / Normal / Fast / Instant) and master volume
+(0-100). They belong to the player, not a playthrough: stored under their own
+key, surviving New Game, never inside a save. One `SettingsPanel` serves the
+title screen and the pause menu; a sample line types at the chosen speed. The
+volume drives Phaser's sound manager — there is no audio yet, so that is all it
+does for now.
+
+**Play time is counted** (`PlayClock`), for the save slots.
+
+**Creature identity.** Ids survive any number of saves and loads. Loaded ids are
+reserved, so a creature caught after loading can never be given one that is
+taken, even though the id counter restarts with the page.
+
+**Debug** — `debug.saves()`, `save(slot)`, `dumpSave(slot)`, `clearSave(slot,
+true)`, `injectLegacySave(name, slot)`, `corruptSave(slot, kind)`,
+`saveVersion()`, `settings(changes)`.
+
+### The standing rule
+
+Any future persistent gameplay field added to GameState must be added to
+serialization, validation/defaults, migration where required, and round-trip
+tests. `tests/saveSchema.test.js` fails until a new GameState field has been
+given a fate.
+
+### Bugs found and fixed
+
+- **A held key fired again in the next scene.** Every scene makes its own key
+  objects, and a key already held when one starts treated the browser's
+  auto-repeat as a brand new press. Holding Confirm through Continue would have
+  talked to whoever you loaded in front of; holding Esc for half a second closed
+  the menu it had just opened (that one predates Phase 10). `InputManager` now
+  ignores auto-repeat keydowns. *Browser test: phase10a N2-N5.*
+- **A cut-short step left the player half-way between tiles.**
+  `Player.stopMovement()` stopped the slide but not the sprite, so opening the
+  menu mid-step froze the picture half a tile from the logical position — the
+  position a save records. It now settles on the tile, as its comment always
+  said. *Browser test: phase10a C12.*
+- **Data getters accepted JavaScript built-ins as ids.** `getSpecies('constructor')`
+  returned `Object`'s constructor rather than nothing; the same was true of
+  items, moves, trainers, Sigils, statuses, shops, battles, encounters, tiles and
+  maps. Harmless while every id came from the game's own code — a real hole the
+  moment ids come from a save file. Every lookup now checks the table's own
+  keys. *Tests: saveValidation "ids that are really JavaScript built-ins".*
+- **A restored player could have stood inside an NPC.** Trainers who walked over
+  to challenge, and villagers who wander, go back to their home tiles when a map
+  loads; a player saved on one of those tiles would have been restored on top of
+  them. The loader, and `WorldScene`'s own start-tile check, now treat NPC home
+  tiles and uncollected items as unavailable. *Tests: restorePosition.*
+
+### Rules chosen and documented
+
+- **Two slots**, not profiles: one the player owns, one the game owns.
+- **Autosave points** as listed above; not after Continue (it would replace a
+  newer autosave with the older save just loaded) and not at the very start of a
+  New Game (the first door does it).
+- **Volume** is 0-100 in steps of 10, shown and stored as the player sees it.
+- **Refuse vs repair** as above; damaged saves are never deleted by the game.
+- **A tie in save time** goes to the manual save when choosing what to highlight.
+
+### Verification
+
+VERIFICATION_PLACEHOLDER
+
+---
+
 ## Phase 9 — Thistlewood and the First Sigil
 
 The vertical slice closes. New Game, a starter, Route 1, its trainers, a gate
