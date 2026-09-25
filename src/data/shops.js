@@ -86,7 +86,7 @@ export const SHOPS = {
 export function getShop(id) {
   if (!id) return null;
 
-  const shop = SHOPS[id];
+  const shop = Object.hasOwn(SHOPS, id) ? SHOPS[id] : undefined;
   if (!shop) {
     console.warn(
       `[shops] Unknown shop "${id}". Known shops: ${Object.keys(SHOPS).join(', ')}.`

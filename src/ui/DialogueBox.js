@@ -25,8 +25,8 @@ import {
   FONT_FAMILY,
   DEPTHS,
 } from '../config/gameConfig.js';
-import { TEXT_SPEEDS, DIALOGUE } from '../config/balance.js';
-import { gameState } from '../core/GameState.js';
+import { DIALOGUE } from '../config/balance.js';
+import { getTypeDelay } from '../core/Settings.js';
 
 const BOX_HEIGHT = 78;
 const BOX_MARGIN = 8;
@@ -132,8 +132,7 @@ export class DialogueBox {
 
   /** Milliseconds per character, from the player's settings. */
   get typeDelay() {
-    const speed = gameState.settings?.textSpeed ?? DIALOGUE.defaultTextSpeed;
-    return TEXT_SPEEDS[speed] ?? TEXT_SPEEDS.normal;
+    return getTypeDelay();
   }
 
   /**

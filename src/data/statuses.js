@@ -53,7 +53,7 @@ export const STATUS_SET = new Set(STATUS_IDS);
 export function getStatus(id) {
   if (!id) return null;
 
-  const status = STATUS_CONDITIONS[id];
+  const status = Object.hasOwn(STATUS_CONDITIONS, id) ? STATUS_CONDITIONS[id] : undefined;
   if (!status) {
     console.warn(
       `[statuses] Unknown status "${id}". Known: ${STATUS_IDS.join(', ')}.`

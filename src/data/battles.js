@@ -61,7 +61,7 @@ export const SCRIPTED_BATTLES = {
 
 /** Look up a scripted battle. Returns null and warns for an unknown id. */
 export function getScriptedBattle(id) {
-  const battle = SCRIPTED_BATTLES[id];
+  const battle = Object.hasOwn(SCRIPTED_BATTLES, id) ? SCRIPTED_BATTLES[id] : undefined;
   if (!battle) {
     console.warn(
       `[battles] Unknown scripted battle "${id}". ` +

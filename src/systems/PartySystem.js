@@ -14,7 +14,7 @@
  */
 
 import { PARTY } from '../config/balance.js';
-import { isFainted, getDisplayName } from './CreatureFactory.js';
+import { isFainted, getDisplayName, generateInstanceId } from './CreatureFactory.js';
 
 /** How many creatures are travelling with the player. */
 export function getPartySize(state) {
@@ -82,6 +82,18 @@ export function findCreature(state, instanceId) {
  */
 export function giveCreature(state, creature) {
   if (!creature) return { added: false, destination: null };
+
+  // Two creatures the player owns must never share an id — the save relies on
+  // it, and so does anything that finds a creature by id. Every id is made
+  // unique when it is created, so this should never fire; if it ever does,
+  // the newcomer gets a fresh id rather than being confused with the other.
+  if (findCreature(state, creature.instanceId)) {
+    console.warn(
+      `[Party] A creature arrived with id "${creature.instanceId}", which is already ` +
+        'taken. Giving it a new one.'
+    );
+    creature.instanceId = generateInstanceId();
+  }
 
   if (!isPartyFull(state)) {
     addToParty(state, creature);

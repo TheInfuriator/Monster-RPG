@@ -12,7 +12,6 @@ import {
   hasFlag,
   setFlag,
   gameState,
-  SAVE_VERSION,
 } from '../src/core/GameState.js';
 import { STARTING_MAP_ID } from '../src/data/maps/index.js';
 import { ECONOMY } from '../src/config/balance.js';
@@ -33,8 +32,12 @@ describe('new game state', () => {
     expect(state.money).toBe(ECONOMY.startingMoney);
   });
 
-  it('is stamped with the current save version', () => {
-    expect(createNewGameState().version).toBe(SAVE_VERSION);
+  it('holds no save version — that belongs to the save file, not the playthrough', () => {
+    expect(createNewGameState().version).toBeUndefined();
+  });
+
+  it('holds no preferences — those belong to the player, not the playthrough', () => {
+    expect(createNewGameState().settings).toBeUndefined();
   });
 
   it('starts with an empty party, inventory and flag set', () => {

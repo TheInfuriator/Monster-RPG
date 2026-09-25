@@ -19,13 +19,14 @@
  *   status       null, or a status id from src/data/statuses.js
  *   metAt        where and at what level it joined the party
  *
- * WHY `stats` IS STORED
- * Stats are derived from species + level, so storing them is technically
- * redundant. We keep them anyway because a save file should be enough to show a
- * creature without recomputing anything, and because the battle system reads
- * them constantly. `recalculateStats()` refreshes the cache and is called on
- * every level-up and evolution — and can be called after a balance change to
- * bring an old save back in line.
+ * WHY `stats` IS KEPT ON THE INSTANCE
+ * Stats are derived from species + level, so they are a CACHE: the battle
+ * system reads them constantly, and recomputing them every time would be
+ * wasteful. `recalculateStats()` refreshes the cache on every level-up and
+ * evolution. The save file does NOT store them — it stores the level, and
+ * the stats are rebuilt on load (see `src/save/SaveValidator.js`), so a
+ * balance change reaches old saves automatically and a save can never hold
+ * stats that disagree with its own level.
  */
 
 import { getSpecies, getMovesAtLevel } from '../data/creatures.js';
@@ -36,15 +37,41 @@ import { PARTY } from '../config/balance.js';
 /**
  * Counter used to keep generated ids unique within a session.
  * Combined with a timestamp and a random suffix so ids stay unique across
- * sessions too, once saving exists.
+ * sessions too.
  */
 let instanceCounter = 0;
 
-/** A short, unique id for one creature. */
+/**
+ * Ids that already belong to creatures loaded from a save.
+ *
+ * After a reload the counter starts from zero again, so "unique within a
+ * session" is no longer enough on its own: the timestamp and random suffix
+ * make a clash vanishingly unlikely, and this set makes it impossible. The
+ * save system fills it in on every load (see `SaveManager.loadSlot`).
+ */
+const reservedIds = new Set();
+
+/** A short, unique id for one creature — never one a loaded creature holds. */
 export function generateInstanceId() {
-  instanceCounter += 1;
-  const random = Math.random().toString(36).slice(2, 8);
-  return `c${Date.now().toString(36)}${instanceCounter.toString(36)}${random}`;
+  let id;
+  do {
+    instanceCounter += 1;
+    const random = Math.random().toString(36).slice(2, 8);
+    id = `c${Date.now().toString(36)}${instanceCounter.toString(36)}${random}`;
+  } while (reservedIds.has(id));
+  return id;
+}
+
+/** Mark ids as taken, so `generateInstanceId()` will never hand them out. */
+export function reserveInstanceIds(ids) {
+  for (const id of ids) {
+    if (typeof id === 'string' && id.length > 0) reservedIds.add(id);
+  }
+}
+
+/** Forget every reserved id. Called on New Game and before a load reserves its own. */
+export function clearReservedInstanceIds() {
+  reservedIds.clear();
 }
 
 /** Reset the counter. Only used by tests that check id determinism. */

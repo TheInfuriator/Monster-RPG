@@ -23,7 +23,8 @@ import Phaser from 'phaser';
 import {
   SCENES, GAME_WIDTH, GAME_HEIGHT, COLORS, TEXT_STYLES, DEPTHS,
 } from '../config/gameConfig.js';
-import { BATTLE_UI, CAPTURE_UI, TEXT_SPEEDS, DIALOGUE } from '../config/balance.js';
+import { BATTLE_UI, CAPTURE_UI } from '../config/balance.js';
+import { getTypeDelay } from '../core/Settings.js';
 import { creatureTextureKey } from '../config/assets.js';
 import { InputManager } from '../core/InputManager.js';
 import { gameState } from '../core/GameState.js';
@@ -202,9 +203,9 @@ export class BattleScene extends Phaser.Scene {
   // Messages
   // -------------------------------------------------------------------------
 
+  /** Milliseconds per character, from the player's settings. */
   get typeDelay() {
-    const speed = gameState.settings?.textSpeed ?? DIALOGUE.defaultTextSpeed;
-    return TEXT_SPEEDS[speed] ?? TEXT_SPEEDS.normal;
+    return getTypeDelay();
   }
 
   /**

@@ -43,7 +43,7 @@ export const MAPS = {
  * than returning undefined and crashing somewhere less obvious later.
  */
 export function getMapDefinition(id) {
-  const map = MAPS[id];
+  const map = Object.hasOwn(MAPS, id) ? MAPS[id] : undefined;
   if (!map) {
     throw new Error(
       `[maps] Unknown map id "${id}". Known maps: ${Object.keys(MAPS).join(', ')}. ` +

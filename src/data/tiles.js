@@ -99,7 +99,7 @@ export const FALLBACK_TILE = {
 const warnedChars = new Set();
 
 export function getTileByChar(char) {
-  const tile = TILE_DEFINITIONS[char];
+  const tile = Object.hasOwn(TILE_DEFINITIONS, char) ? TILE_DEFINITIONS[char] : undefined;
   if (tile) return tile;
 
   if (!warnedChars.has(char)) {

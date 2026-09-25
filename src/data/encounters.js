@@ -73,7 +73,7 @@ export const ENCOUNTER_TABLES = {
 export function getEncounterTable(id) {
   if (!id) return null;
 
-  const table = ENCOUNTER_TABLES[id];
+  const table = Object.hasOwn(ENCOUNTER_TABLES, id) ? ENCOUNTER_TABLES[id] : undefined;
   if (!table) {
     console.warn(
       `[encounters] Unknown encounter table "${id}". ` +

@@ -204,7 +204,7 @@ export const TRAINERS = {
 export function getTrainer(id) {
   if (!id) return null;
 
-  const trainer = TRAINERS[id];
+  const trainer = Object.hasOwn(TRAINERS, id) ? TRAINERS[id] : undefined;
   if (!trainer) {
     console.warn(
       `[trainers] Unknown trainer "${id}". Known: ${Object.keys(TRAINERS).join(', ')}.`

@@ -566,7 +566,7 @@ export const STARTER_LEVEL = 5;
  * throwing, so bad data in an encounter table cannot crash the overworld.
  */
 export function getSpecies(id) {
-  const species = CREATURES[id];
+  const species = Object.hasOwn(CREATURES, id) ? CREATURES[id] : undefined;
   if (!species) {
     console.warn(`[creatures] Unknown species id "${id}".`);
     return null;

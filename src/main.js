@@ -10,6 +10,8 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './config/gameConfig.js';
 import { gameState } from './core/GameState.js';
+import { loadSettings } from './core/Settings.js';
+import { startPlayClock } from './core/PlayClock.js';
 import { installDebugTools } from './systems/DebugTools.js';
 import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
@@ -45,8 +47,15 @@ const config = {
 
 // Surface a boot failure on the page instead of leaving a black screen behind.
 try {
+  // Preferences first, so the very first line of text already types at the
+  // player's chosen speed. They are global — not part of any save.
+  loadSettings();
+
   // Exposed for debugging in the browser console, e.g. `game.scene.keys`.
   window.game = new Phaser.Game(config);
+
+  // Counts time played for the save slots. One listener on the game loop.
+  startPlayClock(window.game);
 
   // A console handle on the current playthrough: `__gs()` in devtools shows
   // your flags, bag and position. Also what the browser test suite reads.

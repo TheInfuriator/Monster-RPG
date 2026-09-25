@@ -10,24 +10,23 @@
  * Instead there is exactly one GameState, every scene reads and writes it, and
  * the save system just serialises it.
  *
- * This starts small. Later phases add `party`, `inventory`, `flags`, `badges`,
- * and so on — each as another field on this same object.
+ * WHAT IS NOT HERE
+ * Only the PLAYTHROUGH lives on GameState. The player's preferences (text
+ * speed, volume) belong to the player rather than to one game, so they live in
+ * `src/core/Settings.js` under their own storage key and survive a New Game.
+ * Nothing that belongs to the screen — sprites, timers, an open dialogue box —
+ * is ever put here, which is what lets `src/save/SaveSchema.js` save it.
+ *
+ * Adding a field? It must also be added to the save: see the standing rule at
+ * the top of SaveSchema.js. A test fails until it is.
  */
 
 import { STARTING_MAP_ID } from '../data/maps/index.js';
-import { ECONOMY, DIALOGUE } from '../config/balance.js';
-
-/**
- * Bumped whenever the shape of saved data changes, so the save system can
- * detect and handle old saves instead of loading them and breaking.
- */
-export const SAVE_VERSION = 1;
+import { ECONOMY } from '../config/balance.js';
 
 /** A brand new playthrough. Always returns a fresh object — never a shared one. */
 export function createNewGameState() {
   return {
-    version: SAVE_VERSION,
-
     // --- Player identity ---
     playerName: 'Warden',
 
@@ -74,20 +73,10 @@ export function createNewGameState() {
     puzzles: {},
     creatureIndex: { seen: {}, caught: {} },
 
-    /**
-     * Player preferences. Stored in the save so they survive a reload.
-     * The Settings menu that edits these arrives in Phase 10; the values are
-     * already read by the game today.
-     */
-    settings: {
-      textSpeed: DIALOGUE.defaultTextSpeed,
-      masterVolume: 0.8,
-      musicVolume: 0.7,
-      sfxVolume: 0.8,
-    },
-
     // --- Bookkeeping ---
+    /** Time spent in the game, counted by `src/core/PlayClock.js`. */
     playTimeMs: 0,
+    /** When this playthrough began. */
     createdAt: Date.now(),
   };
 }

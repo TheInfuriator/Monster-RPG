@@ -136,7 +136,7 @@ export const ITEMS = {
  * file cannot crash the game while the player is walking around.
  */
 export function getItem(id) {
-  const item = ITEMS[id];
+  const item = Object.hasOwn(ITEMS, id) ? ITEMS[id] : undefined;
   if (!item) {
     console.warn(
       `[items] Unknown item id "${id}". Known items: ${Object.keys(ITEMS).join(', ')}.`

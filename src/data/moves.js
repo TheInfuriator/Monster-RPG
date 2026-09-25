@@ -380,7 +380,7 @@ export const MOVE_IDS = Object.keys(MOVES);
  * learnset cannot crash the game mid-battle.
  */
 export function getMove(id) {
-  const move = MOVES[id];
+  const move = Object.hasOwn(MOVES, id) ? MOVES[id] : undefined;
   if (!move) {
     console.warn(`[moves] Unknown move id "${id}".`);
     return null;

@@ -87,7 +87,7 @@ export function getBadgesInOrder() {
 export function getBadge(id) {
   if (!id) return null;
 
-  const badge = BADGES[id];
+  const badge = Object.hasOwn(BADGES, id) ? BADGES[id] : undefined;
   if (!badge) {
     console.warn(
       `[badges] Unknown Sigil "${id}". Known: ${Object.keys(BADGES).join(', ')}.`
