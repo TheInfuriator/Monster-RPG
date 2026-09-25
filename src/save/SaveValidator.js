@@ -629,7 +629,7 @@ export function validateGameState(raw) {
  * The stored summary, if it is sound; otherwise one rebuilt from the state.
  * A garbled summary is no reason to refuse a save whose game data is fine.
  */
-function validateMetadata(raw, state, report) {
+function validateMetadata(raw, state, report, { expectMetadata = true } = {}) {
   const lead = raw?.lead;
   const leadOk = lead === null || (isPlainObject(lead)
     && typeof lead.speciesId === 'string'
@@ -650,7 +650,9 @@ function validateMetadata(raw, state, report) {
 
   if (sound) return { ...raw, lead: lead ? { ...lead } : null };
 
-  report.warn('The save summary was unreadable; it was rebuilt from the game data.');
+  if (expectMetadata || (raw !== null && raw !== undefined)) {
+    report.warn('The save summary was unreadable; it was rebuilt from the game data.');
+  }
   return buildSaveMetadata(state, {
     source: SAVE_SOURCES.includes(raw?.source) ? raw.source : 'manual',
     // Unknown age sorts as the oldest, so it is never preselected over a
@@ -663,10 +665,14 @@ function validateMetadata(raw, state, report) {
  * Check a whole save file at the CURRENT version. Older files go through
  * `migrateSave()` first; this refuses anything that has not.
  *
+ * @param {object} [options]
+ * @param {boolean} [options.expectMetadata] false for a freshly migrated save,
+ *        whose older version never had a summary — so rebuilding one is not
+ *        worth a warning
  * @returns {{ ok: boolean, errors: string[], warnings: string[],
  *             state: object|null, metadata: object|null }}
  */
-export function validateSaveFile(file) {
+export function validateSaveFile(file, { expectMetadata = true } = {}) {
   if (!isPlainObject(file)) {
     return { ok: false, errors: ['This is not a save file.'], warnings: [], state: null, metadata: null };
   }
@@ -689,7 +695,7 @@ export function validateSaveFile(file) {
   if (!result.ok) return { ...result, metadata: null };
 
   const report = createReport();
-  const metadata = validateMetadata(file.metadata, result.state, report);
+  const metadata = validateMetadata(file.metadata, result.state, report, { expectMetadata });
 
   return {
     ok: true,
