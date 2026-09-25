@@ -141,7 +141,66 @@ given a fate.
 
 ### Verification
 
-VERIFICATION_PLACEHOLDER
+**Automated:** 2476 tests in 35 files (Phase 9 ended at 2175), lint clean,
+production build 260 kB (gzip 79 kB) plus Phaser. New suites: `saveSchema` (40),
+`saveValidation` (88), `saveMigrations` (52), `saveManager` (50),
+`restorePosition` (17), `saveText` (10), `saveStorage` (12), `settings` (31).
+
+**In a real browser, against the production build, with TRUE page reloads** —
+`page.reload()`, or closing the page and opening a fresh one, over one browser
+context so storage persists exactly as it does for a player. The harness proves
+each reload really threw the JavaScript world away.
+
+| Suite | Result | Covers |
+|-------|--------|--------|
+| phase10a | 69/69 | title with no save, manual save mid-route, autosave, the chooser, held keys through Continue, damaged manual + good autosave, newer-version autosave, a version 1 save, New Game with saves, settings |
+| phase10b | 45/45 | mid-puzzle save, real Gardener and Leader wins, exactly one autosave for the Fern win, the Sigil across a fresh page, a real evolution, party/storage identity, the Index, a shop purchase after loading |
+| phase10c | 35/35 | no saves during a trainer approach, battle or outro; a beaten trainer and his prize across a reload; the Route 1 gate; a ground item; a reload mid-battle; the recovery point through a real blackout |
+| persist10 | 84/84 | New Game to the Verdant Sigil on the keyboard, with a save, a real reload and a full state comparison at nine milestones (two on brand-new pages) |
+| leak10 | 9/9 | eight rounds of every title panel, eight Save + Settings rounds, sixteen autosaving map changes — display objects, tweens, timers, textures, keys and every listener count flat |
+| shots10b | 11/11 | storage full, a newer save in the Save screen, the autosave refusing to overwrite one, a load failing after the title was drawn, a browser with storage disabled |
+
+Every Phase 1–9 browser suite was re-run on the final build: playthrough 12/12,
+phase2 34/34, phase2b 18/18, phase3 22/22, phase3b 60/60, phase4 27/27, phase4b
+15/15, phase4c 33/33, phase5 41/41, phase5b 13/13, phase6 65/65, phase7 85/85,
+phase8 59/59, phase9 98/98, phase9b 16/16, phase9c 12/12 (twice), firstbadge
+firstbadge (re-run with seeded battles — result recorded in the next commit), shopscroll 6/6, debug9 15/15, and the Phase 1 checks.
+
+**Did Phase 10 change how battles play? No — measured.** The same battle was
+replayed on the Phase 9 build and the Phase 10 build with the battle engine's
+generator seeded identically. For all six seeds the two builds fought the
+identical battle, HP change for HP change, with the same result (and the same
+build twice agreed with itself, proving the method).
+
+Screens inspected by eye: the title with no save, one save, two saves, a damaged
+save and nothing usable; the chooser; the New Game confirmation; Settings from
+the title and the menu; the menu; Save with an empty slot, over a save, over a
+damaged or newer one, succeeding and failing; a failed load; a browser with no
+storage; the Autosaved and Autosave-off notes.
+
+A save with eight creatures is about 3 KB; writing or reading one takes under a
+millisecond (0.6 ms median in Node; autosaves in the browser 0.2–1.6 ms).
+
+**Harness defects found and fixed — not game bugs, listed so they are not
+mistaken for any:**
+- The Phase 1 suite and the shared `newGame()` helper assumed Enter on the
+  title meant New Game. With a save, Continue is highlighted and New Game asks
+  first; both now choose New Game by name and answer the question.
+- **phase9c and firstbadge depended on winning unseeded battles.** Phase 9's
+  single passing run was a fortunate draw: this browser driver wins about a
+  third of the Water starter's fights against Fern. Both now seed the battle
+  engine — phase9c allows three fixed seeds per starter, since its question is
+  whether a route exists; firstbadge seeds each fight, since it tests the
+  journey, not the odds (tests/gymBalance.test.js measures those).
+- The persistence playthrough reloaded while Wick was still speaking — before
+  the starter's autosave, which by design waits for the dialogue to close. It
+  now finishes what is on screen before reloading, as a player would.
+- Leak baselines counted a banner whose fade is (correctly) frozen while the
+  menu pauses the world, and a wandering villager caught mid-step; they now wait
+  for transients and sample the steady state.
+- Walkers aimed straight through tall grass and a trainer's lane, checks read
+  values at the wrong moment, and Web Audio's float32 volume needed a tolerance
+  (and a key press, since browsers keep audio locked until one).
 
 ---
 

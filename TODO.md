@@ -265,7 +265,7 @@ Continue exactly where you were.
 - [x] Play time is counted at last (`PlayClock`)
 - [x] `debug.saves/save/dumpSave/clearSave/injectLegacySave/corruptSave/
       saveVersion/settings`
-- [x] 2460 automated tests; browser-verified with **true page reloads** across
+- [x] 2476 automated tests; browser-verified with **true page reloads** across
       manual save, autosave, the chooser, damaged and newer saves, legacy saves,
       mid-puzzle, after-Sigil, party/storage, Index, recovery point through a
       real blackout, settings and New Game safety
