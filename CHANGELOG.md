@@ -164,7 +164,7 @@ Every Phase 1–9 browser suite was re-run on the final build: playthrough 12/12
 phase2 34/34, phase2b 18/18, phase3 22/22, phase3b 60/60, phase4 27/27, phase4b
 15/15, phase4c 33/33, phase5 41/41, phase5b 13/13, phase6 65/65, phase7 85/85,
 phase8 59/59, phase9 98/98, phase9b 16/16, phase9c 12/12 (twice), firstbadge
-firstbadge (re-run with seeded battles — result recorded in the next commit), shopscroll 6/6, debug9 15/15, and the Phase 1 checks.
+firstbadge 54/54 (twice, with seeded battles), shopscroll 6/6, debug9 15/15, and the Phase 1 checks.
 
 **Did Phase 10 change how battles play? No — measured.** The same battle was
 replayed on the Phase 9 build and the Phase 10 build with the battle engine's
