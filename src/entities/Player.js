@@ -130,11 +130,18 @@ export class Player extends Phaser.GameObjects.Sprite {
     const dy = y - this.tileY;
     if (dx === 0 && dy === 0) return;
 
+    const before = this.facing;
     if (Math.abs(dx) > Math.abs(dy)) {
       this.setFacing(dx > 0 ? 'right' : 'left');
     } else {
       this.setFacing(dy > 0 ? 'down' : 'up');
     }
+
+    // Announce it exactly as a turn the player made themselves would be, so
+    // the world records the new facing. Without this, being turned to face
+    // a trainer left the recorded facing — and so any save made afterwards —
+    // pointing the way the player had been walking.
+    if (this.facing !== before) this.emit('turn', { facing: this.facing });
   }
 
   playWalkAnimation(facing, running) {

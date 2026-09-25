@@ -116,6 +116,13 @@ given a fate.
   listener was left behind each time, for the whole session. It predates
   Phase 10; the new leak test counts listeners per event and caught it
   (WorldScene 13 → 19 over six map changes). *Browser test: leak10.*
+- **The recorded facing ignored being turned to face a trainer.** When a
+  trainer walks over, the player is turned to face them — but that turn was not
+  announced, so the facing the game recorded (and saved) stayed pointing the
+  way the player had been walking. Saved after a trainer battle, the player
+  came back facing the wrong way. `Player.faceTowards()` now announces the turn
+  like any other. Found by the long-form persistence playthrough.
+  *Browser test: phase10c T8b, persist10.*
 - **A restored player could have stood inside an NPC.** Trainers who walked over
   to challenge, and villagers who wander, go back to their home tiles when a map
   loads; a player saved on one of those tiles would have been restored on top of
