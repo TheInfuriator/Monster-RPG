@@ -15,6 +15,23 @@
 import Phaser from 'phaser';
 import { KEY_BINDINGS, DIRECTIONS } from '../config/controls.js';
 
+/**
+ * True for the extra `keydown` events a browser sends while a key is HELD.
+ *
+ * WHY THIS MATTERS: every scene makes its own key objects. A key that is
+ * already held when a scene starts — Confirm still down after choosing
+ * Continue, Cancel still down after opening the menu — has never seen its
+ * first press, so Phaser treats the browser's next auto-repeat as a brand
+ * new one. Without this check, holding Confirm through Continue would talk
+ * to whoever the player loaded in front of, and holding Cancel for half a
+ * second would close the menu it had just opened.
+ *
+ * A held key still counts as held (`isDown`), so walking is unaffected.
+ */
+function isAutoRepeat(event) {
+  return Boolean(event && event.repeat);
+}
+
 export class InputManager {
   /** @param {Phaser.Scene} scene */
   constructor(scene) {
@@ -55,7 +72,10 @@ export class InputManager {
           }
 
           const key = scene.input.keyboard.addKey(keyCode, true, false);
-          key.on('down', () => this.pressLatch.add(action));
+          key.on('down', (_key, event) => {
+            if (isAutoRepeat(event)) return;
+            this.pressLatch.add(action);
+          });
           return key;
         })
         .filter(Boolean);
@@ -96,7 +116,7 @@ export class InputManager {
     // JustDown must still run for every key so it clears its own internal flag,
     // otherwise a second bound key can fire again a frame later.
     for (const key of keys) {
-      if (Phaser.Input.Keyboard.JustDown(key)) pressed = true;
+      if (Phaser.Input.Keyboard.JustDown(key) && !isAutoRepeat(key.originalEvent)) pressed = true;
     }
 
     // Consume the press, so one tap can never be read twice in a frame.

@@ -1062,6 +1062,24 @@ export class WorldScene extends Phaser.Scene {
     this.npcManager.setAllBusy(false);
   }
 
+  /**
+   * True when a save made right now would capture the game faithfully:
+   * nothing half-finished that a load could not put back together.
+   *
+   * Saves never happen mid-battle, mid-dialogue, mid-map-change, while a
+   * trainer is walking over, while a Sigil is being presented, or during a
+   * blackout. The pause menu offers Save only when this is true, and the
+   * autosave waits for it.
+   */
+  isSafeToSave() {
+    if (this.isTransitioning || this.isEnteringBattle) return false;
+    if (this.trainerChallenge || this.trainerAlert) return false;
+    if (this.badgePanel || this.blackoutRecovery) return false;
+    if (!this.dialogueBox || this.dialogueBox.isOpen) return false;
+    if (this.scene.isActive(SCENES.BATTLE) || this.scene.isActive(SCENES.STARTER_SELECT)) return false;
+    return true;
+  }
+
   /** True when pressing Cancel should open the pause menu. */
   canOpenMenu() {
     if (this.isTransitioning || this.isEnteringBattle) return false;
@@ -1374,7 +1392,7 @@ export class WorldScene extends Phaser.Scene {
     // The pause menu. Only when the player is actually in control — never
     // mid-transition, mid-cutscene or with something else on screen.
     if (this.canOpenMenu() && this.controls.justPressed('cancel')) {
-      this.openMenu();
+      this.openMenu({ canSave: this.isSafeToSave() });
       return;
     }
 

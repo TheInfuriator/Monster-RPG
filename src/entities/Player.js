@@ -244,6 +244,12 @@ export class Player extends Phaser.GameObjects.Sprite {
     if (this.moveTween) {
       this.moveTween.stop();
       this.moveTween = null;
+
+      // A step cut short never happened: the player is still on the tile
+      // they started from. Stopping the slide alone would leave the sprite
+      // frozen half-way between two tiles — so the picture would disagree
+      // with the position, and with where a save made now would put them.
+      this.snapToTile();
     }
     this.isMoving = false;
     this.isTurning = false;

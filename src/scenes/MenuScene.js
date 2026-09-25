@@ -9,7 +9,7 @@
  * press back into the overworld. One scene means one owner of the keyboard and
  * one place that hands control back.
  *
- *   root      Party / Bag / Index / Storage / Close
+ *   root      Party / Bag / Index / Sigils / Storage / Save / Settings / Close
  *   party     the team, with Move for reordering
  *   summary   one creature in full
  *   bag       what you are carrying, by category
@@ -17,6 +17,8 @@
  *   index     what has been seen and caught
  *   sigils    the Beacon Hall Sigils, earned and still to come
  *   storage   what is waiting back home
+ *   save      write the Manual Save, after saying what it will replace
+ *   settings  text speed and volume — the same panel the title screen uses
  *   shop      buying and selling, opened straight into by a shopkeeper
  *
  * Runs ON TOP of a paused overworld, so the map and the player's position are
@@ -59,10 +61,15 @@ import {
   getBuyList, getSellList, buyItem, sellItem, getBuyTotal, getSellTotal,
   getMaxAffordable,
 } from '../systems/ShopSystem.js';
+import { readSlot, saveToSlot } from '../save/SaveManager.js';
+import { describeSlotTitle, describeSlotLines } from '../ui/saveText.js';
+import { SettingsPanel } from '../ui/SettingsPanel.js';
 
 const PANEL = { x: 8, y: 8, width: GAME_WIDTH - 16, height: GAME_HEIGHT - 16 };
 const ROW = { x: 18, y: 44, height: 40, width: GAME_WIDTH - 36 };
 const INDEX_ROWS_PER_PAGE = 8;
+/** Vertical spacing of the root menu's rows — eight of them fit above the hint. */
+const ROOT_PITCH = 30;
 /**
  * How many shop rows fit above the quantity selector.
  *
@@ -83,6 +90,14 @@ export class MenuScene extends Phaser.Scene {
    */
   init(data) {
     this.onFinished = data?.onFinished || null;
+
+    /**
+     * Whether Save is offered. The overworld only opens the pause menu when
+     * the player is standing still in control — no dialogue, battle, map
+     * change or challenge under way — and says so here. Anything else that
+     * opens this scene gets no Save option unless it says the same.
+     */
+    this.canSave = data?.canSave === true;
 
     /**
      * 'menu' is the pause menu; 'shop' is a shopkeeper's counter, opened
@@ -115,6 +130,14 @@ export class MenuScene extends Phaser.Scene {
     this.shopQuantity = 1;
     this.shopMessage = '';
 
+    // Save
+    this.saveSlot = null;
+    this.saveChoice = 0;
+    /** null while asking; the outcome once a save has been attempted. */
+    this.saveResult = null;
+    this.saving = false;
+
+    this.settingsPanel = null;
     this.closing = false;
   }
 
@@ -229,6 +252,13 @@ export class MenuScene extends Phaser.Scene {
         detail: stored === 1 ? '1 waiting' : `${stored} waiting`,
         action: () => this.showStorage(),
       },
+      {
+        label: 'Save',
+        detail: this.canSave ? 'Write the Manual Save' : 'Not right now',
+        enabled: this.canSave,
+        action: () => this.showSave(),
+      },
+      { label: 'Settings', detail: 'Text speed, volume', action: () => this.showSettings() },
       { label: 'Close', detail: '', action: () => this.close() },
     ];
 
@@ -240,14 +270,15 @@ export class MenuScene extends Phaser.Scene {
     this.clearBody();
 
     this.rootItems.forEach((item, i) => {
-      const y = ROW.y + i * 34;
+      const y = ROW.y + i * ROOT_PITCH;
       const selected = i === this.rootIndex;
+      const enabled = item.enabled !== false;
 
-      if (selected) this.box(ROW.x - 6, y - 4, ROW.width, 26, COLORS.inkLight);
+      if (selected) this.box(ROW.x - 6, y - 4, ROW.width, 24, COLORS.inkLight);
 
       this.text(ROW.x, y, item.label, {
         fontSize: '13px',
-        color: selected ? CSS_COLORS.accent : CSS_COLORS.parchment,
+        color: !enabled ? CSS_COLORS.parchmentDim : selected ? CSS_COLORS.accent : CSS_COLORS.parchment,
       });
       this.text(ROW.x + 120, y + 3, item.detail, { color: CSS_COLORS.parchmentDim });
     });
@@ -263,7 +294,11 @@ export class MenuScene extends Phaser.Scene {
       this.rootIndex = (this.rootIndex + 1) % count;
       this.drawRoot();
     }
-    if (this.controls.justPressed('confirm')) this.rootItems[this.rootIndex].action();
+    if (this.controls.justPressed('confirm')) {
+      const item = this.rootItems[this.rootIndex];
+      if (item.enabled !== false) item.action();
+      return;
+    }
     if (this.controls.justPressed('cancel')) this.close();
   }
 
@@ -1187,6 +1222,143 @@ export class MenuScene extends Phaser.Scene {
   // Lifecycle
   // -------------------------------------------------------------------------
 
+  // -------------------------------------------------------------------------
+  // Save
+  // -------------------------------------------------------------------------
+
+  /**
+   * The Save screen. It shows what is in the Manual Save now and says exactly
+   * what saving will replace, then waits for a second, deliberate Confirm.
+   */
+  showSave() {
+    if (!this.canSave) return;
+    this.view = 'save';
+    this.saveSlot = readSlot('manual');
+    this.saveChoice = 0;
+    this.saveResult = null;
+    this.drawSave();
+  }
+
+  drawSave() {
+    this.clearBody();
+    this.title.setText('SAVE');
+
+    const summary = this.saveSlot;
+    const top = ROW.y - 4;
+
+    // What is there now.
+    this.box(ROW.x - 6, top, ROW.width, 78, COLORS.inkLight, 0.5);
+    this.text(ROW.x, top + 6, describeSlotTitle(summary), {
+      fontSize: '12px',
+      color: summary.status === 'valid' || summary.status === 'empty'
+        ? CSS_COLORS.accent
+        : CSS_COLORS.danger,
+    });
+    describeSlotLines(summary).forEach((line, i) => {
+      this.text(ROW.x, top + 24 + i * 15, line, {
+        color: CSS_COLORS.parchmentDim, wordWrap: { width: ROW.width - 16 },
+      });
+    });
+
+    if (this.saveResult) {
+      // The outcome, in plain words; Confirm or Cancel goes back.
+      const ok = this.saveResult.ok;
+      this.text(ROW.x, top + 100, ok ? 'Game saved.' : 'The game was not saved.', {
+        fontSize: '14px', color: ok ? CSS_COLORS.good : CSS_COLORS.danger,
+      });
+      if (!ok) {
+        this.text(ROW.x, top + 122, this.saveResult.message, {
+          wordWrap: { width: ROW.width - 16 },
+        });
+      }
+      this.hint.setText('Confirm or Cancel  back');
+      return;
+    }
+
+    // What saving will do.
+    const warning = {
+      valid: 'Saving will replace this Manual Save.',
+      empty: 'Save your progress here?',
+      corrupt: 'This save is damaged. Saving will replace it.',
+      incompatible: 'This save is from a newer version of the game. Saving here will replace it.',
+    }[summary.status];
+    this.text(ROW.x, top + 92, warning, { fontSize: '12px', wordWrap: { width: ROW.width - 16 } });
+
+    ['Save', 'Cancel'].forEach((label, i) => {
+      const y = top + 126 + i * 28;
+      const selected = i === this.saveChoice;
+      if (selected) this.box(ROW.x - 6, y - 4, 160, 24, COLORS.inkLight);
+      this.text(ROW.x, y, label, {
+        fontSize: '13px', color: selected ? CSS_COLORS.accent : CSS_COLORS.parchment,
+      });
+    });
+
+    this.hint.setText('Up/Down  choose      Confirm  select      Cancel  back');
+  }
+
+  updateSave() {
+    if (this.saveResult) {
+      if (this.controls.justPressed('confirm') || this.controls.justPressed('cancel')) this.showRoot();
+      return;
+    }
+
+    if (this.controls.justPressed('up') || this.controls.justPressed('down')) {
+      this.saveChoice = 1 - this.saveChoice;
+      this.drawSave();
+    }
+    if (this.controls.justPressed('confirm')) {
+      if (this.saveChoice === 0) this.confirmSave();
+      else this.showRoot();
+      return;
+    }
+    if (this.controls.justPressed('cancel')) this.showRoot();
+  }
+
+  /** Write the Manual Save. Once per confirmation, however long Confirm is held. */
+  confirmSave() {
+    if (this.saving || this.saveResult) return;
+    this.saving = true;
+
+    // The player has just been told, in words, that a newer-version save
+    // would be replaced — so this, and only this, may replace one.
+    const result = saveToSlot('manual', gameState, {
+      overwriteNewer: this.saveSlot.status === 'incompatible',
+    });
+    console.info(
+      result.ok
+        ? `[Save] Manual save written (${result.bytes} bytes in ${result.durationMs.toFixed(1)} ms).`
+        : `[Save] Manual save failed: ${result.reason}`
+    );
+
+    this.saveResult = result;
+    this.saveSlot = readSlot('manual');
+    this.saving = false;
+    this.drawSave();
+  }
+
+  // -------------------------------------------------------------------------
+  // Settings
+  // -------------------------------------------------------------------------
+
+  showSettings() {
+    this.view = 'settings';
+    this.clearBody();
+    this.title.setText('');
+    this.hint.setText('');
+
+    this.settingsPanel = new SettingsPanel(this, {
+      x: PANEL.x,
+      y: PANEL.y,
+      width: PANEL.width,
+      height: PANEL.height,
+      depth: DEPTHS.overlay + 2,
+      onClose: () => {
+        this.settingsPanel = null;
+        this.showRoot();
+      },
+    });
+  }
+
   close() {
     if (this.closing) return;
     this.closing = true;
@@ -1210,11 +1382,17 @@ export class MenuScene extends Phaser.Scene {
       case 'index': this.updateIndex(); break;
       case 'sigils': this.updateSigils(); break;
       case 'storage': this.updateStorage(); break;
+      case 'save': this.updateSave(); break;
+      case 'settings': if (this.settingsPanel) this.settingsPanel.update(this.controls); break;
       default: break;
     }
   }
 
   cleanup() {
+    if (this.settingsPanel) {
+      this.settingsPanel.destroy();
+      this.settingsPanel = null;
+    }
     if (this.body) {
       this.body.destroy(true);
       this.body = null;

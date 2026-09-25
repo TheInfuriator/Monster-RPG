@@ -33,6 +33,7 @@ export class Menu {
    * @param {number} [options.spacing]        vertical gap between items
    * @param {boolean} [options.wrap]          whether moving past the end loops around
    * @param {boolean} [options.fixedToCamera] true for HUD menus that must not scroll
+   * @param {number} [options.initialIndex]   which item starts highlighted, if enabled
    */
   constructor(scene, options) {
     this.scene = scene;
@@ -48,7 +49,10 @@ export class Menu {
     /** Set to true to make the menu ignore input without destroying it. */
     this.locked = false;
 
-    this.index = this.findFirstEnabledIndex();
+    const wanted = this.items[options.initialIndex];
+    this.index = wanted && wanted.enabled !== false
+      ? options.initialIndex
+      : this.findFirstEnabledIndex();
 
     // --- Build the text objects ---
     this.texts = this.items.map((item, i) => {

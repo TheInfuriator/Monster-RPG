@@ -44,6 +44,54 @@ import { getWorldConditions } from './ProgressionSystem.js';
 import { BADGES } from '../data/badges.js';
 import { PARTY } from '../config/balance.js';
 import { SCENES } from '../config/gameConfig.js';
+import {
+  SLOTS, listSlots, saveToSlot, deleteSlot,
+} from '../save/SaveManager.js';
+import { getStorage, STORAGE_KEYS, isStoragePersistent } from '../save/SaveStorage.js';
+import { SAVE_VERSION, createSaveFile } from '../save/SaveSchema.js';
+import { LEGACY_FIXTURES } from '../save/legacyFixtures.js';
+import { getSettings, updateSettings } from '../core/Settings.js';
+
+/**
+ * Ways to damage a save on purpose, for checking the game copes.
+ * Each takes the stored text of a good save and returns damaged text.
+ */
+const CORRUPTIONS = {
+  /** Cut off half way, like a write interrupted by a crash. */
+  json: (text) => text.slice(0, Math.floor(text.length / 2)),
+  /** Valid JSON that is not a save at all. */
+  root: () => '[]',
+  /** A version number that is not a number. */
+  version: (text) => JSON.stringify({ ...JSON.parse(text), version: 'two' }),
+  /** A save from a newer build of the game. */
+  future: (text) => JSON.stringify({ ...JSON.parse(text), version: SAVE_VERSION + 1 }),
+  /** The party is not a list. */
+  party: (text) => {
+    const file = JSON.parse(text);
+    file.gameState.party = 'lost';
+    return JSON.stringify(file);
+  },
+  /** A creature of a species that does not exist. */
+  species: (text) => {
+    const file = JSON.parse(text);
+    if (file.gameState.party[0]) file.gameState.party[0].speciesId = 'missingno';
+    else file.gameState.party = [{ speciesId: 'missingno', level: 5 }];
+    return JSON.stringify(file);
+  },
+  /** Repairable: the player saved inside a wall. */
+  wall: (text) => {
+    const file = JSON.parse(text);
+    file.gameState.location = { ...file.gameState.location, x: 0, y: 0 };
+    return JSON.stringify(file);
+  },
+  /** Repairable: two creatures sharing one id. */
+  duplicateIds: (text) => {
+    const file = JSON.parse(text);
+    const creatures = [...file.gameState.party, ...file.gameState.storage];
+    for (const creature of creatures) creature.instanceId = 'duplicate';
+    return JSON.stringify(file);
+  },
+};
 
 /** The currently running overworld scene, or null. */
 function world(game) {
@@ -112,6 +160,14 @@ export function installDebugTools(game) {
           '  debug.sigils()                  every Sigil and whether it is earned',
           '  debug.sigil(id, earned=true)    award or remove a Sigil',
           '  debug.teleport(mapId, spawn)    change map',
+          '  debug.saves()                   both save slots: status and summary',
+          '  debug.save(slot)                force a save into "manual" or "autosave"',
+          '  debug.dumpSave(slot)            the raw saved text of a slot',
+          '  debug.clearSave(slot, true)     DESTRUCTIVE: delete a slot ("all" for both)',
+          '  debug.injectLegacySave(name, slot)  put an old-version save in a slot',
+          '  debug.corruptSave(slot, kind)   damage a slot on purpose (see CORRUPTIONS)',
+          '  debug.saveVersion()             the save version this build writes',
+          '  debug.settings(changes)         show, or change, the settings',
           '  debug.species()                 list every species id',
           '  debug.battles()                 list scripted battles',
           '  debug.maps()                    list map ids',
@@ -557,6 +613,81 @@ export function installDebugTools(game) {
       }
       scene.scene.restart({ mapId, spawn });
       return mapId;
+    },
+
+    // --- Saving --------------------------------------------------------
+    saves() {
+      const slots = listSlots();
+      const rows = SLOTS.map((slot) => ({
+        slot,
+        status: slots[slot].status,
+        where: slots[slot].metadata?.locationName ?? '',
+        savedAt: slots[slot].metadata ? new Date(slots[slot].metadata.savedAt).toISOString() : '',
+        message: slots[slot].message ?? '',
+        warnings: slots[slot].warnings.length,
+      }));
+      console.table(rows);
+      if (!isStoragePersistent()) console.warn('[debug] storage is memory-only in this browser');
+      return slots;
+    },
+
+    save(slot = 'manual') {
+      const result = saveToSlot(slot, gameState);
+      console.info(`[debug] save ${slot}:`, result);
+      return result;
+    },
+
+    dumpSave(slot = 'manual') {
+      const text = getStorage().getItem(STORAGE_KEYS[slot]);
+      if (text === null) console.info(`[debug] ${slot} is empty`);
+      return text;
+    },
+
+    clearSave(slot = 'manual', confirm = false) {
+      const targets = slot === 'all' ? SLOTS : [slot];
+      if (!confirm) {
+        console.warn(
+          `[debug] This deletes ${targets.join(' and ')} for good. ` +
+            `Call debug.clearSave('${slot}', true) to go ahead.`
+        );
+        return false;
+      }
+      for (const target of targets) deleteSlot(target);
+      console.info(`[debug] deleted ${targets.join(', ')}`);
+      return true;
+    },
+
+    injectLegacySave(name = 'phase9', slot = 'manual') {
+      const build = LEGACY_FIXTURES[name];
+      if (!build) {
+        console.warn(`[debug] no fixture "${name}". Known: ${Object.keys(LEGACY_FIXTURES).join(', ')}`);
+        return false;
+      }
+      getStorage().setItem(STORAGE_KEYS[slot], JSON.stringify(build()));
+      console.info(`[debug] ${name} (version 1) written to ${slot}`);
+      return true;
+    },
+
+    corruptSave(slot = 'manual', kind = 'json') {
+      const damage = CORRUPTIONS[kind];
+      if (!damage) {
+        console.warn(`[debug] no corruption "${kind}". Known: ${Object.keys(CORRUPTIONS).join(', ')}`);
+        return false;
+      }
+      const storage = getStorage();
+      const text = storage.getItem(STORAGE_KEYS[slot])
+        ?? JSON.stringify(createSaveFile(gameState, { source: slot }));
+      storage.setItem(STORAGE_KEYS[slot], damage(text));
+      console.info(`[debug] ${slot} damaged: ${kind}`);
+      return true;
+    },
+
+    saveVersion: () => SAVE_VERSION,
+
+    settings(changes) {
+      if (changes) updateSettings(changes);
+      console.info('[debug] settings:', getSettings());
+      return getSettings();
     },
 
     // --- Listings ------------------------------------------------------
