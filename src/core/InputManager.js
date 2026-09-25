@@ -91,9 +91,12 @@ export class InputManager {
     scene.events.on(Phaser.Scenes.Events.RESUME, this.clearLatch);
 
     // Tidy up automatically when the scene ends, so a scene restart cannot
-    // stack up duplicate key objects.
-    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
-    scene.events.once(Phaser.Scenes.Events.DESTROY, () => this.destroy());
+    // stack up duplicate key objects. A scene that restarts only SHUTS DOWN —
+    // its event emitter lives on — so `destroy()` removes both of these, or
+    // the unused one would be left behind once per restart, forever.
+    this.teardown = () => this.destroy();
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.teardown);
+    scene.events.once(Phaser.Scenes.Events.DESTROY, this.teardown);
   }
 
   /** True while any key bound to this action is held down. */
@@ -161,6 +164,8 @@ export class InputManager {
 
     this.scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.clearLatch);
     this.scene.events.off(Phaser.Scenes.Events.RESUME, this.clearLatch);
+    this.scene.events.off(Phaser.Scenes.Events.SHUTDOWN, this.teardown);
+    this.scene.events.off(Phaser.Scenes.Events.DESTROY, this.teardown);
 
     for (const keys of Object.values(this.keys)) {
       for (const key of keys) {
