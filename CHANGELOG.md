@@ -110,6 +110,12 @@ given a fate.
   maps. Harmless while every id came from the game's own code — a real hole the
   moment ids come from a save file. Every lookup now checks the table's own
   keys. *Tests: saveValidation "ids that are really JavaScript built-ins".*
+- **Every scene start leaked one event listener.** `InputManager` listened for
+  both SHUTDOWN and DESTROY on its scene, but a scene that restarts (every map
+  change) or is relaunched (every menu open) only shuts down — so the DESTROY
+  listener was left behind each time, for the whole session. It predates
+  Phase 10; the new leak test counts listeners per event and caught it
+  (WorldScene 13 → 19 over six map changes). *Browser test: leak10.*
 - **A restored player could have stood inside an NPC.** Trainers who walked over
   to challenge, and villagers who wander, go back to their home tiles when a map
   loads; a player saved on one of those tiles would have been restored on top of
