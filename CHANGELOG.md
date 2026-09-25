@@ -152,6 +152,10 @@ than a note, because balance rots silently.
   balance; plus the map, shop, Mender and Sigil checks that now run
   automatically over every map and every Sigil.
 - **Lint clean; production build succeeds.**
+- **Browser suites against the production build, all zero console errors:**
+  Phase 9 features 98/98, Gym blackout and retry 16/16, all three starters vs
+  Fern 12/12, the full keyboard playthrough 54/54, shop scrolling 6/6, debug
+  commands 15/15, and the Phase 9 leak test 14/14.
 - **Browser-verified against the production build**, zero console errors: the
   gate refusing and then opening, the walk to Thistlewood with party, money,
   bag and flags intact, the Thornway staying shut, the second Mender and the
