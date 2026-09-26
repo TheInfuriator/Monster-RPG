@@ -431,6 +431,51 @@ describe('trainer data validation catches mistakes', () => {
   it('rejects an id that disagrees with its key', () => {
     expect(findTrainerProblems(sound, 'somethingElse').join(' ')).toMatch(/id field says/);
   });
+
+  // --- Phase 11: rival meetings and story fields ---------------------------
+  const rival = TRAINERS.kestrelThornway;
+  const problems = (changes) => findTrainerProblems({ ...rival, ...changes }, 'kestrelThornway').join(' ');
+
+  it('rejects a rival that does not exist', () => {
+    expect(problems({ rival: 'nobody' })).toMatch(/no such rival/);
+  });
+
+  it('rejects a rival meeting with no stage, or a nonsense one', () => {
+    expect(problems({ stage: undefined })).toMatch(/stage of 1 or more/);
+    expect(problems({ stage: 0 })).toMatch(/stage of 1 or more/);
+    expect(problems({ stage: 1.5 })).toMatch(/stage of 1 or more/);
+  });
+
+  it('rejects a rival\'s starter slot on an ordinary trainer', () => {
+    const bad = { ...sound, party: [{ rivalStarter: true, level: 6 }] };
+    expect(findTrainerProblems(bad, 'route1Scout').join(' ')).toMatch(/rivalStarter outside a rival/);
+  });
+
+  it('rejects a starter slot that also names a species', () => {
+    expect(problems({ party: [{ rivalStarter: true, species: 'drizzle', level: 13 }] }))
+      .toMatch(/must not also name a species/);
+  });
+
+  it('still checks the level of a starter slot', () => {
+    expect(problems({ party: [{ rivalStarter: true, level: 0 }] })).toMatch(/level must be between/);
+    expect(problems({ party: [{ rivalStarter: true }] })).toMatch(/whole number/);
+  });
+
+  it('rejects flags and conditions that are not names', () => {
+    expect(problems({ setFlags: 'thornwayOpen' })).toMatch(/setFlags must be a list/);
+    expect(problems({ setFlags: [''] })).toMatch(/setFlags must be a list/);
+    expect(problems({ requires: [] })).toMatch(/requires must be/);
+    expect(problems({ requires: 7 })).toMatch(/requires must be/);
+  });
+
+  it('accepts conditional lines, but only with a fallback at the end', () => {
+    expect(problems({})).toBe('');
+    expect(problems({ intro: [{ when: 'starter:pyrret', pages: ['Hi.'] }] }))
+      .toMatch(/last branch must have no condition/);
+    expect(problems({ intro: [{ when: 'x', pages: [] }, { pages: ['Hi.'] }] }))
+      .toMatch(/branch needs pages/);
+    expect(problems({ victoryLines: [] })).toMatch(/needs victoryLines lines/);
+  });
 });
 
 // ---------------------------------------------------------------------------

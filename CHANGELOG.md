@@ -4,6 +4,145 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 11 — Kestrel and Route 2 (World Expansion I)
+
+The game now runs past the first badge. Earn the Verdant Sigil and your rival,
+**Kestrel**, is waiting at Thistlewood's Thornway gate with the starter that
+beats yours. Win and the gate opens onto **Route 2 — the Thornway**: bramble
+cutting, a thicket that forks round a bramble island, a scree slope with its
+own wild Aethers, four trainers, seven new species, a dry spring nobody can
+explain, and Kestrel again at the top — below Mistvault Cavern, which the
+Wardens have roped off. That cordon is where Phase 11 ends.
+
+### Added
+
+**Kestrel, on the ordinary trainer pipeline.** No rival scene, no rival battle
+code, no rival save field. A meeting is one entry in `trainers.js` with five
+optional fields any trainer may use: `rival` + `stage`, `requires`, `setFlags`
+(what a win changes — set in the same pure call that marks the trainer beaten,
+`recordTrainerVictory`), `victoryLines` (said before the player's blackout),
+and a `{ rivalStarter: true, level }` party slot.
+
+- **One starter mapping** (`src/data/rivals.js`) — Fire → Water, Water →
+  Grass, Grass → Fire, the canon "strong against" rule. `RivalSystem` resolves
+  the slot at battle time and walks the evolution chain as far as the level
+  allows, so the species data alone makes Kestrel's Drizzle a Puddlurk at 16.
+- **Intro, outro and victory lines may be conditional branches**; Kestrel's
+  name the right starter to each player through a new `starter:<id>` world
+  condition.
+- **Meeting 1 — the Thornway gate.** There once the Verdant Sigil is held
+  (Flittle 12, starter 13). Spotted or spoken to, the same intro and fight. A
+  win sets `thornwayOpen`: the gate opens while the player watches, Kestrel
+  walks back up the lane, through it and away, and there is ONE autosave,
+  labelled `story`. A loss: Kestrel's line, then the ordinary blackout;
+  nothing recorded, Kestrel still waiting.
+- **Meeting 2 — below Mistvault** (Gustwing 14, Grubbit 13, evolved starter
+  16). Gates nothing. Kestrel stays by the cordon afterwards with new lines.
+
+**NPC presence** (`src/systems/NpcPresence.js`). `presentWhen` / `absentWhen`
+on any NPC, read by the map loader AND the save loader, so a player is never
+restored onto the tile of someone who is not there, nor kept off it by someone
+who has left. A beaten trainer can `exitAfterDefeat` (walk off and fade —
+counted from their own tile, so one who walked over walks back first) or
+`returnAfterDefeat` (walk back to their post).
+
+**Route 2 — the Thornway** (30x50, `src/data/maps/route2.js`): the cutting,
+the dry-spring loop, the fork round the bramble island, the Brow, the scree,
+a one-tile gully in Kestrel's sight, and the landing. Four trainers (13-16),
+the bramble crew, the spring keeper, a Warden, four signs, six ground items
+(existing items only). Thistlewood's north edge now opens onto it.
+
+**Two habitats on one map.** `encounters.byTerrain` lets a map roll a
+different table on particular encounter tiles; tall grass rolls
+`route2Thicket`, the new scree tile rolls `route2Scree`. Commons, uncommons and
+two rares in each, old faces and new.
+
+**Seven species (34 in all), five moves (61), eight tiles.** Jabbit →
+Brawnhare (the first Fighting family), Glimmote → Brambelle (the first Fairy
+anything), Delvit → Ironvole (Ground into Ground/Steel), and the rare Burrzap
+(Electric/Grass). Hop Kick, Flurry Jabs, Glimmer, Moonpetal and Burrow Strike,
+all on existing effect kinds. Scree, rock face, boulder, bramble, a dry spring
+bed, a survey stake, the cave mouth, the Wardens' cordon, and a signpost for
+rocky ground.
+
+**The story thread**, foreshadowing only: a spring that ran for three hundred
+years has stopped; a surveyor's stake in the basin carries a grey tag stamped
+with a hollow ring crossed by a line — a weathervane with nothing at its heart
+— reading SURVEY 14 — CURRENT DRAW; cave-dwellers are out on the open scree.
+Nobody names the Hollow Vane; no grunt is fought.
+
+**The Phase 12 boundary.** A barrier across Mistvault's mouth with
+`openWhen: 'mistvaultOpen'`, a flag nothing sets; a Warden who explains; a
+sign that says CLOSED; no exit tiles behind it.
+
+**Save version 3.** One new field, `starter`, recorded when the starter is
+chosen. The `2 → 3` migration recovers it from the creature met at the
+Warden's Lodge (party or storage, evolved or not). Everything else Phase 11
+remembers already had a home: beaten rivals in `defeatedTrainers`, the gate
+in `flags`. A Phase 10 save keeps its Continue summary through the migration.
+
+**Debug:** `debug.rival()`, `debug.starter(id)`, the habitat underfoot in
+`debug.encounterInfo()` and the overlay; `debug.beatTrainer()` now sets the
+flags a real win sets.
+
+### Balance — measured through the engine
+
+- `tests/helpers/routeWalk.js` WALKS Route 2 with a post-Fern team — Kestrel,
+  wild battles from the route's own tables, every trainer — letting the engine
+  award the experience, so "the levels a player has here" is a measurement.
+  It found the experience economy slower than the design doc's pacing: players
+  top out around 15-17, not 18.
+- **Kestrel at the gate** (60 seeds; Fire / Water / Grass): straight after
+  Fern 52% / 100% / 70%; one level later 83% / 100% / 100%; with a third
+  capture 100% / 100% / 98%; the starter alone 0%. The originally planned
+  team (evolved starter 15 + Gustwing 14 + Grubbit 13) won 0% for everyone.
+- **Kestrel below Mistvault**: with the Route 2 Aether the road points each
+  player at, 87% (Zaplet) or 100% (Vinelet) for Fire, 97% for Water, 97%
+  (Delvit) or 100% (Pebblit) for Grass. With nothing new, Fire and Grass are
+  0-2% — deliberately, like a lone Water starter at Fern — and people on the
+  road say what to catch.
+- **Route 2's trainers** fall first time for every starter down either fork,
+  except a Fire player with nothing new, who needs about three goes at
+  Dunmore. The first draft had two walls (a Gustwing-led Birdwatcher a Grass
+  player never beat in 20 tries; a Rock/Ground Scree-Walker that took a Fire
+  player 13); both were rebuilt.
+
+### Bugs found and fixed
+
+- **The balance driver never used its best move (test bug, since Phase 9).**
+  `bestMove` read `entry.power` off a creature's move entry, which only holds
+  `{ id, pp, maxPp }`, so it never found a damaging move and always used the
+  FIRST one. Every balance number since Phase 9 was measured with that player.
+  The driver now lives in `tests/helpers/battleSim.js`, reads the move
+  database, and is shared by the Hall, rival and Route 2 tests. Fern
+  re-measured: Fire + Flittle 100%, Water + Flittle 43% (the doc said ~67%),
+  Grass + Flittle 100%, a lone Water starter still 0%. Every guard rail held.
+- **Kestrel stood in the gully for good.** After a sight challenge down Route
+  2's one-tile gully, a beaten Kestrel stayed where they stopped — the only
+  way to the landing — until the map was reloaded. Fixed with
+  `returnAfterDefeat`; a browser test walks up past them.
+- **Kestrel stopped short of the Thornway gate.** Their exit was counted from
+  where they stood after walking over to challenge, so they faded half way
+  down the lane instead of walking through the gate. The exit is now counted
+  from their own tile.
+- **A cave of framed windows.** Each cave-mouth tile drew its own arch, so a
+  4x2 opening looked like a row of windows; it is now edge-to-edge dark, framed
+  by the rock around it. A sign in the rock no longer stands on a square of
+  grass.
+
+### Rules chosen and documented
+
+- Kestrel's pronouns are **they/them** — the canon gives none.
+- The first meeting is the plan's third appearance; the first two were never
+  built and retro-fitting them would change finished, saved maps.
+- A rival meeting that gates something sets a flag on the WIN; losing never
+  changes the world.
+- `presentWhen` on a rival's NPC must equal the trainer's `requires` (tested),
+  so they are standing there exactly when the fight is allowed.
+- No new shop or Mender on Route 2: Thistlewood's are one walk south.
+
+---
+
 ## Phase 10 — Save, Load and Settings
 
 The first-badge slice now survives closing the tab. Save from the menu at any
