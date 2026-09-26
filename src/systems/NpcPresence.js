@@ -51,3 +51,23 @@ export function stepsToLeave(npc, exit) {
   }[exit.direction] ?? 0;
   return Math.max(0, behindHome) + exit.steps;
 }
+
+/**
+ * The way back to a trainer's own tile, after walking over to challenge.
+ *
+ * A trainer who spotted the player walked straight down their lane, so the
+ * way home is straight back up it. Used by `returnAfterDefeat` — Kestrel in
+ * Route 2's one-tile gully, who would otherwise stand in it for good.
+ *
+ * @param {{ tileX: number, tileY: number, homeX: number, homeY: number }} npc
+ * @returns {{ direction: string, steps: number } | null} null when already home
+ *   (or, impossibly, off their lane)
+ */
+export function wayHome(npc) {
+  const dx = npc.homeX - npc.tileX;
+  const dy = npc.homeY - npc.tileY;
+  if (dx === 0 && dy === 0) return null;
+  if (dx !== 0 && dy !== 0) return null;
+  if (dx === 0) return { direction: dy < 0 ? 'up' : 'down', steps: Math.abs(dy) };
+  return { direction: dx < 0 ? 'left' : 'right', steps: Math.abs(dx) };
+}

@@ -37,18 +37,22 @@ springs, storms, and mineral veins. Full planned region (built incrementally):
 
 **Vertical slice (first playable build) = locations 1, 2, and 3.**
 
-**Built so far (Phase 9):** Emberhollow Town and its four interiors, Route 1, and
-Thistlewood with its Mender's Hall, Supply Post, a cottage and the Verdant Hall.
-That is the whole vertical slice: locations 1, 2 and 3.
+**Built so far (Phase 11):** Emberhollow Town and its four interiors, Route 1,
+Thistlewood with its Mender's Hall, Supply Post, a cottage and the Verdant Hall
+(the vertical slice, locations 1-3), and now **Route 2 — the Thornway**
+(location 4), up to the mouth of Mistvault Cavern.
 
-Route 2 is held back the same way Thistlewood was — Thistlewood's Thornway gate
-is visibly shut, with a keeper and a sign that explain the bramble clearance,
-rather than an invisible wall or an empty route.
+Mistvault is held back the same way Route 2 was before it — the cavern is
+visible at the top of the Thornway, behind a Warden cordon, with a Warden and a
+sign that explain why, rather than an invisible wall or an empty cave. See
+section 22.
 
 ### Region flavour notes
 - Emberhollow: warm ochre + slate, a small quarry town built on a dormant ember vent.
 - Cinderpath: ash-grey soil, hardy green grass, low stone walls.
 - Thistlewood: overgrown timber town, everything half-swallowed by hedges.
+- The Thornway: a bramble-cut road climbing from thicket onto bare scree, with
+  Mistvault's dark mouth at the top.
 
 ### Emberhollow Town — as built
 30x24. A crossroads town: the main road runs east-west, the north road becomes the
@@ -86,6 +90,19 @@ player always chooses between the safe route and the interesting one. A pond
 partway up, two ground items, seven NPCs — four travellers and three trainers —
 a signpost, and a gate at the top that the warden opens once you are walking
 with a partner.
+
+### Route 2 — The Thornway — as built (Phase 11)
+30x50, running north from Thistlewood's Thornway gate — bigger than Route 1
+(660 tiles) at 1500, without being a slog. South to north: a **bramble
+cutting** with the bramble crew and a trainer, a grassy pocket to the west and
+two trails east to a **dry spring** (a loop); a **thicket** of tall grass where
+the road **forks** round a bramble island (one gap, one item inside) and meets
+itself again, a trainer on each fork; **the Brow**, where the trees stop; a
+**scree slope** — the route's second habitat — with a trainer on a gravel spur
+and items in the far corners; a one-tile **gully** straight into Kestrel's
+sight; and the **landing** below Mistvault Cavern, behind a Warden cordon.
+Four trainers, Kestrel, three other people, four signs, six ground items. Full
+detail in section 22.
 
 ---
 
@@ -173,13 +190,33 @@ Beyond the starters, the slice ships these wild Aethers. IDs are lowercase slugs
 held back for the later regions rather than padded into Route 1 to hit a number.
 The type CHART covers all 18 regardless.
 
-Full game target: **30+** creatures across ~12 evolutionary families.
+### Added in Phase 11 (Route 2): 7 species — 34 in all
+
+| # | Line | Types | Where |
+|---|------|-------|-------|
+| 28-29 | Jabbit → Brawnhare (24) | Fighting | Route 2 thicket and scree |
+| 30-31 | Glimmote → Brambelle (22) | Fairy, then Fairy/Grass | Route 2 thicket |
+| 32-33 | Delvit → Ironvole (26) | Ground, then Ground/Steel | Route 2 scree |
+| 34 | Burrzap | Electric/Grass | Route 2 thicket (rare) |
+
+Each fills a gap the first 27 left: the first real **Fighting** family, the
+first **Fairy** anything (the type chart always had it), a Ground line that
+grows into Steel, and a dual type nothing else has. Stat totals sit with the
+other route families (about 270 first stage, 400 evolved); Burrzap is 342.
+
+**Now 34 species: 13 evolutionary families and 5 single-stage species,
+15 of 18 types** (Ice, Psychic and Dragon are still held back). The full-game
+target of 30+ creatures is met.
 
 ---
 
-## 4b. Moves — 56 built
+## 4b. Moves — 61 built
 
-24 physical, 16 special, 16 status, across 14 types. Effects are declared as
+27 physical, 18 special, 16 status, across 15 types. (56 until Phase 11, which
+added five, each for a new species that needed it: **Hop Kick** and **Flurry
+Jabs** for the Fighting family, **Glimmer** and **Moonpetal** for the first
+Fairy creatures, **Burrow Strike** for a Ground attack between Mud Slap's 30
+and Quake Stomp's 80. All use existing effect kinds — no engine change.) Effects are declared as
 KINDS (`status`, `statChange`, `heal`, `drain`, `recoil`, `multiHit`, `flinch`)
 rather than per-move code, so the battle engine handles each behaviour once.
 
@@ -279,13 +316,15 @@ Battle code never hardcodes matchups — it always asks `TypeChart.getMultiplier
 ```
 Wake up in Emberhollow
   → Warden's Lodge: meet Professor Wick, choose starter
-  → Rival battle #1 (in town, 1 creature each)
   → Receive Capture Orbs
   → Route 1 (Cinderpath): wild Aethers, 3 trainers
   → Thistlewood: shop, mender, Beacon Hall #1
   → Verdant Beacon Hall: 2 trainers + puzzle + Leader Fern
   → Earn the Verdant Sigil  ← END OF VERTICAL SLICE
-  → Route 2, Mistvault Cavern, Hollow Vane event
+  → Kestrel at the Thornway gate (rival battle #1) — opens Route 2
+  → Route 2 (the Thornway): 4 trainers, Kestrel again below Mistvault
+  → Mistvault Cavern cordoned off  ← END OF PHASE 11
+  → Mistvault Cavern, Hollow Vane event
   → Tidewatch Harbor: Beacon Hall #2 (Tidal)
   → Route 3, Voltspire City: Beacon Hall #3 (Storm)
   → The Aerie: Champion gauntlet
@@ -296,9 +335,19 @@ Wake up in Emberhollow
 |-----------|----------------------|
 | Route 1 wild Aethers | 3–6 |
 | Route 1 trainers | 5–7 |
-| Rival battle #1 | 5 |
 | **Beacon Hall 1 (Fern)** | **10–13** |
-| Route 2 | 14–18 |
+| Rival battle #1 — Thornway gate (Kestrel's ace L13) | 13–14 *(measured)* |
+| Route 2 wild Aethers / trainers | 13–18 / 13–16 |
+| Rival battle #2 — below Mistvault (Kestrel's ace L16) | 15–17 *(measured)* |
+
+The planned pacing had Route 2 at 14-18 and Hall 2 at 18-22. Walking Route 2
+through the real engine (tests/helpers/routeWalk.js) puts a player's starter
+at 15-17 by the top: the experience economy is slower than the plan assumed,
+so Route 2 is pitched at what players really have, and the rows below are
+still plans to be measured the same way when they are built.
+
+| Planned | Expected player level |
+|---------|----------------------|
 | **Beacon Hall 2** | **18–22** |
 | Mistvault Cavern | 20–25 |
 | **Beacon Hall 3** | **25–30** |
@@ -324,22 +373,39 @@ the barrier architecture, the measured balance and the Sigil.
 - **Progress recorded as:** the Sigil itself, readable in dialogue as
   `badge:verdantSigil`. The old plan called for a separate `sigil_verdant` flag;
   that would have been two records of one fact, free to disagree. See section 20.
-- **Unlocks:** the Thornway gate to Route 2 — a barrier waiting on a
-  `thornwayOpen` flag that nothing sets until Route 2 is built.
+- **Unlocks:** the Thornway gate to Route 2 — once the Sigil is held, Kestrel
+  is waiting in front of it, and beating them sets `thornwayOpen` (Phase 11).
 
 ---
 
 ## 8. The Rival
 
 **Name:** Kestrel. Confident, competitive, never actually mean — treats the player as
-the one person worth beating.
+the one person worth beating. **Pronouns: they/them** (nothing in the canon
+gave any, so the game uses the neutral default rather than guessing).
 
-| Appearance | Where | Team |
-|-----------|-------|------|
-| 1 | Emberhollow (after starter) | Starter only, L5 |
-| 2 | Route 1 exit | Starter L9 + Flittle L8 |
-| 3 | After Beacon Hall 1 | Evolved starter L15 + Gustwing L14 + Grubbit L13 |
-| 4+ | Later routes / The Aerie | Grows to a full 6 |
+**As built (Phase 11)** — two meetings, both on the ordinary trainer pipeline:
+
+| Meeting | Where | When | Team |
+|---------|-------|------|------|
+| 1 | Thistlewood, in front of the Thornway gate | once the Verdant Sigil is held | Flittle L12, **starter L13** |
+| 2 | Route 2, the gully below Mistvault | on the way to the cordon | Gustwing L14, Grubbit L13, **evolved starter L16** |
+| 3+ | later routes / The Aerie | Phase 12 onwards | grows to a full 6 |
+
+The **original plan** had three appearances — Emberhollow after the starter
+(L5), Route 1's exit (starter L9 + Flittle L8) and after Hall 1 (evolved
+starter L15 + Gustwing L14 + Grubbit L13). The first two were never built, so
+the first meeting the player actually has is the plan's third — which is why
+Kestrel introduces themself at the gate. Its planned team won **0%** of the
+time for every starter against a real post-Fern team, so the gate fight took
+the SHAPE of the plan's appearance 2 (starter + Flittle) at post-Fern levels,
+and the plan's appearance 3 (evolved starter + Gustwing + Grubbit) became the
+second meeting on Route 2, where the species data evolves the starter. Section
+22 has the numbers.
+
+**Kestrel's starter** is always the one strong against the player's (section
+3): Fire → Water, Water → Grass, Grass → Fire. One mapping in
+`src/data/rivals.js` decides it.
 
 ---
 
@@ -426,7 +492,13 @@ them, and later phases will gate areas with them.
 | `route1GateOpen` | Asking the Gate Warden once you have a starter | Route 1's north gate opens, for good |
 | `pickedUpThistlewoodOrb` | Taking the Great Orb in Thistlewood | The item stays taken |
 | `pickedUpVerdantPotion` | Taking the Super Potion behind the west hedge | The item stays taken |
-| `thornwayOpen` | *nothing yet* | Would open the Thornway gate. Reserved for Route 2 |
+| `thornwayOpen` | Beating Kestrel at the Thornway gate (`setFlags` on the trainer) | The Thornway gate opens, for good; the keeper and the sign change |
+| `pickedUpRoute2Salve`, `…UltraOrb`, `…IslandPotion`, `…Rouser`, `…GreatOrbs`, `…ScreePotion` | Taking Route 2's six ground items | Each stays taken |
+| `mistvaultOpen` | *nothing yet* | Would lift the Wardens' cordon across Mistvault Cavern. Reserved for Phase 12 |
+
+The player's **starter** is not a flag either — it is `GameState.starter`
+(Phase 11) — but it is readable as one: `starter:pyrret`, `starter:drizzle` or
+`starter:sproutle`. Kestrel's lines branch on it.
 
 Beaten trainers are not flags — they live in `GameState.defeatedTrainers`, keyed
 by trainer id — but they are *readable* as flags. `getDialogueConditions()` folds
@@ -1080,6 +1152,15 @@ faints, a potion when badly hurt):
 | Fire starter alone | ~50%, 100% by level 15 |
 | Water starter alone | **0%**, at any sensible level |
 
+**Re-measured in Phase 11.** The driver behind these numbers had a bug: it
+read `entry.power` off a creature's move entry, which only holds
+`{ id, pp, maxPp }`, so it never found a damaging move and always used the
+FIRST one. With the fixed driver (60 seeds): Fire + Flittle **100%**, Water +
+Flittle **43%** (85% two levels later), Grass + Flittle **100%**, Fire alone
+**98%** at 13, Water alone **0%** at 13, 15 and 17. The guard rails in
+`tests/gymBalance.test.js` all still hold; Water + Flittle at 13 now sits just
+above its 40% bar, which is worth watching if Fern is ever touched.
+
 Every creature Fern fields is Grass or Grass/Poison. Fire walks it. Water is
 resisted outright and Drizzle carries no coverage, so a solo Water starter
 cannot win — **deliberately**. That is what a type-themed Hall is for, and the
@@ -1144,11 +1225,10 @@ code.
 
 ### The Thornway
 
-Thistlewood's north-east road climbs to a shut gate with the Thornway — and
-Route 2 — behind it. The road beyond is visible, a keeper explains the bramble
-clearance, and a sign says CLOSED. It is a barrier with
-`openWhen: 'thornwayOpen'`, a flag nothing in this build sets: the seam for
-opening it later is already there and costs no code.
+Thistlewood's north-east road climbs to a gate with the Thornway — and Route 2
+— behind it. It is a barrier with `openWhen: 'thornwayOpen'`. Until Phase 11
+nothing set that flag; now beating Kestrel, who waits in front of the gate once
+the Verdant Sigil is held, sets it. See section 22.
 
 ### How the next Hall reuses all of this
 
@@ -1201,7 +1281,7 @@ without a migration.
 ```js
 {
   game: 'aetheria-chronicles',     // never mistake some other JSON for a save
-  version: 2,                      // the shape of everything below
+  version: 3,                      // the shape of everything below (Phase 11)
   metadata: {                      // what the Continue screen shows
     source: 'manual', savedAt, playerName, mapId, locationName,
     badgeCount, partySize, caughtCount, playTimeMs, lead: { speciesId, name, level },
@@ -1257,6 +1337,7 @@ written on the first frame the world is safe:
 | leaving a shop counter | coins and the bag changed hands |
 | choosing a starter | the first real progress |
 | picking up a ground item | so it is never lying there again after a reload |
+| a trainer win that sets story flags (Phase 11) | Kestrel at the gate: labelled `story`, still ONE autosave |
 
 **Never** mid-battle, mid-dialogue, mid-map-change, mid-step, while a trainer
 is walking over, while a Sigil is on screen, during a blackout, during the
@@ -1342,8 +1423,8 @@ migrated down and never overwritten automatically.
 ### Migrations
 
 `SaveMigrations.js` holds one function per version step. Loading a version 1
-save runs `1→2`; when version 3 exists, the same save runs `1→2` then `2→3`.
-Each migration is pure — a copy in, a new object out — and has its own tests.
+save runs `1→2` then `2→3`; a version 2 (Phase 10) save runs `2→3`. Each
+migration is pure — a copy in, a new object out — and has its own tests.
 
 Version 1 is the GameState of Phases 1–9, which lived only in memory. Its
 migration wraps it in the envelope, moves settings out, drops the derived
@@ -1351,6 +1432,17 @@ caches, and fills in anything an early phase lacked (storage, the Index, the
 recovery point, beaten trainers, puzzles, Sigils). `legacyFixtures.js` holds a
 hand-built version 1 save for the end of Phases 2, 3, 6, 7, 8 and 9; every one
 loads.
+
+**Version 3 (Phase 11)** adds one field, `starter` — which starter the player
+took — because Kestrel's team depends on it and nothing had recorded it. The
+`2→3` step recovers it from the creature met at the **Warden's Lodge**
+(party or storage, evolved or not); a save with no such creature records
+`null`, and the rival then warns and uses a fallback rather than refusing the
+battle. `tests/fixtures/phase10-saves.json` holds two save files written by
+the real Phase 10 build (commit `638279c`, its own `createSaveFile()`); both
+migrate, load, keep their Continue summary, come back on their saved tile, and
+play on with the right Kestrel. Nothing else in Phase 11 needed a new field:
+beaten rivals live in `defeatedTrainers`, the Thornway in `flags`.
 
 ### Settings
 
@@ -1392,6 +1484,223 @@ debug.clearSave('manual', true)   // DESTRUCTIVE — needs the true; 'all' for b
 debug.injectLegacySave('phase9')  // put a version 1 save in a slot
 debug.corruptSave('manual', 'json')  // json, root, version, future, party,
                                      // species, wall, duplicateIds
-debug.saveVersion()               // 2
+debug.saveVersion()               // 3
 debug.settings({ textSpeed: 'fast' })
 ```
+
+---
+
+## 22. Kestrel and Route 2 — the Thornway (Phase 11)
+
+Phase 11 is the first step past the vertical slice: the rival, the road that
+opens behind the Verdant Sigil, and the honest end of it at Mistvault Cavern.
+
+### The rival is an ordinary trainer
+
+There is no rival scene, no rival battle code and no rival save field. A
+meeting with Kestrel is **one entry in `src/data/trainers.js`**, fought through
+the Phase 8 pipeline — spotted or spoken to, the "!", the walk over, the intro,
+the battle, the outro — with five optional fields that any trainer may use:
+
+| Field | Meaning |
+|-------|---------|
+| `rival: 'kestrel'`, `stage: 1` | which rival, which meeting (1, 2, 3 … with no gaps — tested) |
+| `requires: 'badge:verdantSigil'` | a world condition that must hold; the map's NPC uses the same one as `presentWhen` |
+| `setFlags: ['thornwayOpen']` | story flags a WIN sets, in the same pure call that marks the trainer beaten (`recordTrainerVictory`) |
+| `victoryLines: [...]` | what they say when they beat the player — before the ordinary blackout |
+| party entry `{ rivalStarter: true, level }` | the rival's starter, resolved per player at battle time |
+
+`intro`, `outro` and `victoryLines` may be plain lines or **conditional
+branches**, like any dialogue (section 12) — Kestrel's intro branches on
+`starter:<id>` to name the right starter.
+
+**The rival's starter** is decided by ONE mapping, `RIVALS.kestrel.starterFor`
+in `src/data/rivals.js`: player Fire → Kestrel Water, Water → Grass,
+Grass → Fire. `RivalSystem.resolvePartyEntry` looks up the player's starter,
+takes the counter's family base, and walks its evolution chain as far as the
+entry's level allows — so the species data alone decides that Kestrel's
+Drizzle is a Puddlurk at 16. If the player's starter cannot be told (a
+damaged save), Kestrel warns in the console and uses `fallbackStarter`
+rather than refusing the fight.
+
+### Where Kestrel stands
+
+A map NPC with `trainer: 'kestrelThornway'` and two presence fields
+(`src/systems/NpcPresence.js`):
+
+- `presentWhen: 'badge:verdantSigil'` — there only once the fight is allowed
+- `absentWhen: 'trainer:kestrelThornway'` — gone for good once beaten
+
+Both read the same world conditions as dialogue, and the save loader asks the
+same question, so a player saved on Kestrel's tile is moved off it only while
+Kestrel is really there. Two more optional fields say what a beaten trainer
+does next: `exitAfterDefeat: { direction, steps }` (walk off and fade — steps
+counted from their own tile, so a trainer who walked over to challenge walks
+back first) and `returnAfterDefeat: true` (walk back to their post — Kestrel in
+Route 2's one-tile gully, who would otherwise block it). Talking to Kestrel
+says exactly what being spotted does: the map reuses the trainer's own intro
+branches, each with `action: 'trainer:<id>'`.
+
+### Meeting 1 — the Thornway gate
+
+| | |
+|--|--|
+| Where | Thistlewood (26,5), in the western lane of the gate road, facing down it (sight 5) |
+| Needs | the Verdant Sigil |
+| Team | Flittle L12, then Kestrel's starter L13 (Drizzle / Sproutle / Pyrret) |
+| Pays | 960 coins |
+| Win | `thornwayOpen` is set; the gate opens while the player watches; Kestrel walks back up the lane, through the gate and away; one autosave (`story`) |
+| Loss | Kestrel: *"Ha! One step ahead. Like always."*, then the ordinary blackout. Nothing is recorded; Kestrel is still at the gate |
+
+The Thornway needs **both** the Sigil and the win: Kestrel is only there with
+the Sigil, and only the win opens the gate. Pell the keeper sends a new player
+to the Hall, points a Sigil-holder at Kestrel, and says the road is open once
+it is; the sign changes with the flag.
+
+### Meeting 2 — below Mistvault
+
+| | |
+|--|--|
+| Where | Route 2 (14,4), at the top of the one-tile gully, facing down it (sight 5) |
+| Needs | meeting 1 (always true on Route 2) |
+| Team | Gustwing L14, Grubbit L13, then Kestrel's **evolved** starter L16 (Puddlurk / Bramblit / Cindraw) |
+| Pays | 1000 coins |
+| Win | no flags — Mistvault stays shut either way. Kestrel walks back to the landing and stays there, with new lines; the Warden has heard them arguing |
+| Loss | Kestrel: *"Ha! That makes it one each."*, then the ordinary blackout |
+
+### Balance — measured, not guessed
+
+`tests/rivalBalance.test.js` and `tests/route2.test.js` play real battles
+through the engine, seeded, with the shared sensible-player driver
+(`tests/helpers/battleSim.js`). `tests/helpers/routeWalk.js` WALKS Route 2 with
+a post-Fern team — Kestrel, wild battles from the route's own tables, every
+trainer — letting the engine award the experience, so "the levels a player
+has" is a measurement.
+
+Meeting 1, 60 seeds, Fire / Water / Grass:
+
+| Player's team | Win rate |
+|---------------|----------|
+| starter 14 + Flittle 13 (straight after Fern) | 52% / 100% / 70% |
+| one level higher | 83% / 100% / 100% |
+| plus a third Route 1 capture | 100% / 100% / 98% |
+| no potions | 30% / 100% / 10% |
+| the starter alone | 0% / 0% / 0% |
+
+Meeting 2, against the team the walk produces:
+
+| | Fire | Water | Grass |
+|--|------|-------|-------|
+| with the Route 2 catch the road points at | 87% (Zaplet), 100% (Vinelet) | 97% | 97% (Delvit), 100% (Pebblit) |
+| with nothing new | 0% | 95% | 2% |
+
+Like Fern for a lone Water starter, Kestrel's evolved counter asks Fire and
+Grass players for a second type — and Route 2 hands it to them on the way:
+Maren names Zaplet and Vinelet for a Fire player, Tamsin names Delvit and
+Pebblit against anything fiery. A Water player's Flittle already answers
+Bramblit (they paid for that at Fern). Every ordinary Route 2 trainer falls
+first time for every starter, down either fork, with or without a catch — with
+one exception: a Fire player with nothing new needs about three goes at
+Dunmore's Delvit. (`tests/route2.test.js` fails any trainer that takes more
+than four.)
+
+**What was changed to get here.** The plan's evolved-starter team at the gate
+won 0% for everyone; three first stages led by the starter still gave a Fire
+player 3%. Route 2's first draft (trainers at 15-17, a Gustwing-led
+Birdwatcher, a Rock/Ground Scree-Walker) was a wall — the Birdwatcher was
+never beaten by a Grass player in 20 tries. The walk showed players top out
+around 15-17, so the trainers came down to 13-16 and the two type walls were
+rebuilt (Tamsin became a Lookout with a Zaplet; Dunmore fields an Umbrat).
+
+### Route 2 — what is on it
+
+**Name:** Route 2 — The Thornway. **Connects:** Thistlewood (south, through
+the gate) ↔ Mistvault Cavern (north, cordoned). **Size:** 30x50.
+
+| Zone | Rows | What is there |
+|------|------|---------------|
+| The cutting | 38-49 | the road from Thistlewood, Ansel of the bramble crew, **Hollis** (Bramble-Cutter), a west pocket of grass, two trails to the dry spring |
+| The dry spring | 33-38 | a cracked basin, **Tobiah**, the survey stake, an Ultra Orb |
+| The thicket | 21-37 | tall grass; the road forks round a bramble island; **Maren** (Forager) on the west fork, **Tamsin** (Lookout) on the east |
+| The Brow | 20 | where the trees stop — a sign |
+| The scree | 10-19 | the second habitat; **Dunmore** (Scree-Walker) on a gravel spur |
+| The gully | 4-9 | one tile wide, all in Kestrel's sight |
+| The landing | 0-3 | Mistvault's mouth, the cordon, **Warden Corran**, a sign |
+
+**Trainers** (2 creatures each):
+
+| Trainer | Team | Pays |
+|---------|------|------|
+| Bramble-Cutter Hollis | Jabbit 13, Vinelet 14 | 540 |
+| Forager Maren | Glimmote 14, Puffcap 14 | 580 |
+| Lookout Tamsin | Flittle 14, Zaplet 14 | 600 |
+| Scree-Walker Dunmore | Delvit 15, Umbrat 15 | 680 |
+
+**Wild Aethers** — two habitats on one map. `encounters.byTerrain` (new in
+Phase 11) lets a map roll a different table on particular encounter tiles;
+the rate and cooldown are shared.
+
+| `route2Thicket` (tall grass) | Lv | Weight | | `route2Scree` (scree) | Lv | Weight |
+|---|---|---|---|---|---|---|
+| Jabbit | 13-16 | 24 | | Delvit | 14-17 | 28 |
+| Glimmote | 13-15 | 18 | | Pebblit | 14-17 | 24 |
+| Flittle | 14-16 | 16 | | Jabbit | 15-17 | 14 |
+| Vinelet | 14-16 | 14 | | Zaplet | 15-17 | 12 |
+| Grubbit | 14-16 | 12 | | Carapex | 16-18 | 10 |
+| Zaplet | 14-16 | 10 | | Umbrat | 15-17 | 8 |
+| Gustwing *(rare)* | 17-18 | 3 | | Gustwing *(rare)* | 17-18 | 4 |
+| Burrzap *(rare)* | 15-17 | 3 | | | | |
+
+**Items** (existing items only): Burn Salve (west pocket), Ultra Orb (dry
+spring), 2 Super Potions (bramble island), Rouser (north-west thicket),
+2 Great Orbs (west scree), Super Potion (east scree). No new shop, no new
+Mender — Thistlewood's are one walk south.
+
+### The story thread — and where it stops
+
+Something is drawing the **aether currents** out of the ground. The Thornway's
+spring, which ran for three hundred years, stopped four days ago. Someone has
+driven a surveyor's stake into the dry basin: a grey tag stamped with a hollow
+ring crossed by a line — *a weathervane with nothing at its heart* — reading
+SURVEY 14 — CURRENT DRAW, and no name. Cave-dwellers (Umbrat) are coming out
+of Mistvault onto the open scree. The Wardens have cordoned the cavern.
+
+That is foreshadowing only. The **Hollow Vane** (section 9) appear from
+Mistvault onward; nobody on Route 2 names them, and no grunt is fought.
+
+### The Phase 12 boundary
+
+The Thornway ends at the **Wardens' cordon** across Mistvault Cavern's mouth:
+a barrier (`mistvaultCordon`) with `openWhen: 'mistvaultOpen'`, a flag nothing
+sets. The cave is visible behind it; Warden Corran says the Circle is sending
+someone and nobody goes in until then; the sign says CLOSED. There are no exit
+tiles behind the cordon. Phase 12 (the dungeon) opens it with one flag and
+adds the cavern's exits.
+
+### Saving
+
+- **Save version 3** — `starter` (section 21). No other new field.
+- Beaten rivals are `defeatedTrainers`; the gate is `flags.thornwayOpen`; the
+  items are `pickedUpRoute2…` flags.
+- **Autosaves:** arriving on Route 2 (and back in Thistlewood); Kestrel's gate
+  win (one, labelled `story`); every other battle; each item. Never while
+  Kestrel is walking off or the gate is opening — the player is not in control.
+- Save anywhere on Route 2. A reload puts every trainer — Kestrel included —
+  back on their post, and never offers a beaten trainer's fight again.
+
+### How to add a rival meeting
+
+1. **`src/data/trainers.js`** — a new entry with `rival: 'kestrel'`, the next
+   `stage`, `requires` (what must be true first), a party with exactly one
+   `{ rivalStarter: true, level }` (last, at the top level — tested), intro
+   branches per `starter:<id>` naming the right family, an `outro`, and
+   `victoryLines`. Add `setFlags` only if the win should change the world.
+2. **The map** — an NPC with `trainer`, `sightRange`, `sprite: 'rival'`,
+   `presentWhen` equal to the trainer's `requires` (tested), and either
+   `absentWhen: 'trainer:<id>'` + `exitAfterDefeat` (they leave) or
+   post-defeat dialogue (they stay; add `returnAfterDefeat` if their lane is a
+   corridor). Its dialogue is the intro branches with `action: 'trainer:<id>'`.
+3. **Measure it** in `tests/rivalBalance.test.js` for all three starters.
+
+No scene, system or save code changes.
+

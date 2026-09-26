@@ -34,7 +34,7 @@ import { InputManager } from '../core/InputManager.js';
 import { TileMap } from '../systems/TileMap.js';
 import { MapRenderer } from '../systems/MapRenderer.js';
 import { NpcManager } from '../systems/NpcManager.js';
-import { stepsToLeave } from '../systems/NpcPresence.js';
+import { stepsToLeave, wayHome } from '../systems/NpcPresence.js';
 import { EncounterSystem } from '../systems/EncounterSystem.js';
 import { findInteractionTarget } from '../systems/InteractionSystem.js';
 import { resolveDialogue } from '../systems/DialogueResolver.js';
@@ -485,7 +485,7 @@ export class WorldScene extends Phaser.Scene {
           ` (${this.player.canEnter(facingTile.x, facingTile.y) ? 'open' : 'blocked'})`,
         `npcs   ${this.npcManager.npcs.length}` +
           `   encounters ${this.encounters.isActive && !this.encounters.disabled ? 'on' : 'off'}` +
-          ` ${this.encounters.tableId || '-'}` +
+          ` ${this.map.getEncounterTableAt(this.player.tileX, this.player.tileY) || this.encounters.tableId || '-'}` +
           ` rate ${this.encounters.rate}` +
           ` cd ${this.encounters.cooldown}`,
         `party  ${describeParty(gameState)}`,
@@ -778,6 +778,18 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const npc = this.npcManager.npcs.find((entry) => entry.definition.trainer === trainer.id);
+
+    // A trainer who holds a narrow spot (Kestrel in Route 2's gully) walks
+    // back to it rather than standing in the way for the rest of the visit.
+    const home = npc?.definition.returnAfterDefeat ? wayHome(npc) : null;
+    if (home) {
+      npc.walkLine(home.direction, home.steps, () => {
+        npc.setFacing(npc.definition.facing);
+        this.awardTrainerBadge(trainer);
+      });
+      return;
+    }
+
     const exit = npc?.definition.exitAfterDefeat;
     if (!npc || !exit) {
       this.awardTrainerBadge(trainer);

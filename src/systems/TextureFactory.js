@@ -661,15 +661,29 @@ const TILE_GENERATORS = {
     return canvas;
   },
 
+  // The cavern's dark. Edge to edge with no frame of its own, so any number
+  // of these tiles read as ONE opening — the rock face around it is the frame.
   'tile-cave-mouth': () => {
     const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
-    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x6c6256);
-    rect(ctx, 0, 3, TILE_SIZE, 2, 0x877c6d);
-    // The dark, with a faint cold mist lying in it.
-    rect(ctx, 3, 9, 26, 23, 0x141018);
-    rect(ctx, 6, 6, 20, 4, 0x141018);
-    rect(ctx, 5, 24, 22, 2, 0x2c3140);
-    rect(ctx, 9, 20, 14, 1, 0x2c3140);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x141018);
+    speckle(ctx, 0x1d1a24, 12, 20071, 4);
+    // Faint cold mist lying in the dark — the "mist" in Mistvault.
+    rect(ctx, 0, 22, 13, 1, 0x2c3140);
+    rect(ctx, 17, 25, 15, 1, 0x2c3140);
+    rect(ctx, 6, 28, 18, 1, 0x252a37);
+    return canvas;
+  },
+
+  // A signpost on gravel, for rocky ground — the ordinary sign stands on grass.
+  'tile-sign-stone': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, COLORS.path);
+    speckle(ctx, COLORS.pathDark, 16, 20081);
+    rect(ctx, 14, 18, 4, 12, COLORS.treeTrunk); // post
+    rect(ctx, 4, 6, 24, 14, 0x8a6438); // board
+    rect(ctx, 6, 8, 20, 10, 0xa87f4c);
+    rect(ctx, 9, 11, 14, 2, 0x6b4a2c); // "writing"
+    rect(ctx, 9, 15, 10, 2, 0x6b4a2c);
     return canvas;
   },
 

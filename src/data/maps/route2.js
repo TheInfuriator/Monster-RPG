@@ -26,7 +26,7 @@
  *
  *   .  grass       "  tall grass      *  scree        -  road    =  gravel
  *   T  tree        &  bramble        %  rock face    @  boulder
- *   u  dry spring  j  survey stake   X  cave mouth   S  sign
+ *   u  dry spring  j  survey stake   X  cave mouth   S  sign   $  sign on rock
  *   +  the cordon (drawn by the barrier at the top, not written in the grid)
  */
 
@@ -69,7 +69,7 @@ export const route2 = {
     '%%%%%%%%%%%%%XXXX%%%%%%%%%%%%%', //  0  Mistvault Cavern — the end of Phase 11
     '%%%%%%%%%%%%%XXXX%%%%%%%%%%%%%', //  1
     '%%%%%%%%%%%@@----@@%%%%%%%%%%%', //  2  the Wardens' cordon at (13..16, 2)
-    '%%%%%%%%%%S==========%%%%%%%%%', //  3  the landing: sign (10,3), Warden Corran (20,3)
+    '%%%%%%%%%%$==========%%%%%%%%%', //  3  the landing: sign (10,3), Warden Corran (20,3)
     '%%%%%%%%%%%%@==@%%%%%%%%%%%%%%', //  4  Kestrel waits at (14,4), looking down the gully
     '%%%%%%%%%%%%@==@%%%%%%%%%%%%%%', //  5
     '%%%%%%%%%%%%%@=@%%%%%%%%%%%%%%', //  6  the gully — one tile wide, in Kestrel's sight
@@ -297,6 +297,9 @@ export const route2 = {
       sprite: 'rival',
       movement: 'static',
       presentWhen: 'trainer:kestrelThornway',
+      // After a challenge they are standing in the one-tile gully: walk back
+      // up to the landing, or nobody gets past until the map reloads.
+      returnAfterDefeat: true,
       dialogue: [
         {
           when: 'trainer:kestrelRoute2',

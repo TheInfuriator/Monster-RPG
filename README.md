@@ -6,15 +6,17 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 10 (save, load and settings) complete — the first-badge
-> vertical slice is playable end to end, and survives closing the tab.**
-> Take a starter, buy supplies, walk Route 1's tall grass, catch something,
-> fight the route's trainers, ask the warden to open the north gate, walk into
-> Thistlewood, shop and heal there, and challenge the Verdant Hall: solve its
-> hedge puzzle, beat its two Gardeners, beat Leader Fern and come away with the
-> **Verdant Sigil**. Save from the menu at any quiet moment, let the game
-> autosave as you go, close the page, and **Continue** exactly where you were.
-> Rival and Route 2 are next — see [TODO.md](TODO.md).
+> **Status: Phase 11 (Kestrel and Route 2) complete — the game now runs past
+> the first badge, up to the mouth of Mistvault Cavern.**
+> Take a starter, walk Route 1, earn the **Verdant Sigil** from Leader Fern —
+> then find your rival **Kestrel** waiting at Thistlewood's Thornway gate with
+> the starter that beats yours. Win, and the gate opens onto **Route 2 — the
+> Thornway**: a thicket that forks round a bramble island, a scree slope with
+> its own wild Aethers, four trainers, seven new species, a dry spring nobody
+> can explain, and Kestrel again at the top, below a cavern the Wardens have
+> roped off. Save anywhere; **Continue** exactly where you were — Phase 10
+> saves carry straight over. The dungeon and the second Hall are next — see
+> [TODO.md](TODO.md).
 
 ---
 
@@ -99,7 +101,9 @@ src/
     items.js           Every item in the game
     encounters.js      Which wild Aethers live where
     shops.js           What each shop sells
-    trainers.js        Every trainer: party, prize money and what they say
+    trainers.js        Every trainer: party, prize money and what they say —
+                       rival meetings included
+    rivals.js          The rival (Kestrel) and which starter they take
     badges.js          The Sigils — one per Beacon Hall, built or not
     maps/              One file per map, plus the map registry
   entities/
@@ -127,6 +131,9 @@ src/
     EncounterSystem.js Every rule about whether a step turns something up
     SightSystem.js     Whether a trainer can see you, and which one challenges
     TrainerSystem.js   What a trainer battle is, and who has been beaten
+    RivalSystem.js     The player's starter, and the rival's answer to it
+    NpcPresence.js     Whether an NPC is on their map right now (and how a
+                       beaten one leaves or goes back to their post)
     PuzzleSystem.js    Gates and hedges that open and close, and what moves them
     BadgeSystem.js     Earning and reading Sigils
     ProgressionSystem.js  Flags, beaten trainers and Sigils as one set of conditions
@@ -158,6 +165,9 @@ src/
     rng.js             Random helpers (seeded, weighted picks)
     transitions.js     Shared fade-between-scenes helper
 tests/                 Vitest tests for logic and data integrity
+  helpers/             Shared test builders: a rich save state, the battle
+                       driver, and a simulated walk up Route 2
+  fixtures/            Save files written by earlier builds of the game
 ```
 
 ### The two rules that keep this maintainable
@@ -811,7 +821,11 @@ debug.hp(5)                   // set current HP
 debug.heal()                  // full heal
 debug.trainers()              // every trainer, their party, and who is beaten
 debug.trainerBattle('route1Scout')  // start a trainer battle from anywhere
-debug.beatTrainer('route1Scout')    // mark beaten (pass false to un-beat)
+debug.beatTrainer('route1Scout')    // mark beaten, setting any flags the win
+                                    // sets (pass false to un-beat)
+debug.rival()                 // Kestrel's meetings: who they field against YOU
+debug.starter('drizzle')      // show, or change, which starter you took
+debug.encounterInfo()         // tables, the one underfoot, rate, cooldown
 debug.resetTrainers()         // clear every defeat
 debug.sight()                 // what each trainer here can currently see
 debug.gates()                 // barriers and switches on this map
@@ -1018,6 +1032,65 @@ Press **Cancel** → **Sigils** to see them: three slots from the first game, th
 unearned ones as visible blanks, because a locked slot the player can see is a
 promise the game intends to keep.
 
+### Add a rival meeting
+
+Kestrel is an ordinary trainer with five optional extras — the full recipe is
+GAME_DESIGN.md section 22. In short:
+
+```js
+// src/data/trainers.js
+kestrelThornway: {
+  id: 'kestrelThornway', name: 'Kestrel', title: 'Rival',
+  rival: 'kestrel', stage: 1,          // which rival, which meeting
+  requires: 'badge:verdantSigil',      // what must be true first
+  setFlags: ['thornwayOpen'],          // what a WIN changes in the world
+  rewardMoney: 960,
+  party: [
+    { species: 'flittle', level: 12 },
+    { rivalStarter: true, level: 13 }, // THEIR starter — the one that beats yours
+  ],
+  intro: [
+    { when: 'starter:pyrret', pages: ['...so I took Drizzle. Water puts fires out.'] },
+    // ...one branch per starter, then a fallback with no `when`
+  ],
+  outro: ['Okay. OKAY. That was a real fight.'],
+  victoryLines: ['Ha! One step ahead. Like always.'],  // said before YOUR blackout
+},
+```
+
+`{ rivalStarter: true }` is resolved when the battle starts: the player's
+starter → the counter in `src/data/rivals.js` → evolved as far as the level
+allows by the species data. Nothing else asks which starter the player took.
+
+On the map, the NPC decides when they are there:
+
+```js
+{ id: 'kestrel', trainer: 'kestrelThornway', sprite: 'rival', sightRange: 5, ...,
+  presentWhen: 'badge:verdantSigil',          // there once this holds
+  absentWhen: 'trainer:kestrelThornway',      // gone once beaten
+  exitAfterDefeat: { direction: 'up', steps: 3 },  // ...by walking off
+  dialogue: TRAINERS.kestrelThornway.intro.map((b) => ({ ...b, action: 'trainer:kestrelThornway' })) }
+```
+
+`presentWhen` / `absentWhen` work on **any** NPC and read the same conditions as
+dialogue. A beaten trainer who stays can take `returnAfterDefeat: true` to walk
+back to their post — use it when their sight lane is a corridor.
+
+### A map with two habitats
+
+One map can roll different wild Aethers on different encounter tiles:
+
+```js
+encounters: {
+  table: 'route2Thicket',               // tall grass, and anything not listed
+  byTerrain: { scree: 'route2Scree' },  // tile id -> table
+},
+```
+
+`TileMap.getEncounterTableAt(x, y)` answers which table a step rolls against;
+the rate and the cooldown are shared across the map. Scree (`*`) is the second
+encounter tile, after tall grass.
+
 ---
 
 ## Artwork
@@ -1062,7 +1135,15 @@ proved never to, every refusal and every repair the validator makes, every
 migration and every legacy fixture, the two slots independently, writes that
 fail half way (storage full, storage refused) leaving the last save intact,
 newer-version saves protected, every rule for where a loaded player may stand,
-settings, and the play clock.
+settings, and the play clock — and Phase 11: the rival's starter mapping and
+every evolution stage it resolves to, recovering a player's starter from their
+creatures, NPCs who arrive and leave with the story, recording a win and the
+flags it sets, the Thornway gate, save version 3 and its migration run against
+real save files written by the Phase 10 build, Route 2's geometry (every tile
+reachable, a real fork, a real loop, the gully in Kestrel's sight, the cordon
+holding), both habitats, and a simulated walk up Route 2 through the real battle
+engine that measures what a player arrives at the top with, and whether every
+trainer and both of Kestrel's meetings can be won by every starter.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -1073,7 +1154,8 @@ every map you add. They catch, without you writing a line of test code:
 - spawn points inside walls, on NPCs, or on exit tiles
 - exits pointing at a map that does not exist, or a spawn point it does not define
 - ground items that are unreachable or missing their flag
-- tall grass on a map with no encounter table, or a table with no grass to use it
+- encounter terrain (tall grass, scree) on a map with no encounter table, or a
+  per-terrain table on a tile that is not encounter terrain
 - an encounter table naming a species that does not exist
 - a level range that is backwards, fractional or outside the game's bounds
 - an encounter weight that is zero or negative, or an empty table
@@ -1087,6 +1169,12 @@ every map you add. They catch, without you writing a line of test code:
   bounds, a negative reward, or missing intro or outro lines
 - a trainer NPC with a `trainer:` id nothing defines, or a sight range that
   could never work
+- a rival meeting with no starter slot or more than one, a `rivalStarter` slot
+  on an ordinary trainer, a stage out of sequence, or an intro that names the
+  wrong starter to any player
+- a rival standing on the map before their fight is allowed, or offering a
+  second fight once beaten; a trainer who walks off along blocked ground
+- presence conditions (`presentWhen`, `absentWhen`) that are not names
 - a barrier standing on a solid tile (so opening it would change nothing), or
   drawn as a tile that is not solid
 - two barriers on one tile, or an NPC, spawn point or switch standing where a
@@ -1113,7 +1201,7 @@ every map you add. They catch, without you writing a line of test code:
 - two maps that would show the same place name on a save slot
 
 Twenty-five seeded battles are also played to completion in the test suite, and
-every one of the 56 moves is used in a real battle to check nothing throws and
+every one of the 61 moves is used in a real battle to check nothing throws and
 HP never leaves its bounds.
 
 Gameplay is additionally verified in a real browser with Playwright during
@@ -1132,12 +1220,25 @@ Everything below works end to end, on the keyboard, from a new game:
 5. Fight its **three trainers** — Wren, Osrin and Halla
 6. Ask the **Gate Warden** to open the north gate
 7. Arrive in **Thistlewood**: a shop with a better shelf, a second Mender's
-   Hall, a cottage, and a road north that is not open yet
+   Hall, a cottage, and a road north behind a gate
 8. Enter the **Verdant Hall** and work out its three root switches
 9. Fight **Gardeners Teal and Bracken** on the way to the ones that matter
 10. Walk the solved corridor to **Leader Fern** and beat her
 11. Receive the **Verdant Sigil**, and watch the town notice
 12. **Save**, close the page, come back, and **Continue** — at any point above
+
+## Past the first badge (Phase 11)
+
+13. Find **Kestrel** waiting at the **Thornway gate** — with the starter that
+    beats yours. Lose, and they wait for a rematch; win, and the gate opens
+14. Walk **Route 2 — the Thornway**: a thicket that forks round a bramble
+    island, a dry spring with a stake in it, and a scree slope with its own
+    wild Aethers — seven of them new
+15. Fight **Hollis**, **Maren** or **Tamsin** (one per fork), and **Dunmore** on
+    the scree
+16. Climb the gully to **Kestrel** again — their starter has evolved
+17. Reach the **Wardens' cordon** across Mistvault Cavern: the end of the road,
+    for now
 
 ---
 

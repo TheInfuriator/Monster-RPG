@@ -295,6 +295,11 @@ describe('trainers on the Thornway', () => {
     }
   });
 
+  it('send Kestrel back up the gully after a fight, so it is never left blocked', () => {
+    const kestrel = trainers.find((npc) => npc.trainer === 'kestrelRoute2');
+    expect(kestrel.returnAfterDefeat).toBe(true);
+  });
+
   it('pitch every ordinary trainer between Route 1 and Kestrel', () => {
     const route1Top = Math.max(...Object.values(TRAINERS).filter((t) => t.id.startsWith('route1'))
       .flatMap((t) => t.party.map((e) => e.level)));

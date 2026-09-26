@@ -2,14 +2,14 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 10 — Save/Load + Persistence + Settings** ✅ complete
-Next phase: **Phase 11 — World Expansion I: the Rival + Route 2** (recommended)
+Current phase: **Phase 11 — Kestrel + Route 2 / World Expansion I** ✅ complete
+Next phase: **Phase 12 — Mistvault Cavern + the second Beacon Hall** (recommended)
 
-**The first-badge vertical slice is playable end to end:** New Game → starter →
-Route 1 → its trainers → the north gate → Thistlewood → shop and Mender →
-the Verdant Hall → its puzzle → its Gardeners → Leader Fern → the Verdant Sigil.
-**And it survives closing the tab:** save anywhere quiet, autosave as you go,
-Continue exactly where you were.
+**Playable end to end, past the first badge:** New Game → starter → Route 1 →
+its trainers → the north gate → Thistlewood → the Verdant Hall → Leader Fern →
+the Verdant Sigil → **Kestrel at the Thornway gate → Route 2 → its trainers →
+Kestrel again → the Wardens' cordon at Mistvault Cavern.** It survives closing
+the tab — and Phase 10 saves carry straight over.
 
 ---
 
@@ -289,16 +289,82 @@ Continue exactly where you were.
 - **Settings from a version 1 save are dropped**, not imported: preferences
   belong to the player now, and no version 1 save was ever written to storage.
 
-## Phase 11 — World Expansion I (recommended next)
-- [ ] The rival, Kestrel: first encounter and battle, reacting to your starter
-- [ ] Route 2 behind Thistlewood's Thornway gate (`thornwayOpen` is the seam)
-- [ ] New wild Aethers for Route 2, and its trainers
+## Phase 11 — Kestrel + Route 2 / World Expansion I ✅
+- [x] **Audit first:** canon for Kestrel (name, personality, the "strong
+      against" rule, the planned appearances), Route 2 (Thornway, branching,
+      tougher trainers), Mistvault (next, with the Hollow Vane) and the level
+      pacing — and the systems to reuse (trainers, dialogue branches, barriers,
+      saves)
+- [x] **The rival is an ordinary trainer:** a meeting is one `trainers.js`
+      entry with `rival`, `stage`, `requires`, `setFlags`, `victoryLines` and
+      a `{ rivalStarter: true, level }` party slot. No rival scene, no rival
+      battle code
+- [x] **One starter mapping** (`src/data/rivals.js`): Fire → Water,
+      Water → Grass, Grass → Fire. `RivalSystem` resolves the slot and evolves
+      it by species data (Kestrel's Drizzle is a Puddlurk at 16)
+- [x] **Save version 3:** `starter` recorded at the Lodge; the 2 → 3
+      migration recovers it from the creature met there. Genuine Phase 10 save
+      files (`tests/fixtures/`) load, keep their summary and play on
+- [x] **NPC presence** — `presentWhen` / `absentWhen`, read by the map loader
+      and the save loader alike; `exitAfterDefeat` and `returnAfterDefeat`
+- [x] **Kestrel at the Thornway gate** once the Sigil is held: spotted or
+      spoken to, names the right starter, fights; a win sets `thornwayOpen`,
+      the gate opens, Kestrel walks off, one `story` autosave; a loss plays
+      their line, then the blackout, and records nothing
+- [x] **Route 2 — the Thornway** (30x50): cutting, dry spring loop, a thicket
+      that forks round a bramble island, the Brow, a scree slope, a gully and
+      the landing
+- [x] **Two habitats on one map** (`encounters.byTerrain`): thicket and scree
+      tables, commons to rares, old faces and new
+- [x] **7 new species** (34 in all — Jabbit → Brawnhare, Glimmote →
+      Brambelle, Delvit → Ironvole, Burrzap) and **5 new moves** (61 in all),
+      on existing effect kinds; 8 new tiles
+- [x] **4 trainers** (13-16) and **Kestrel's second meeting** (evolved
+      starter 16), who walks back to their post rather than blocking the gully
+- [x] Items (existing ones only), signs, the bramble crew, the spring keeper,
+      the survey stake — foreshadowing, no Hollow Vane on screen
+- [x] **The Phase 12 boundary:** a Warden cordon across Mistvault Cavern
+      (`mistvaultOpen`, set by nothing), a Warden and a sign
+- [x] **Balance measured, not guessed:** a simulated walk up Route 2 through
+      the real engine; every starter wins every fight; the numbers are tests
+- [x] **Fixed a Phase 9 test-driver bug:** the balance driver never found a
+      damaging move (read `entry.power` off `{ id, pp, maxPp }`), so every
+      balance number was measured with a player who always used their first
+      move. Re-measured everything
+- [x] `debug.rival()`, `debug.starter()`, habitat info in
+      `debug.encounterInfo()`; `debug.beatTrainer()` now sets a win's flags
+- [x] Browser-verified with normal controls and true reloads — see CHANGELOG.md
+
+### Phase 11 deferrals
+- **Kestrel's first two planned appearances** (Emberhollow, Route 1's exit)
+  are not built. The first meeting the player has is the plan's third, so
+  Kestrel introduces themself there. Retro-fitting a rival into finished,
+  saved maps would change what existing players see.
+- **No scripted-sequence system.** Nothing Phase 11 needed was beyond the
+  trainer pipeline plus NPC presence; a real cutscene system waits for a scene
+  that needs one (the Hollow Vane reveal, probably).
+- **Kestrel walks off by a fixed line**, not pathfinding. Fine on straight
+  roads; a map that needs more should get a small path helper then.
+- **Route 2 has no Mender or shop** — deliberately: Thistlewood's are one walk
+  south.
+- **The Index art for new species** uses the same generated body shapes as
+  every other creature; bespoke art for them waits with everyone else's.
+- **Fern re-measured:** with the fixed driver, Water + Flittle at level 13
+  beats her 43% of the time (the old number was ~67%). Still above the test's
+  40% bar and 85% two levels later, but close to the line — revisit if Fern
+  is ever touched.
+
+## Phase 12 — Mistvault Cavern + Beacon Hall 2 (recommended next)
+- [ ] Mistvault Cavern: the dungeon behind the cordon (`mistvaultOpen`)
+- [ ] The Hollow Vane's first appearance — grunts, the aether-draw machines
+- [ ] Tidewatch Harbor and the Tidal Hall (Beacon Hall 2)
+- [ ] Kestrel's third meeting
 
 ## Later — Expansion
-- [ ] Mistvault Cavern, Tidewatch Harbor
-- [ ] Beacon Halls 2 & 3, rival encounters 3+
+- [ ] Route 3, Voltspire City
+- [ ] Beacon Hall 3, rival encounters 4+
 - [ ] Hollow Vane story arc
-- [ ] Champion gauntlet, 30+ creatures, 50+ moves
+- [ ] Champion gauntlet (30+ creatures and 50+ moves: done in Phase 11)
 
 ## Later — Polish
 - [ ] Audio system with silent fallbacks (the volume setting is already wired)

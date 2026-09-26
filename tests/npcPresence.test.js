@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { isNpcPresent, stepsToLeave } from '../src/systems/NpcPresence.js';
+import { isNpcPresent, stepsToLeave, wayHome } from '../src/systems/NpcPresence.js';
 import { MAPS } from '../src/data/maps/index.js';
 import { DIRECTIONS } from '../src/config/controls.js';
 
@@ -76,6 +76,28 @@ describe('how far a beaten trainer walks to leave', () => {
   });
 });
 
+describe('the way back to a trainer\'s post', () => {
+  const home = { homeX: 14, homeY: 4 };
+
+  it('is straight back up the lane they walked down', () => {
+    expect(wayHome({ ...home, tileX: 14, tileY: 8 })).toEqual({ direction: 'up', steps: 4 });
+  });
+
+  it('works along any lane', () => {
+    expect(wayHome({ ...home, tileX: 14, tileY: 1 })).toEqual({ direction: 'down', steps: 3 });
+    expect(wayHome({ ...home, tileX: 17, tileY: 4 })).toEqual({ direction: 'left', steps: 3 });
+    expect(wayHome({ ...home, tileX: 12, tileY: 4 })).toEqual({ direction: 'right', steps: 2 });
+  });
+
+  it('is nothing when they never left', () => {
+    expect(wayHome({ ...home, tileX: 14, tileY: 4 })).toBeNull();
+  });
+
+  it('refuses a diagonal, which a sight lane can never be', () => {
+    expect(wayHome({ ...home, tileX: 15, tileY: 6 })).toBeNull();
+  });
+});
+
 describe('presence and exit fields on every map', () => {
   const isConditionList = (value) =>
     typeof value === 'string'
@@ -85,12 +107,19 @@ describe('presence and exit fields on every map', () => {
   for (const [mapId, map] of Object.entries(MAPS)) {
     for (const entry of map.npcs || []) {
       if (entry.presentWhen === undefined && entry.absentWhen === undefined
-        && entry.exitAfterDefeat === undefined) continue;
+        && entry.exitAfterDefeat === undefined && entry.returnAfterDefeat === undefined) continue;
 
       describe(`${mapId}:${entry.id}`, () => {
         it('writes its conditions as a name or a list of names', () => {
           if (entry.presentWhen !== undefined) expect(isConditionList(entry.presentWhen)).toBe(true);
           if (entry.absentWhen !== undefined) expect(isConditionList(entry.absentWhen)).toBe(true);
+        });
+
+        it('either walks home or walks off after a defeat — never both', () => {
+          if (entry.returnAfterDefeat === undefined) return;
+          expect(entry.returnAfterDefeat).toBe(true);
+          expect(entry.trainer).toBeTruthy();
+          expect(entry.exitAfterDefeat).toBeUndefined();
         });
 
         it('only walks off after a defeat if it is a trainer who then leaves', () => {

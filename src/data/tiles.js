@@ -101,6 +101,8 @@ export const TILE_DEFINITIONS = {
   'X': { id: 'cave_mouth', solid: true, texture: 'tile-cave-mouth' },
   // The Wardens' rope cordon across it — a barrier look, like `G` and `h`.
   '+': { id: 'cordon', solid: true, texture: 'tile-cordon' },
+  // A signpost on rocky ground. Interactable like any sign.
+  '$': { id: 'sign_stone', solid: true, texture: 'tile-sign-stone' },
 };
 
 /** The tile used when a map contains a character this file does not define. */

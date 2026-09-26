@@ -142,7 +142,7 @@ export function installDebugTools(game) {
           '  debug.encounter()               force the next grass step to ambush you',
           '  debug.encountersOff(true/false) turn wild encounters off / on',
           '  debug.encounterRate(0..1)       set the chance per step',
-          '  debug.encounterInfo()           table, rate and cooldown for this map',
+          '  debug.encounterInfo()           tables (and the one underfoot), rate, cooldown',
           '  debug.orbs(id, quantity)        give capture orbs',
           '  debug.fillParty(species, level) fill the party to six',
           '  debug.reorder(a, b)             swap two party slots',
@@ -325,9 +325,13 @@ export function installDebugTools(game) {
       const system = encounters(game);
       if (!system) return null;
 
+      const scene = world(game);
       const info = {
-        map: world(game).map.id,
+        map: scene.map.id,
         table: system.tableId,
+        // Route 2 has two habitats: which table THIS tile rolls against.
+        tableHere: scene.map.getEncounterTableAt(scene.player.tileX, scene.player.tileY),
+        habitats: Object.keys(system.tables),
         active: system.isActive,
         disabled: system.disabled,
         forceNext: system.forceNext,
