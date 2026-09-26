@@ -141,6 +141,49 @@ flags a real win sets.
   so they are standing there exactly when the fight is allowed.
 - No new shop or Mender on Route 2: Thistlewood's are one walk south.
 
+### Verification
+
+**Automated:** 2926 tests in 39 files (Phase 10 ended at 2476), lint clean,
+production build 288 kB (gzip 87 kB) plus Phaser. New suites: `rivals` (86),
+`route2` (42), `npcPresence` (21), `rivalBalance` (20); `trainers` grew to 217
+and `saveMigrations` to 71 (with two save files written by the real Phase 10
+build). Everything the auto-generated data checks cover — maps, species,
+moves, tiles, trainers — now covers Route 2 and its content too.
+
+**Battles did not change.** The battle engine, the battle scene, the type
+chart, the stat maths, the creature factory and `balance.js` are byte-identical
+to Phase 10, and the move and species files only gained entries — so every
+existing fight plays exactly as before, by construction.
+
+**In a real browser, against the production build — the exact bundle
+shipped — with normal controls, seeded battles and TRUE page reloads:**
+
+| Suite | Result | Covers |
+|-------|--------|--------|
+| journey11 | 85/85 | New Game to the Mistvault cordon on the keyboard: starter, Route 1, Fern, Kestrel at the gate, Route 2, a real capture, the west fork, the scree, Kestrel again, the Warden, a save and a true reload |
+| kestrel11 | 33/33 | no Kestrel before the Sigil; spotted on the gate road; names the right starter; a loss (line, blackout, nothing recorded); a win (gate opens, Kestrel walks off, ONE `story` autosave); a true reload; the talk path for a Grass player |
+| route11 | 39/39 | onto Route 2; both habitats rolling their own tables; a trainer and an item; a manual save mid-route and a true reload; Kestrel's second meeting, their walk back up the gully, the story reacting; a reload after; the walk home; a loss |
+| upgrade11 | 18/18 | the Phase 10 BUILD served at the game's address: a starter taken for real, a manual save; then the Phase 11 build at the same address — the save Continues exactly, its starter recovered, Kestrel fights with the right counter, the next save is version 3 |
+| leak11 | 8/8 | sixteen Route 2 map changes, five full Kestrel fights with gate and exit, eight wild battles in two habitats — display objects, tweens, timers, textures, keys, listeners, NPCs flat; heap and frame rate steady |
+| shots11 | 15/15 | screenshots of the gate before and after, every Route 2 zone, the landing, and all seven new species in battle, inspected by eye |
+
+Every Phase 1–10 browser suite was re-run on the final build: playthrough
+12/12, phase2 34/34, phase2b 18/18, phase3 22/22, phase3b 60/60, phase4 27/27,
+phase4b 15/15, phase4c 33/33, phase5 41/41, phase5b 13/13, phase6 65/65,
+phase7 85/85, phase8 59/59, phase9 98/98, phase9b 16/16, phase9c 12/12,
+firstbadge 54/54, shopscroll 6/6, debug9 15/15, phase10a 69/69, phase10b 45/45,
+phase10c 35/35, shots10b 11/11, persist10 84/84, leak10 9/9, and the Phase 1
+checks. Zero console errors throughout.
+
+**Harness bugs found and fixed** (the game was right each time): the title
+wait could read `window.game` before its scene manager existed; the upgrade
+server let the browser keep the old build's `index.html` (now served
+`no-store`, as a deploy would be); Phase 6 read a battle one frame before its
+scene started; four checks carried stale expectations (a pre-tuning level, a
+recovery point assumed rather than read, a field name, a turn mistaken for a
+step); forced habitat encounters were being swallowed by the post-battle
+cooldown.
+
 ---
 
 ## Phase 10 — Save, Load and Settings
