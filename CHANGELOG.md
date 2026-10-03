@@ -4,6 +4,194 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 12 — Mistvault Cavern, Tidewatch Harbor and the second Sigil
+
+The game now runs to the second Beacon Hall. Beat Kestrel below Mistvault and
+Warden Corran takes the cordon down. **Mistvault Cavern** is three maps of
+rubble, chasms and mist bridges that only hold where an aether current runs;
+two old valves steer it. Deep inside, the **Hollow Vane** — at last, on screen
+— are siphoning the current into storage cells. Beat their Draw Foreman, throw
+the breaker, and walk out through the Grotto to **Tidewatch Harbor**: a third
+Mender, a better shop, a lighthouse, Kestrel a third time, and the **Tidal
+Hall**, where three wheels turn one tide. Beat **Leader Ondine** for the
+**Tidal Sigil**. The Stormrise Climb, north, is under a rockslide: that is
+where Phase 12 ends.
+
+### Added
+
+**Levers, currents and signals** (`src/systems/PuzzleSystem.js`) — a second,
+generic way to move barriers, and not a reskin of the root switches.
+
+- A **lever** is FACED (Confirm), has exactly two positions and is stored as
+  one boolean in `gameState.puzzles` — the save format did not change. Levers
+  may share a state (`state: 'tide'`), so several move together.
+- Levers make **signals**: `<state>:<position>`, and — through a **current**
+  that flows from `flow.sources` along the outputs valves select —
+  `current:<channel>`. `flow.allPoweredWhen` floods every channel at once.
+- Barriers can follow a signal (`openWhenSignal`, `closedWhenSignal`) or close
+  on a world condition (`closedWhen`, the mirror of `openWhen`). **Glows**
+  draw tiles lit by a signal or a condition — the player SEES the current.
+- `pressLever()` refuses to close anything on anyone; validation checks every
+  reference, refuses a current that runs in a circle and a lever on or beside
+  a barrier. The save validator keeps only real lever states, and never a
+  value for a barrier that follows a signal.
+- `exploreLeverStates()`, and `tests/helpers/leverProof.js`, which walks every
+  lever setting TIMES every patch of floor the player could be standing in.
+
+**The cordon comes down.** Corran's new branch (only once Kestrel is beaten
+up there) sets `mistvaultOpen`: the rope draws back while the player watches,
+one `story` autosave, and Kestrel runs into the cave — `leaveBy`, a new
+optional NPC field for someone the story sends away mid-visit. The way in is
+two ordinary exits in the cave mouth. Old saves load with it up.
+
+**Mistvault Cavern — three maps** (30x26, 34x30, 30x32): the Mouth (Warden
+Ashby and the objective; the Vane's board and cell depot), the Galleries (two
+dependent valves, four mist bridges, lit channels, an optional east wing and
+a pocket) and the Draw Site (the rig, the breaker, the tideward mist, the
+Grotto's shallows). Seven ground items, existing items only.
+
+**The Hollow Vane** as data (`src/data/factions.js`: emblem, types, looks,
+ranks), and five Vane trainers on the ordinary pipeline with `faction` and
+`rank` (validated). Draw Foreman Vossler stands on the breaker's only face.
+Throwing it sets `mistvaultSiphonStopped`: the mist clears, every bridge holds
+for good, the channels light, Route 2's dry spring fills again, a dozen people
+change their lines, one `story` autosave. The Vane stay active — and their
+plan unrevealed beyond "Survey 14", "Survey 15" and cells bound for Stormrise.
+
+**Five species (39) and two moves (63):** Gloamite (Rock/Dark), Corrodit
+(Poison/Steel), Minnet → Marlance (Water → Water/Steel, at 26), Barnaclaw
+(Water/Rock); Riptide (the first physical Water move) and Siphon Fang (the
+Vane's draining Dark bite). Three cave tables, one on the Grotto's shallows.
+New looks: `vane`, `vaneForeman` (with the hollow-ring emblem) and `warden`.
+Twenty-three new tiles, all drawn at runtime.
+
+**Tidewatch Harbor** (36x28) with its **Mender's Hall** (the third recovery
+point) and **Supply Post** (the first to sell the Ultra Orb and the Clear
+Tonic), the Tidewatch light, piers, boats, and people who follow the story
+before and after the Sigil.
+
+**Kestrel's third meeting**, beside the fenced Hall road (Gustwing 18,
+Grubbit 19, starter 19).
+
+**The Tidal Hall:** three tide wheels sharing ONE state; causeways flood and
+pontoons float; the climb is low, high, low. A Deckhand and a Diver.
+
+**Leader Ondine** (Barnaclaw 19, Brookel 19, Marlance 21) and the **Tidal
+Sigil**, awarded once after the win; the Sigil screen reads 2 of 3. Post-Sigil
+lines for Ondine, Kestrel and the town.
+
+**The Phase 13 boundary:** the Stormrise Climb under a rockslide
+(`stormriseOpen`, set by nothing), a Warden and a sign.
+
+**Debug:** `debug.levers()`, `debug.lever(id, position)`, `debug.stage(name)`.
+
+### Changed
+
+- **Route 2:** the cave mouth has exits behind the cordon; Corran, the sign,
+  Ansel, Tobiah and the stake have Phase 12 lines; Kestrel leaves when the
+  cordon comes down; the spring is a `closedWhen` barrier.
+- **The lever result is shown in the dialogue box**, not a toast: what the
+  current did is the puzzle's whole feedback, and a toast is one short line.
+- **The route walk keeps a lost battle's experience**, as the game does (the
+  battle runs on the live party). Phase 11's walks barely ever lose; their
+  numbers stand.
+- `badges.js`: the Tidal Sigil names Ondine; `tiles.js`: `Z` is now the
+  lighthouse, so two tests that used `Z` as an "unknown" character use `§`.
+
+### Balance — measured, not guessed
+
+Walking on from the top of Route 2 through the real engine
+(`walkMistvault`, `walkToTidalSigil`), every starter, both Route 2 roads:
+
+- **Mistvault:** no Vane fight takes more than two tries; the Foreman is the
+  hardest. A never-switching Fire team is walled by Gloamite and Corrodit, so
+  Ashby tells Fire players to catch a Delvit in the Mouth's rubble — with one,
+  every fight is won first time. A test fails if that hint stops being needed.
+- **Kestrel 3:** the first draft (Gustwing 19, Carapex 20, starter 22) won 13%
+  for the Fire walk and 0% for the Grass walk. Shipped: 80% / 95% / 75%.
+- **Ondine:** like Fern, hard for exactly one starter — the Fire walk wins 28%
+  of tries (two in the walk); Water and Grass every time. The first draft
+  (20/20/22) walled Fire at 13%.
+- **Levels:** starter 17-20 through the cave; best creature 21-22 at the Sigil
+  (the plan's 18-22 for Hall 2 held; its 20-25 for Mistvault did not — the
+  cave is 15-19 as built).
+- **Fern, re-checked** with the corrected driver: unchanged and not a wall
+  (Water + Flittle 43% at 13/12, 53% at 14/13, 85% at 15/14). Not changed.
+- **Economy:** 6220 coins of prize money from the cordon to the Diver; an
+  Ultra Orb and a few Super Potions before Ondine, not the shelf. Catch rates:
+  Minnet 180 (a common), Gloamite and Barnaclaw 110, Corrodit 100, Marlance 60.
+
+### Saves
+
+**Save version 3, unchanged.** Lever positions are booleans in the existing
+puzzle record; the two story flags, the Sigil and beaten trainers are existing
+fields. A save written by the released Phase 11 build, Continued by the Phase
+12 build at the same address, loads exactly — cordon up — and plays on.
+
+### Fixed during verification
+
+- **The spring valve's handle pointed the wrong way** (found in the visual
+  pass): a lever showed its first picture for its first position, and the
+  spring valve's first position is EAST — so its handle pointed left while
+  the light ran right. Levers may now say which picture each position shows
+  (`art`), and a test checks every valve handle against where its output
+  channel really lies.
+- **Two dead lines removed:** neither Galleries valve can ever be turned with
+  no current reaching it (the far valve stands beyond the bridge only its
+  current holds), so their "dry" lines could never be read. The mechanism
+  stays, covered by its own unit tests; a test now explains the map.
+- **Harness, not game:** `placePlayer` is a test teleport and never recorded
+  the player's location, so a save made right after one put the player back
+  on the map's arrival tile. The suites now take their last steps with real
+  key presses. Two suite bugs (a shop list read before entering "Buy", a test
+  party too weak to beat Kestrel) were the suites' own.
+
+### Verification
+
+**Automated:** 3462 tests in 45 files (Phase 11 ended at 2926 in 39),
+lint clean, production build 339 kB (gzip 100 kB) plus Phaser. New suites: `levers` (27),
+`mistvault` (38), `mistvaultBalance` (17), `tidewatch` (20), `tidalHall` (19),
+`tidewatchBalance` (17); `trainers`, `route2`, `npcPresence` and
+`saveValidation` grew. Every auto-generated data check — maps, species,
+moves, tiles, trainers, Sigils — now covers Phase 12's content too.
+
+**Battles did not change.** The battle engine, the battle scene, the type
+chart, the stat maths, the creature factory and `balance.js` are untouched;
+species and moves only gained entries.
+
+**In a real browser, against the production build, with normal controls,
+seeded battles and TRUE page reloads:**
+
+| Suite | Result | Covers |
+|-------|--------|--------|
+| journey12 | 156/156 | New Game to the SECOND Sigil on the keyboard: everything journey11 did, then Corran and the cordon (animated, autosaved, Kestrel running in), the Mouth and Ashby, a real capture in the cave, Tallis, both valves (handles, bridges, saved state), Quill, Seld, the Foreman and the breaker, the Grotto, Tidewatch's Mender, Kestrel by the Hall road, the tide wheels, both Gym trainers, Ondine, the Tidal Sigil, the Sigil screen (2 of 3), a save and a true reload |
+| mistvault12 | 49/49 | the cordon (picture, collision, Kestrel leaving, autosave, a fresh visit); captures on cave rubble and in the Grotto's shallows from their own tables; all four valve settings — bridges, sprites, handles and lit channels agreeing; both valves by Confirm; a true reload standing ON a mist bridge; a blackout in the cave (to the last Mender, nothing recorded, valves kept); the Foreman, the breaker, the mist, one story autosave, a reload after; every bridge holding for good; Route 2's spring full |
+| tidewatch12 | 37/37 | the cave mouth; the Mender and the recovery point; the shop's new stock and an Ultra Orb bought; Kestrel's third fight and their walk back; every wheel showing one tide; a true reload standing on a pontoon at high tide; a LOSS to Ondine (blackout to Tidewatch's Mender, no Sigil, money lost); the WIN (outro, Sigil once, no rematch, 2 of 3); the town after the Sigil; the rockslide |
+| persist12 | 14/14 | a true reload at six Phase 12 milestones, each compared field for field and with the world rebuilt to match; three reloads in a row change nothing |
+| upgrade12 | 17/17 | the RELEASED Phase 11 build (commit 3991157) served at the game's address: a real save at the cordon; then the Phase 12 build at the same address — the save Continues exactly, cordon CLOSED, save version still 3; Corran opens it; the autosave stays version 3; into the cave through the real exit; a true reload inside it |
+| leak12 | 9/9 | forty map changes through the whole cavern and Tidewatch, twenty valve turns, twenty tide turns, four cordon departures — display objects, tweens, timers, textures, keys, listeners and NPCs flat; heap steady |
+| perf12 | 4/4 | save size, load time and frame rate on every new map |
+| shots12 | 9/9 (+ two inspection passes) | the five new species in battle, a Vane battle, the Vane and the Circle in person, both valve settings, both tides, the Sigil screen — and every zone of all seven new maps, before and after the siphon and at both tides — inspected by eye |
+
+Every Phase 1–11 browser suite was re-run on the final build: playthrough
+12/12, phase2 34/34, phase2b 18/18, phase3 22/22, phase3b 60/60, phase4 27/27,
+phase4b 15/15, phase4c 33/33, phase5 41/41, phase5b 13/13, phase6 65/65,
+phase7 85/85, phase8 59/59, phase9 98/98, phase9b 16/16, phase9c 12/12,
+firstbadge 54/54, shopscroll 6/6, debug9 15/15, phase10a 69/69, phase10b 45/45,
+phase10c 35/35, shots10b 11/11, persist10 84/84, leak10 9/9, kestrel11 33/33,
+route11 39/39, upgrade11 18/18, leak11 8/8, shots11 15/15, and the Phase 1
+checks. Zero console errors throughout. Three of route11's checks describe
+what Phase 12 changed on purpose — Corran now has word from the Circle once
+Kestrel is beaten, and Kestrel then runs into the cave — and say so; journey11
+is superseded by journey12, which repeats every one of its checks before going
+on.
+
+**Measured:** a full end-of-Phase-12 save (two Sigils, six Aethers, every
+Phase 12 flag and lever) is 2.8 KB. Every new map loads in about 0.8 s with
+the harness's own wait, and runs at 56-57 fps; 139 textures.
+
+---
+
 ## Phase 11 — Kestrel and Route 2 (World Expansion I)
 
 The game now runs past the first badge. Earn the Verdant Sigil and your rival,

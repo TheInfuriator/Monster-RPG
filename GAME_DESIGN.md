@@ -1778,7 +1778,9 @@ west). The east run holds the east bridge. The west run holds the west bridge
 and feeds the **far valve** (pocket or deep), which holds the pocket bridge or
 the deep bridge — the way north. The far valve stands beyond the west bridge,
 so it cannot even be reached until the first valve is worked out. The answer:
-spring WEST, then far DEEP. Found as: east, pocket.
+spring WEST, then far DEEP. Found as: east, pocket. Each valve's handle points
+the way its current goes (a lever's `art` says which picture each position
+shows; a test checks every handle against where its channel really lies).
 
 **It can never trap anyone.** Both valves stand on the side the player came
 from and no valve is next to a bridge (validated); a valve also refuses to drop
