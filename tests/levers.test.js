@@ -228,6 +228,11 @@ describe('validation catches lever mistakes', () => {
     expect(broken({ levers: [{ ...valves.levers[2], dry: 'Nothing.' }] })).toMatch(/"dry"/);
   });
 
+  it('rejects art for a position the lever does not have, or a picture that does not exist', () => {
+    expect(broken({ levers: [{ ...valves.levers[1], art: { up: 1 } }] })).toMatch(/art for unknown position/);
+    expect(broken({ levers: [{ ...valves.levers[1], art: { left: 2 } }] })).toMatch(/picture 0 or 1/);
+  });
+
   it('rejects a lever whose state id is a barrier\'s', () => {
     expect(broken({ levers: [{ ...valves.levers[2], state: 'floodF' }] })).toMatch(/also a barrier/);
   });

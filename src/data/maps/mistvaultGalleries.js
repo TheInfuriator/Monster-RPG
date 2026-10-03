@@ -114,6 +114,8 @@ export const mistvaultGalleries = {
       y: 21,
       look: 'valve',
       positions: ['east', 'west'],
+      // The handle points the way the current goes: east is to the right.
+      art: { east: 1, west: 0 },
       input: 'spring',
       outputs: { east: 'eastRun', west: 'westRun' },
       says: {

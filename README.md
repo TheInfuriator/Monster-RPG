@@ -1011,6 +1011,7 @@ levers: [
   { id: 'springValve', name: 'the spring valve', x: 14, y: 21, look: 'valve',
     positions: ['east', 'west'],                       // false = the first
     input: 'spring', outputs: { east: 'eastRun', west: 'westRun' },
+    art: { east: 1, west: 0 },                         // which picture each position shows
     says: { east: 'The spring valve swings east...', west: '...' } },
   { id: 'wheelLower', x: 18, y: 12, look: 'wheel', state: 'tide',  // levers that share
     positions: ['low', 'high'], says: { ... } },                  // a state move together
@@ -1180,7 +1181,7 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-3455 tests covering map parsing, collision, spawn fallbacks, map validation, game
+3462 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, inventory operations,
 interaction targeting, type effectiveness, the move and creature databases, stat
 and experience maths, the creature factory, the party, the starter-selection

@@ -50,7 +50,9 @@
  *              state?: 'tide',            // levers sharing a state move together
  *              input?, outputs?: { west: 'westRun', east: 'eastRun' },  // a valve
  *              says?: { west: 'The current swings west.', ... },
- *              dry?: 'It turns, but no current reaches it.' }]
+ *              dry?: 'It turns, but no current reaches it.',
+ *              art?: { east: 1, west: 0 } }]   // which picture each position
+ *                                               // shows (default: its index)
  *
  * Levers produce SIGNALS — plain names like `tide:high` (a lever state and its
  * position) or `current:westRun` (a channel the aether current is flowing
@@ -749,6 +751,10 @@ function findLeverProblems(definition, { barrierTiles, inBounds, sourceTile }) {
     }
     if (lever.dry !== undefined && (typeof lever.dry !== 'string' || !lever.dry || !lever.input)) {
       problems.push(`${where}: "dry" is text for a valve with an input`);
+    }
+    for (const [position, picture] of Object.entries(lever.art || {})) {
+      if (!positions.includes(position)) problems.push(`${where}: has art for unknown position "${position}"`);
+      if (picture !== 0 && picture !== 1) problems.push(`${where}: art for "${position}" must be picture 0 or 1`);
     }
     for (const position of Object.keys(lever.says || {})) {
       if (!positions.includes(position)) problems.push(`${where}: says something for unknown position "${position}"`);

@@ -56,8 +56,9 @@ export class MapRenderer {
   createPuzzleSprites() {
     const definition = this.map.definition;
     for (const lever of definition.levers || []) {
+      const first = lever.art && Object.hasOwn(lever.art, lever.positions[0]) ? lever.art[lever.positions[0]] : 0;
       const sprite = this.scene.add
-        .image(lever.x * TILE_SIZE, lever.y * TILE_SIZE, `tile-${lever.look}-0`)
+        .image(lever.x * TILE_SIZE, lever.y * TILE_SIZE, `tile-${lever.look}-${first}`)
         .setOrigin(0, 0)
         .setDepth(DEPTHS.decoration);
       this.leverSprites.set(lever.id, sprite);
@@ -88,8 +89,14 @@ export class MapRenderer {
     for (const lever of this.map.definition.levers || []) {
       const sprite = this.leverSprites.get(lever.id);
       const stateId = lever.state || lever.id;
-      const index = Math.max(0, lever.positions.indexOf(positions[stateId]));
-      if (sprite) sprite.setTexture(`tile-${lever.look}-${index}`);
+      const position = positions[stateId];
+      // Which picture a position shows: its index, unless the map says
+      // otherwise (`art`) — a valve whose first position sends the current
+      // RIGHT needs its handle to point right.
+      const picture = lever.art && Object.hasOwn(lever.art, position)
+        ? lever.art[position]
+        : Math.max(0, lever.positions.indexOf(position));
+      if (sprite) sprite.setTexture(`tile-${lever.look}-${picture}`);
     }
     for (const { sprite, signal, when } of this.glowSprites) {
       sprite.setVisible(signal ? signals.has(signal) : Boolean(conditions[when]));

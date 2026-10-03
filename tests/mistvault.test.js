@@ -304,6 +304,18 @@ describe('the Galleries\' valves', () => {
     expect(state.puzzles.mistvaultGalleries.farValve).toBe(true);
   });
 
+  it('points every valve handle the way its current goes', () => {
+    // A handle pointing left while the light runs right was a real bug.
+    for (const lever of getLevers(GALLERIES)) {
+      for (const position of lever.positions) {
+        const glow = GALLERIES.glows.find((g) => g.signal === `current:${lever.outputs[position]}`);
+        const meanX = glow.tiles.reduce((sum, [x]) => sum + x, 0) / glow.tiles.length;
+        const picture = lever.art?.[position] ?? lever.positions.indexOf(position);
+        expect(picture, `${lever.id} ${position}`).toBe(meanX > lever.x ? 1 : 0);   // 1 points right
+      }
+    }
+  });
+
   it('answers every turn in its own words', () => {
     for (const lever of getLevers(GALLERIES)) {
       for (const position of lever.positions) expect(lever.says[position]).toMatch(/\w/);
