@@ -139,6 +139,7 @@ export const stormriseHigh = {
           pages: [
             'Those grey coats strung their wire to that fence across the pass. Nobody goes up while it hums.',
             'East of the road, by the tall masts. That is where it all comes from.',
+            'And if you are bound for the Storm Hall, take something off this scree. A Rimelet\'s ice brings down fliers, and a Pebblit\'s hide shrugs off fire.',
           ],
         },
         { action: 'trainer:stormriseMountaineer', pages: TRAINERS.stormriseMountaineer.intro },

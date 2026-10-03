@@ -682,10 +682,13 @@ export const TRAINERS = {
     title: 'Leader',
     rewardMoney: 2000,
     badge: 'stormSigil',
+    // Electric against Water is the Hall's whole point, so the Water starter
+    // finds Halcyon hardest — measured hard, never a wall (see
+    // tests/stormriseBalance.test.js).
     party: [
-      { species: 'voltmane', level: 25 },
-      { species: 'burrzap', level: 25 },
-      { species: 'stormcrest', level: 27 },
+      { species: 'voltmane', level: 24 },
+      { species: 'burrzap', level: 24 },
+      { species: 'stormcrest', level: 26 },
     ],
     intro: [
       'For a month this Hall was dark. Then this morning the storm came back over the Climb — and here you are.',
@@ -945,10 +948,13 @@ export const TRAINERS = {
     faction: 'hollowVane',
     rank: 'overseer',
     rewardMoney: 1240,
+    // Measured (tests/stormriseBalance.test.js): an Ironvole here walled the
+    // Fire and Grass starters' real teams (7% and 0%), so the ace is a
+    // Corrodit — still the strongest Vane the player has met.
     party: [
-      { species: 'corrodit', level: 22 },
+      { species: 'umbrat', level: 21 },
       { species: 'gloamite', level: 22 },
-      { species: 'ironvole', level: 24 },
+      { species: 'corrodit', level: 23 },
     ],
     intro: [
       'The one who shut down Survey 14. Vossler described you. He was not kind.',
@@ -979,11 +985,15 @@ export const TRAINERS = {
     stage: 4,
     requires: 'trainer:kestrelTidewatch',
     rewardMoney: 1200,
+    // The new member is a Zaplet caught on the way up. A Rimelet was tried
+    // first and measured: with it, ALL FOUR of Kestrel's Aethers hit Grass
+    // hard and the Grass starter won 0% of the time. A Zaplet is a threat to
+    // the Water starter instead, which keeps every starter's fight fair.
     party: [
-      { species: 'gustwing', level: 22 },
-      { species: 'carapex', level: 22 },
-      { species: 'rimelet', level: 22 },
-      { rivalStarter: true, level: 24 },
+      { species: 'gustwing', level: 21 },
+      { species: 'carapex', level: 21 },
+      { species: 'zaplet', level: 21 },
+      { rivalStarter: true, level: 23 },
     ],
     intro: [
       {

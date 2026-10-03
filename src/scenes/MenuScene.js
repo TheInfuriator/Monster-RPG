@@ -1308,7 +1308,7 @@ export class MenuScene extends Phaser.Scene {
       const name = creature.nickname ? `${getDisplayName(creature)} (${species?.name})` : getDisplayName(creature);
       this.text(18, detailY, `${name}   Lv ${creature.level}   ${types}   HP ${creature.currentHp}/${creature.stats.hp}`
         + (status ? `   ${status.name}` : ''), { fontSize: '10px' });
-      const moves = (creature.moves || []).map((m) => `${getMove(m.moveId)?.name || m.moveId} ${m.pp}`).join('   ');
+      const moves = (creature.moves || []).map((m) => `${getMove(m.id)?.name || m.id} ${m.pp}`).join('   ');
       this.text(18, detailY + 14, moves, { fontSize: '9px', color: CSS_COLORS.parchmentDim });
     }
     if (this.termMessage) {

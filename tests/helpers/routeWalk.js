@@ -252,3 +252,98 @@ export function walkToTidalSigil(starter, { shallowsWild = 3, ...cave } = {}) {
 
   return { team, tries, state, before };
 }
+
+/**
+ * The Aether each starter's player is pointed at on the Frost Shelf, when
+ * their team needs one (Phase 13). The Water player's team has nothing that
+ * stands up to the Storm Hall's electrics, and the Frost Shelf's Rimelet —
+ * Ice — hits Stormcrest and Burrzap hard. The Grass player's has nothing for
+ * Kestrel's Cindraw, and a Pebblit off the same scree shrugs off Fire. The
+ * Fire player's team (with its Route 2 Zaplet, a Voltmane by now) manages
+ * without. Measured, not assumed: see tests/stormriseBalance.test.js. The
+ * Mountaineer on the shelf says so in the game.
+ */
+export const STORMRISE_ANSWER = {
+  drizzle: { species: 'rimelet', level: 22, habitat: 'stormriseScree' },
+  sproutle: { species: 'pebblit', level: 22, habitat: 'stormriseScree' },
+};
+
+/**
+ * Walk on from the Tidal Sigil up the Stormrise Climb (Phase 13): a few wild
+ * Aethers on each of its three grounds, every route trainer on the road, the
+ * Vane Surveyor and the Relay Overseer on the Frost Shelf, and Kestrel at the
+ * top of the pass. The Stormchaser, a step off the road on the summit, is
+ * fought only if `optional`.
+ *
+ * @param {string} starter
+ * @param {object} [options] as walkToTidalSigil, plus:
+ * @param {number} [options.climbWild] wild battles on each of the Climb's grounds
+ * @param {boolean} [options.climbOptional] also fight the Stormchaser
+ * @param {object|null} [options.climbCatch] an Aether caught on the way up
+ *   ({ species, level, habitat }) — by default the one the shelf points at
+ * @returns {{ team: object[], tries: Record<string, number>, state: object, before: object }}
+ */
+export function walkStormrise(starter, {
+  climbWild = 3, climbOptional = true, climbCatch = STORMRISE_ANSWER[starter] || null, ...below
+} = {}) {
+  const walked = walkToTidalSigil(starter, below);
+  let { team } = walked;
+  const { state } = walked;
+  const tries = { ...walked.tries };
+  const before = { ...walked.before };
+  const random = createSeededRandom(starter.length * 211 + climbWild);
+
+  const trainer = (id, seedBase) => {
+    before[id] = structuredClone(team);
+    const result = beatTrainer(team, id, state, seedBase);
+    tries[id] = result.tries;
+    team = result.team;
+  };
+  const maybeCatch = (habitat) => {
+    if (climbCatch && climbCatch.habitat === habitat && team.length < 6) {
+      team.push(createCreature(climbCatch.species, climbCatch.level));
+    }
+  };
+
+  maybeCatch('stormriseHeath');
+  team = wildBattles(team, 'stormriseHeath', climbWild, random, 2100);
+  trainer('stormriseHerder', 2200);
+  trainer('stormriseClimber', 2300);
+  maybeCatch('stormriseScree');
+  team = wildBattles(team, 'stormriseScree', climbWild, random, 2400);
+  trainer('stormriseMountaineer', 2500);
+  trainer('vaneMarl', 2600);
+  trainer('vaneOverseer', 2700);
+  maybeCatch('stormriseSummit');
+  team = wildBattles(team, 'stormriseSummit', climbWild, random, 2800);
+  trainer('stormriseSkyherd', 2900);
+  if (climbOptional) trainer('stormriseStormchaser', 3000);
+  trainer('kestrelStormrise', 3100);
+
+  return { team, tries, state, before };
+}
+
+/**
+ * ...and on through the Storm Hall to the Storm Sigil: the three
+ * Stormwrights, then Leader Halcyon.
+ */
+export function walkToStormSigil(starter, options = {}) {
+  const walked = walkStormrise(starter, options);
+  let { team } = walked;
+  const { state } = walked;
+  const tries = { ...walked.tries };
+  const before = { ...walked.before };
+
+  const trainer = (id, seedBase) => {
+    before[id] = structuredClone(team);
+    const result = beatTrainer(team, id, state, seedBase);
+    tries[id] = result.tries;
+    team = result.team;
+  };
+  trainer('stormHallAda', 3200);
+  trainer('stormHallFenn', 3300);
+  trainer('stormHallInes', 3400);
+  trainer('stormLeaderHalcyon', 3500);
+
+  return { team, tries, state, before };
+}
