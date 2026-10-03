@@ -38,6 +38,7 @@ import { getPlayerStarter, getRivalStarterBase, resolvePartyEntry } from './Riva
 import { getSightTiles } from './SightSystem.js';
 import {
   getBarriers, getSwitches, pressSwitch, resetPuzzle, createBarrierState,
+  getLevers, getLeverPositions, getPuzzleSignals, leverStateId,
 } from './PuzzleSystem.js';
 import {
   awardBadge, removeBadge, hasBadge, getBadgeSlots, countBadges,
@@ -159,6 +160,8 @@ export function installDebugTools(game) {
           '  debug.trainer(id)               start a scripted battle',
           '  debug.gates()                   barriers and switches on this map',
           '  debug.toggle(switchId)          press a root switch from here',
+          '  debug.levers()                  levers here, their positions and the live signals',
+          '  debug.lever(id, position)       set a lever (valve, tide wheel) from here',
           '  debug.resetPuzzle()             put this map back how it was found',
           '  debug.puzzleState(mapId)        saved barrier state (true = shut)',
           '  debug.sigils()                  every Sigil and whether it is earned',
@@ -569,6 +572,63 @@ export function installDebugTools(game) {
         console.table ? console.table(moves) : console.info('[debug] switches:', moves);
       }
       return { barriers: rows, switches: moves };
+    },
+
+    /** Every lever on this map, where it is set, and what is flowing (Phase 12). */
+    levers() {
+      const scene = world(game);
+      if (!scene) {
+        console.warn('[debug] the overworld is not running.');
+        return null;
+      }
+      const definition = scene.map.definition;
+      const positions = getLeverPositions(definition, gameState);
+      const rows = getLevers(definition).map((lever) => ({
+        id: lever.id,
+        state: leverStateId(lever),
+        at: `${lever.x},${lever.y}`,
+        position: positions[leverStateId(lever)],
+        positions: lever.positions.join(' / '),
+      }));
+      const signals = [...getPuzzleSignals(definition, {
+        state: gameState, conditions: getWorldConditions(gameState),
+      })].sort();
+      console.table ? console.table(rows) : console.info('[debug] levers:', rows);
+      console.info('[debug] signals:', signals.join(', ') || '(none)');
+      return { levers: rows, signals };
+    },
+
+    /**
+     * Set a lever's position from anywhere. Takes a lever id or a shared
+     * state id ('tide'), and a position name; leave the position out to flip
+     * it. No occupancy check — this is a debug tool, so stand clear.
+     */
+    lever(id, position) {
+      const scene = world(game);
+      if (!scene) {
+        console.warn('[debug] the overworld is not running.');
+        return null;
+      }
+      const definition = scene.map.definition;
+      const lever = getLevers(definition).find((l) => l.id === id || leverStateId(l) === id);
+      if (!lever) {
+        console.warn(`[debug] no lever "${id}" here. Try debug.levers().`);
+        return null;
+      }
+      const stateId = leverStateId(lever);
+      if (!gameState.puzzles) gameState.puzzles = {};
+      if (!gameState.puzzles[definition.id]) gameState.puzzles[definition.id] = {};
+      const stored = gameState.puzzles[definition.id];
+      if (position === undefined) {
+        stored[stateId] = !(stored[stateId] === true);
+      } else if (lever.positions.includes(position)) {
+        stored[stateId] = position === lever.positions[1];
+      } else {
+        console.warn(`[debug] "${position}" is not one of ${lever.positions.join(' / ')}.`);
+        return null;
+      }
+      scene.syncBarriers({ animate: scene.map.barriers.map((b) => b.id) });
+      return getLeverPositions(definition, gameState)[stateId];
     },
 
     /** Press a root switch from anywhere, without walking onto it. */

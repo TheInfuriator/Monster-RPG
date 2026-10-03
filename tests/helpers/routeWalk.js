@@ -153,3 +153,58 @@ export function walkRoute2(starter, {
 
   return { team, tries, state };
 }
+
+/**
+ * The Mistvault Aether a player is pointed at by Warden Ashby in the Mouth,
+ * when their team needs one: Gloamite (Rock/Dark) and Corrodit
+ * (Poison/Steel) both shrug off Fire, and a Delvit from the Mouth's rubble
+ * cracks both. The Water and Grass players' Route 2 teams manage without
+ * (Sproutle's already holds a Delvit) — measured, not assumed: see
+ * tests/mistvaultBalance.test.js.
+ */
+export const MISTVAULT_ANSWER = {
+  pyrret: { species: 'delvit', level: 16, habitat: 'mistvaultCave' },
+};
+
+/**
+ * Walk on from the top of Route 2 through Mistvault Cavern (Phase 12):
+ * Kestrel at the cordon, then the cave the way a player meets it — a few wild
+ * Aethers in each part, every Vane trainer on the way to the breaker (Brede,
+ * off the way north, only if `optional`), and the Draw Foreman last.
+ *
+ * @param {string} starter
+ * @param {object} [options]  as walkRoute2, plus:
+ * @param {boolean} [options.optional] also fight Brede in the east wing
+ * @param {number} [options.caveWild] wild battles in each part of the cave
+ * @param {boolean} [options.caveAnswer] catch the Aether Ashby points at
+ * @returns {{ team: object[], tries: Record<string, number>, state: object }}
+ */
+export function walkMistvault(starter, {
+  optional = true, caveWild = 4, caveAnswer = true, ...route
+} = {}) {
+  const walked = walkRoute2(starter, route);
+  let { team } = walked;
+  const { state } = walked;
+  const tries = { ...walked.tries };
+  const random = createSeededRandom(starter.length * 131 + caveWild);
+
+  const trainer = (id, seedBase) => {
+    const result = beatTrainer(team, id, state, seedBase);
+    tries[id] = result.tries;
+    team = result.team;
+  };
+
+  trainer('kestrelRoute2', 700);
+  const answer = MISTVAULT_ANSWER[starter];
+  if (caveAnswer && answer) team.push(createCreature(answer.species, answer.level));
+  team = wildBattles(team, 'mistvaultCave', caveWild, random, 800);
+  trainer('vaneTallis', 900);
+  team = wildBattles(team, 'mistvaultGalleries', caveWild, random, 1000);
+  if (optional) trainer('vaneBrede', 1100);
+  trainer('vaneQuill', 1200);
+  team = wildBattles(team, 'mistvaultGalleries', Math.ceil(caveWild / 2), random, 1300);
+  trainer('vaneTechnician', 1400);
+  trainer('vaneForeman', 1500);
+
+  return { team, tries, state };
+}

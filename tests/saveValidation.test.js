@@ -350,6 +350,22 @@ describe('repaired: ids for content that does not exist', () => {
     expect(state.puzzles.route1).toEqual({});
   });
 
+  it('keeps a lever\'s position (Phase 12), with no new save version', () => {
+    // Mistvault's valves are plain booleans in the same record as the hedges.
+    const raw = damaged();
+    raw.puzzles.mistvaultGalleries = { springValve: true, farValve: false };
+    const state = expectRepaired(raw);
+    expect(state.puzzles.mistvaultGalleries).toEqual({ springValve: true, farValve: false });
+  });
+
+  it('cannot hold a mist bridge open by writing it into the puzzle record', () => {
+    // A bridge follows the current, never a stored value.
+    const raw = damaged();
+    raw.puzzles.mistvaultGalleries = { deepBridge: false, springValve: 'west' };
+    const state = expectRepaired(raw, /not a switch-moved barrier/);
+    expect(state.puzzles.mistvaultGalleries).toEqual({});
+  });
+
   it('a non-boolean switch position is dropped', () => {
     const raw = damaged();
     raw.puzzles.verdantHall.hedgeNorth = 'open';

@@ -397,6 +397,28 @@ describe('trainer data', () => {
 describe('trainer data validation catches mistakes', () => {
   const sound = TRAINERS.route1Scout;
 
+  describe('faction fields (Phase 12)', () => {
+    const vane = TRAINERS.vaneTallis;
+    const problems = (changes) => findTrainerProblems({ ...vane, ...changes }, 'vaneTallis').join(' ');
+
+    it('accepts a sound Vane trainer', () => {
+      expect(findTrainerProblems(vane, 'vaneTallis')).toEqual([]);
+    });
+    it('rejects a faction that does not exist', () => {
+      expect(problems({ faction: 'theCrows' })).toMatch(/no such faction/);
+    });
+    it('rejects a rank the faction does not have', () => {
+      expect(problems({ rank: 'admiral' })).toMatch(/not a rank/);
+    });
+    it('rejects a title that does not match the rank', () => {
+      expect(problems({ title: 'Vane Grunt' })).toMatch(/title is "Vane Surveyor"/);
+    });
+    it('rejects a rank without a faction', () => {
+      expect(findTrainerProblems({ ...sound, rank: 'surveyor' }, 'route1Scout').join(' '))
+        .toMatch(/rank needs a faction/);
+    });
+  });
+
   it('rejects a missing party', () => {
     expect(findTrainerProblems({ ...sound, party: [] }, 'route1Scout').join(' '))
       .toMatch(/at least one creature/);

@@ -122,6 +122,7 @@ export const mistvaultMouth = {
             'Hollow Vane — that is what they call themselves. Grey coats, a hollow ring on the chest.',
             'Their cables run up the north passage and into the Galleries. Follow them to where they end.',
             'The old valves in the Galleries still steer the spring\'s current, and the mist bridges only hold where it runs.',
+            'And mind what they carry: steel and poison. Fire bites on steel, but not on the rock-hard things down here — something that digs cracks both.',
           ],
         },
         {
@@ -129,6 +130,7 @@ export const mistvaultMouth = {
             'Warden Ashby, of the Circle. Corran sent you in? Good. I need Sigil-holders, and you are the ones we have.',
             'Something deep in this cavern is drawing the current out of the rock. It is why the Thornway spring ran dry.',
             'Find where it is being drawn, and shut it off. Follow the cables — somebody laid them, and recently.',
+            'One more thing. What lives down here is rock and shadow, and fire barely scratches it. If your partner breathes fire, catch something that digs — there are Delvit in this rubble.',
           ],
         },
       ],

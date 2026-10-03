@@ -479,9 +479,11 @@ function validateDefeatedTrainers(raw, report) {
 }
 
 /**
- * Switch positions, per map. Only barriers that a switch can actually move are
- * kept: a flag-driven gate's state is never stored, so an entry for one could
- * only be a mistake — and trusting it would let a save open a gate by hand.
+ * Switch and lever positions, per map. Only barriers that a switch can
+ * actually move, and real lever states, are kept: a flag-driven gate's state
+ * (or a bridge that follows the current) is never stored, so an entry for one
+ * could only be a mistake — and trusting it would let a save open a gate by
+ * hand.
  */
 function validatePuzzles(raw, report) {
   const source = readObjectField(raw, 'puzzle record', report);
