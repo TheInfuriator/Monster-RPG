@@ -6,17 +6,20 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 11 (Kestrel and Route 2) complete — the game now runs past
-> the first badge, up to the mouth of Mistvault Cavern.**
-> Take a starter, walk Route 1, earn the **Verdant Sigil** from Leader Fern —
-> then find your rival **Kestrel** waiting at Thistlewood's Thornway gate with
-> the starter that beats yours. Win, and the gate opens onto **Route 2 — the
-> Thornway**: a thicket that forks round a bramble island, a scree slope with
-> its own wild Aethers, four trainers, seven new species, a dry spring nobody
-> can explain, and Kestrel again at the top, below a cavern the Wardens have
-> roped off. Save anywhere; **Continue** exactly where you were — Phase 10
-> saves carry straight over. The dungeon and the second Hall are next — see
-> [TODO.md](TODO.md).
+> **Status: Phase 12 (Mistvault Cavern, Tidewatch Harbor and the second
+> Sigil) complete — the game now runs to the second Beacon Hall.**
+> Take a starter, walk Route 1, earn the **Verdant Sigil** from Leader Fern,
+> beat your rival **Kestrel** at the Thornway gate and climb **Route 2**. At
+> the top the Wardens take their cordon down: **Mistvault Cavern** is three
+> maps of rubble, chasms and mist bridges that only hold where an aether
+> current runs — steer it with two old valves. Deep inside, the **Hollow
+> Vane** are siphoning the current into storage cells; beat their Draw Foreman
+> and throw the breaker. Out through the Grotto lies **Tidewatch Harbor**: a
+> third Mender, a better shop, a lighthouse, Kestrel again — and the **Tidal
+> Hall**, where three wheels turn one tide. Beat Leader **Ondine** for the
+> **Tidal Sigil**. Save anywhere; **Continue** exactly where you were — Phase
+> 11 saves carry straight over. The Stormrise Climb, under a rockslide, is
+> next — see [TODO.md](TODO.md).
 
 ---
 
@@ -104,6 +107,7 @@ src/
     trainers.js        Every trainer: party, prize money and what they say —
                        rival meetings included
     rivals.js          The rival (Kestrel) and which starter they take
+    factions.js        The Hollow Vane: emblem, types, looks and ranks
     badges.js          The Sigils — one per Beacon Hall, built or not
     maps/              One file per map, plus the map registry
   entities/
@@ -134,7 +138,8 @@ src/
     RivalSystem.js     The player's starter, and the rival's answer to it
     NpcPresence.js     Whether an NPC is on their map right now (and how a
                        beaten one leaves or goes back to their post)
-    PuzzleSystem.js    Gates and hedges that open and close, and what moves them
+    PuzzleSystem.js    Gates, hedges and bridges that open and close, and what
+                       moves them: switches, levers, the current, signals
     BadgeSystem.js     Earning and reading Sigils
     ProgressionSystem.js  Flags, beaten trainers and Sigils as one set of conditions
     WildBattle.js      Turning an encounter into a battle, and taking delivery
@@ -166,7 +171,9 @@ src/
     transitions.js     Shared fade-between-scenes helper
 tests/                 Vitest tests for logic and data integrity
   helpers/             Shared test builders: a rich save state, the battle
-                       driver, and a simulated walk up Route 2
+                       driver, simulated walks from Route 2 to the Tidal Sigil,
+                       and the lever-puzzle proof (every setting x every place
+                       to stand)
   fixtures/            Save files written by earlier builds of the game
 ```
 
@@ -830,6 +837,9 @@ debug.resetTrainers()         // clear every defeat
 debug.sight()                 // what each trainer here can currently see
 debug.gates()                 // barriers and switches on this map
 debug.toggle('rootWest')      // press a root switch from anywhere
+debug.levers()                // levers here (valves, tide wheels), positions, live signals
+debug.lever('springValve', 'west')  // set a lever from anywhere (or 'tide', 'high')
+debug.stage('tidewatch')      // jump the STORY to a Phase 12 milestone (no name: list)
 debug.resetPuzzle()           // put this map's hedges back how you found them
 debug.sigils()                // every Sigil and whether it is earned
 debug.sigil('verdantSigil')   // award one (pass false to take it back)
@@ -991,6 +1001,42 @@ rule cannot disagree.
 closes one on top of anybody: `pressSwitch()` is given everyone's position and
 refuses outright rather than half-applying.
 
+**Levers, currents and signals (Phase 12)** are the second way to move
+barriers, for puzzles that are not "this switch swaps those two hedges". A
+lever is something you FACE and press Confirm at — a valve, a tide wheel — with
+two positions, stored as one boolean like a switch:
+
+```js
+levers: [
+  { id: 'springValve', name: 'the spring valve', x: 14, y: 21, look: 'valve',
+    positions: ['east', 'west'],                       // false = the first
+    input: 'spring', outputs: { east: 'eastRun', west: 'westRun' },
+    says: { east: 'The spring valve swings east...', west: '...' } },
+  { id: 'wheelLower', x: 18, y: 12, look: 'wheel', state: 'tide',  // levers that share
+    positions: ['low', 'high'], says: { ... } },                  // a state move together
+],
+flow: { sources: ['spring'], allPoweredWhen: 'mistvaultSiphonStopped' },
+barriers: [
+  { id: 'westBridge', tile: 'v', tiles: [[9, 13]], closed: true,
+    openWhenSignal: 'current:westRun' },                // a bridge that holds while current runs
+  { id: 'pontoons', tile: '~', tiles: [[7, 8]], closed: true,
+    closedWhenSignal: 'tide:low' },                     // a floor the tide sinks
+  { id: 'springWater', tile: '~', tiles: [[21, 34]], closed: false,
+    closedWhen: 'mistvaultSiphonStopped' },             // the mirror of openWhen
+],
+glows: [{ signal: 'current:westRun', tile: 'Q', tiles: [[11, 16]] }],   // or `when: '<flag>'`
+```
+
+Levers make SIGNALS — `tide:high` (a state and its position) and
+`current:westRun` (a channel with current in it: a valve passes its input's
+current to the output its position selects). Barriers follow signals; glows
+draw tiles that light while one holds. Like a switch, `pressLever()` refuses to
+close anything on top of anybody. Validation checks every reference, refuses a
+current that runs in a circle, and refuses a lever on or beside a barrier.
+**Prove it cannot trap anyone** with `tests/helpers/leverProof.js`: it walks
+every lever setting times every patch of floor the player could be standing
+on — see `tests/mistvault.test.js` and `tests/tidalHall.test.js`.
+
 A completed step goes to **exits, then switches, then trainers, then wild
 encounters**, and the first to claim it stops the others.
 
@@ -1011,8 +1057,13 @@ awards nothing.
 **Design the puzzle so it cannot trap anyone.** In the Verdant Hall every switch
 stands on a walkway and no barrier ever does, so the door and all three switches
 are always reachable. `tests/puzzle.test.js` proves it by walking *every*
-configuration any order of presses can reach — if you build a second Hall, add
-its map to that test and let it check your work.
+configuration any order of presses can reach.
+
+**The Tidal Hall (Phase 12) is the second worked example** — the same four
+steps, with levers instead of switches: three tide wheels sharing one state,
+causeways that flood and pontoons that float, two Gym trainers and Leader
+Ondine with `badge: 'tidalSigil'`. `tests/tidalHall.test.js` proves the tide
+can never strand anyone, over every tide times every place to stand.
 
 ### Sigils
 
@@ -1089,7 +1140,25 @@ encounters: {
 
 `TileMap.getEncounterTableAt(x, y)` answers which table a step rolls against;
 the rate and the cooldown are shared across the map. Scree (`*`) is the second
-encounter tile, after tall grass.
+encounter tile, after tall grass; Mistvault adds cave rubble (`;`) and shallows
+(`N`).
+
+### A faction
+
+The Hollow Vane are data (`src/data/factions.js`): a name, an emblem, the
+types its people use, the looks they wear, and their ranks. A Vane trainer is
+an ordinary trainer with two more fields — `faction: 'hollowVane'` and
+`rank: 'surveyor'` — whose `title` must be the rank's title. The tests check
+every faction trainer against the faction: a real rank, the right title, the
+faction's look on the map, and an Aether of the faction's types.
+
+### An NPC the story sends away mid-visit
+
+`absentWhen` decides who is on a map when it LOADS. When a conversation sets a
+flag that makes someone absent while they are standing right there, they leave
+— walking off along `leaveBy: { direction, steps }` if their entry has one,
+then fading. Kestrel at Mistvault's cordon does this the moment Corran takes
+it down. Nothing about it is saved: next visit they are simply not there.
 
 ---
 
@@ -1111,7 +1180,7 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-2926 tests covering map parsing, collision, spawn fallbacks, map validation, game
+3455 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, inventory operations,
 interaction targeting, type effectiveness, the move and creature databases, stat
 and experience maths, the creature factory, the party, the starter-selection
@@ -1143,7 +1212,16 @@ real save files written by the Phase 10 build, Route 2's geometry (every tile
 reachable, a real fork, a real loop, the gully in Kestrel's sight, the cordon
 holding), both habitats, and a simulated walk up Route 2 through the real battle
 engine that measures what a player arrives at the top with, and whether every
-trainer and both of Kestrel's meetings can be won by every starter.
+trainer and both of Kestrel's meetings can be won by every starter — and
+Phase 12: levers, currents, signals, glows and `closedWhen` on tiny made-up
+maps; every valve setting and every tide; a proof, over every lever setting
+times every patch of floor the player could stand on, that neither Mistvault's
+valves nor the Tidal Hall's tide can ever trap anyone; the cordon, the breaker
+and who alone may set each story flag; the Hollow Vane as a faction; Tidewatch's
+services and its people before and after the Sigil; the rockslide that nothing
+opens; lever states in the save validator; and simulated walks from the top of
+Route 2 through Mistvault to the Tidal Sigil for every starter, measuring every
+Vane fight, Kestrel's third meeting, the Hall and Ondine.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -1177,6 +1255,12 @@ every map you add. They catch, without you writing a line of test code:
 - presence conditions (`presentWhen`, `absentWhen`) that are not names
 - a barrier standing on a solid tile (so opening it would change nothing), or
   drawn as a tile that is not solid
+- a lever on a walkable tile, on or beside a barrier, without exactly two
+  positions, sharing a state with different positions, fed by a channel that
+  does not exist, or in a current that runs in a circle; a barrier or glow
+  following a signal nothing can produce
+- a faction trainer with an unknown faction or rank, or the wrong title; an
+  NPC that leaves mid-visit (`leaveBy`) without anything that sends it away
 - two barriers on one tile, or an NPC, spawn point or switch standing where a
   barrier can close
 - a switch pointing at a barrier that does not exist, doing nothing, or sitting
@@ -1201,7 +1285,7 @@ every map you add. They catch, without you writing a line of test code:
 - two maps that would show the same place name on a save slot
 
 Twenty-five seeded battles are also played to completion in the test suite, and
-every one of the 61 moves is used in a real battle to check nothing throws and
+every one of the 63 moves is used in a real battle to check nothing throws and
 HP never leaves its bounds.
 
 Gameplay is additionally verified in a real browser with Playwright during
@@ -1237,8 +1321,26 @@ Everything below works end to end, on the keyboard, from a new game:
 15. Fight **Hollis**, **Maren** or **Tamsin** (one per fork), and **Dunmore** on
     the scree
 16. Climb the gully to **Kestrel** again — their starter has evolved
-17. Reach the **Wardens' cordon** across Mistvault Cavern: the end of the road,
-    for now
+17. Reach the **Wardens' cordon** across Mistvault Cavern
+
+## Mistvault, Tidewatch and the second Sigil (Phase 12)
+
+18. Talk to **Warden Corran**: the Circle has sent word, the cordon comes down,
+    and Kestrel races in ahead of you
+19. **Mistvault Cavern — the Mouth**: Warden Ashby gives you the objective;
+    the Hollow Vane's cables, board and cell depot say who is here; Surveyor
+    Tallis blocks the passage north
+20. **The Galleries**: steer the spring's current with two valves so the mist
+    bridges hold — spring WEST, far valve DEEP — past Surveyors Brede and Quill
+21. **The Draw Site**: beat Draw Foreman Vossler, throw the siphon's breaker,
+    and watch the mist clear (and the Thornway's spring fill again)
+22. Out through the Tideward Grotto's shallows to **Tidewatch Harbor**: a
+    third Mender, the first shop with Ultra Orbs, the Tidewatch light
+23. **Kestrel** again, beside the Hall road
+24. **The Tidal Hall**: three wheels, one tide — low, high, low — past a
+    Deckhand and a Diver to **Leader Ondine**
+25. Win the **Tidal Sigil**. North, the Stormrise Climb is under a rockslide:
+    the end of the road, for now
 
 ---
 

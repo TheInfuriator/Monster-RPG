@@ -37,15 +37,17 @@ springs, storms, and mineral veins. Full planned region (built incrementally):
 
 **Vertical slice (first playable build) = locations 1, 2, and 3.**
 
-**Built so far (Phase 11):** Emberhollow Town and its four interiors, Route 1,
+**Built so far (Phase 12):** Emberhollow Town and its four interiors, Route 1,
 Thistlewood with its Mender's Hall, Supply Post, a cottage and the Verdant Hall
-(the vertical slice, locations 1-3), and now **Route 2 — the Thornway**
-(location 4), up to the mouth of Mistvault Cavern.
+(the vertical slice, locations 1-3), **Route 2 — the Thornway** (location 4,
+Phase 11), and now **Mistvault Cavern** (location 5: three maps — the Mouth,
+the Galleries and the Draw Site) and **Tidewatch Harbor** (location 6: the
+town, its Mender's Hall and Supply Post, and the Tidal Hall).
 
-Mistvault is held back the same way Route 2 was before it — the cavern is
-visible at the top of the Thornway, behind a Warden cordon, with a Warden and a
-sign that explain why, rather than an invisible wall or an empty cave. See
-section 22.
+The Stormrise Climb (location 7) is held back the same way Mistvault was in
+Phase 11 — the road is visible at the top of Tidewatch, under a rockslide,
+with a Warden and a sign that explain why, rather than an invisible wall or an
+empty road. See section 23.
 
 ### Region flavour notes
 - Emberhollow: warm ochre + slate, a small quarry town built on a dormant ember vent.
@@ -53,6 +55,11 @@ section 22.
 - Thistlewood: overgrown timber town, everything half-swallowed by hedges.
 - The Thornway: a bramble-cut road climbing from thicket onto bare scree, with
   Mistvault's dark mouth at the top.
+- Mistvault Cavern: dark rock, loose rubble, mist bridges over chasms, aether
+  current running glowing through channels cut in the walls — and the grey
+  cables, cell racks and machinery the Hollow Vane brought in.
+- Tidewatch Harbor: slate roofs, a boardwalk waterfront with two piers and
+  moored boats, a white lighthouse on the point, cliffs to the north and south.
 
 ### Emberhollow Town — as built
 30x24. A crossroads town: the main road runs east-west, the north road becomes the
@@ -324,8 +331,10 @@ Wake up in Emberhollow
   → Kestrel at the Thornway gate (rival battle #1) — opens Route 2
   → Route 2 (the Thornway): 4 trainers, Kestrel again below Mistvault
   → Mistvault Cavern cordoned off  ← END OF PHASE 11
-  → Mistvault Cavern, Hollow Vane event
-  → Tidewatch Harbor: Beacon Hall #2 (Tidal)
+  → Warden Corran takes the cordon down
+  → Mistvault Cavern: the valve puzzle, the Hollow Vane, the siphon stopped
+  → Tidewatch Harbor: Kestrel again; Beacon Hall #2 (Tidal), Leader Ondine
+  → Earn the Tidal Sigil; the Stormrise road is under a rockslide  ← END OF PHASE 12
   → Route 3, Voltspire City: Beacon Hall #3 (Storm)
   → The Aerie: Champion gauntlet
 ```
@@ -339,17 +348,20 @@ Wake up in Emberhollow
 | Rival battle #1 — Thornway gate (Kestrel's ace L13) | 13–14 *(measured)* |
 | Route 2 wild Aethers / trainers | 13–18 / 13–16 |
 | Rival battle #2 — below Mistvault (Kestrel's ace L16) | 15–17 *(measured)* |
+| Mistvault wild Aethers / Vane Surveyors / Draw Foreman's ace | 15–19 / 16–18 / 20 *(measured)* |
+| Rival battle #3 — Tidewatch (Kestrel's ace L19) | 17–21 *(measured)* |
+| **Beacon Hall 2 (Ondine)** — trainers 18–19, ace L21 | **19–22** *(measured)* |
 
-The planned pacing had Route 2 at 14-18 and Hall 2 at 18-22. Walking Route 2
-through the real engine (tests/helpers/routeWalk.js) puts a player's starter
-at 15-17 by the top: the experience economy is slower than the plan assumed,
-so Route 2 is pitched at what players really have, and the rows below are
-still plans to be measured the same way when they are built.
+The planned pacing had Route 2 at 14-18, Mistvault at 20-25 and Hall 2 at
+18-22. Walking the road through the real engine (tests/helpers/routeWalk.js)
+puts a player's starter at 15-17 by the top of Route 2 and at 17-20 through
+Mistvault, with the team's best creature at 21-22 at the Tidal Sigil: the
+experience economy is slower than the plan assumed, so every leg is pitched at
+what players really have. The plan's 18-22 for Hall 2 held; its 20-25 for
+Mistvault did not (it is 15-19 as built). Section 23 has the numbers.
 
 | Planned | Expected player level |
 |---------|----------------------|
-| **Beacon Hall 2** | **18–22** |
-| Mistvault Cavern | 20–25 |
 | **Beacon Hall 3** | **25–30** |
 | Champion | 33–38 |
 
@@ -390,7 +402,8 @@ gave any, so the game uses the neutral default rather than guessing).
 |---------|-------|------|------|
 | 1 | Thistlewood, in front of the Thornway gate | once the Verdant Sigil is held | Flittle L12, **starter L13** |
 | 2 | Route 2, the gully below Mistvault | on the way to the cordon | Gustwing L14, Grubbit L13, **evolved starter L16** |
-| 3+ | later routes / The Aerie | Phase 12 onwards | grows to a full 6 |
+| 3 | Tidewatch Harbor, beside the Hall road | on the way to the Tidal Hall | Gustwing L18, Grubbit L19, **evolved starter L19** |
+| 4+ | later routes / The Aerie | Phase 13 onwards | grows to a full 6 |
 
 The **original plan** had three appearances — Emberhollow after the starter
 (L5), Route 1's exit (starter L9 + Flittle L8) and after Hall 1 (evolved
@@ -414,6 +427,16 @@ second meeting on Route 2, where the species data evolves the starter. Section
 A "resource company" siphoning aether currents into storage cells. Grunts use Poison,
 Dark, and Steel Aethers. They appear from Mistvault Cavern onward. Deliberately kept out
 of the vertical slice so the opening stays about exploration.
+
+**As built (Phase 12):** a faction in data (`src/data/factions.js`) — name,
+emblem (*a hollow ring crossed by a line*), the types its people use, the looks
+they wear, and two ranks: **Vane Surveyor** and **Draw Foreman**. A Vane
+trainer is an ordinary trainer with `faction` and `rank`. Five in Mistvault;
+the Draw Foreman, Vossler, is the first real confrontation. What they WANT is
+told a scrap at a time and only the first scraps so far: they siphon the
+currents into storage cells; they are surveying the whole valley (Survey 14 was
+Mistvault; Survey 15 is Tidewatch's harbour current); and the cells are bound
+for **Stormrise**. Section 23.
 
 ---
 
@@ -494,7 +517,10 @@ them, and later phases will gate areas with them.
 | `pickedUpVerdantPotion` | Taking the Super Potion behind the west hedge | The item stays taken |
 | `thornwayOpen` | Beating Kestrel at the Thornway gate (`setFlags` on the trainer) | The Thornway gate opens, for good; the keeper and the sign change |
 | `pickedUpRoute2Salve`, `…UltraOrb`, `…IslandPotion`, `…Rouser`, `…GreatOrbs`, `…ScreePotion` | Taking Route 2's six ground items | Each stays taken |
-| `mistvaultOpen` | *nothing yet* | Would lift the Wardens' cordon across Mistvault Cavern. Reserved for Phase 12 |
+| `mistvaultOpen` | Talking to Warden Corran once Kestrel is beaten below Mistvault (Phase 12) | The cordon comes down (animated, one `story` autosave); Kestrel runs into the cave; Corran, the sign and Ashby change |
+| `mistvaultSiphonStopped` | Throwing the breaker at the Draw Site, once the Foreman is beaten (Phase 12) | The tideward mist clears; every Galleries bridge holds for good; the channels light; Route 2's spring fills; a dozen people change what they say |
+| `pickedUpMistvault…`, `pickedUpTidewatchBeachTonic` | Taking the cavern's seven items and the harbour's one | Each stays taken |
+| `stormriseOpen` | *nothing yet* | Would lift the rockslide on the Stormrise Climb. Reserved for Phase 13 |
 
 The player's **starter** is not a flag either — it is `GameState.starter`
 (Phase 11) — but it is readable as one: `starter:pyrret`, `starter:drizzle` or
@@ -1670,12 +1696,10 @@ Mistvault onward; nobody on Route 2 names them, and no grunt is fought.
 
 ### The Phase 12 boundary
 
-The Thornway ends at the **Wardens' cordon** across Mistvault Cavern's mouth:
-a barrier (`mistvaultCordon`) with `openWhen: 'mistvaultOpen'`, a flag nothing
-sets. The cave is visible behind it; Warden Corran says the Circle is sending
-someone and nobody goes in until then; the sign says CLOSED. There are no exit
-tiles behind the cordon. Phase 12 (the dungeon) opens it with one flag and
-adds the cavern's exits.
+The Thornway ended, in Phase 11, at the **Wardens' cordon** across Mistvault
+Cavern's mouth: a barrier (`mistvaultCordon`) with `openWhen: 'mistvaultOpen'`,
+a flag nothing set. Phase 12 did exactly what this section promised — one flag
+(set by Warden Corran) and the cavern's exits behind the cordon. Section 23.
 
 ### Saving
 
@@ -1704,3 +1728,208 @@ adds the cavern's exits.
 
 No scene, system or save code changes.
 
+
+---
+
+## 23. Mistvault Cavern, Tidewatch Harbor and the second Sigil (Phase 12)
+
+Phase 12 opens the cordon Phase 11 left up and runs the story on to the second
+Beacon Hall: Route 2 → Mistvault Cavern → the first real Hollow Vane
+confrontation → Tidewatch Harbor → the Tidal Hall → the Tidal Sigil.
+
+### The cordon comes down
+
+Beating Kestrel below Mistvault was already required to reach Warden Corran.
+Now, once that is done, Corran has word from the Circle: Warden Ashby went in
+at first light and asked for Sigil-holders to follow. Their dialogue branch
+sets `mistvaultOpen` when it ends; the rope draws back while the player
+watches (the same `syncBarriers` animation as every gate), the game autosaves
+(`story`), and Kestrel — "I am going in first" — walks up through the mouth
+and fades (`absentWhen: 'mistvaultOpen'` plus `leaveBy`, the new optional
+field for an NPC the story sends away mid-visit). The way in is two ordinary
+exit tiles in the cave mouth behind the cordon. A Phase 11 save has no such
+flag, so it loads with the cordon up and Corran ready to open it.
+
+### Mistvault Cavern — three maps
+
+| Map | Size | What is there |
+|-----|------|---------------|
+| **The Mouth** | 30x26 | Warden Ashby (the objective, in one breath), the Vane's notice board and humming cell depot, a side pocket, rubble, Vane Surveyor **Tallis** across the two-tile passage north |
+| **The Galleries** | 34x30 | the valve puzzle: two valves, four mist bridges, lit channels; Kestrel stuck at the chasm; **Brede** (optional, east wing) and **Quill** (across the deep bridge); a Vane board with the answer on it |
+| **The Draw Site** | 30x32 | Surveyor **Seld** on the cable loop; the siphon rig, its cell racks, and Draw Foreman **Vossler** on the only tile the breaker can be reached from; the tideward passage choked with mist; the Tideward Grotto's shallows; the way out to Tidewatch |
+
+Seven ground items (existing items only): a Great Orb and a Clear Tonic in the
+Mouth, an Ultra Orb (the pocket) and two Super Potions (the east wing) in the
+Galleries, a Super Potion, a Clear Tonic and two Great Orbs at the Draw Site.
+
+### The puzzle — steering the current
+
+Not a reskin of the root switches. A new, generic kind of puzzle piece in
+`PuzzleSystem`: the **lever** — something you FACE and press Confirm at, with
+exactly two positions, stored as one boolean in `gameState.puzzles` (so the
+save format did not change). Levers produce **signals**: `<state>:<position>`,
+and — through a **current** that flows from `flow.sources` along valve outputs
+— `current:<channel>`. A barrier can follow a signal (`openWhenSignal`,
+`closedWhenSignal`), and **glows** draw channels lit while a signal (or a world
+condition) holds, so the player can SEE the current.
+
+In the Galleries a spring's current runs to the **spring valve** (east or
+west). The east run holds the east bridge. The west run holds the west bridge
+and feeds the **far valve** (pocket or deep), which holds the pocket bridge or
+the deep bridge — the way north. The far valve stands beyond the west bridge,
+so it cannot even be reached until the first valve is worked out. The answer:
+spring WEST, then far DEEP. Found as: east, pocket.
+
+**It can never trap anyone.** Both valves stand on the side the player came
+from and no valve is next to a bridge (validated); a valve also refuses to drop
+a bridge from under anyone. `tests/mistvault.test.js` walks the product of
+every valve setting and every patch of floor the player could be standing on
+(`tests/helpers/leverProof.js`) and proves the way back and the way on are
+reachable from every one. Once the siphon is stopped, `allPoweredWhen` runs
+current down every channel and every bridge holds for good.
+
+### The Hollow Vane — the first confrontation
+
+A faction in data (section 9). Five trainers on the ordinary pipeline, each
+with `faction: 'hollowVane'` and a `rank`, dressed in the Vane's grey coat with
+the hollow ring (`vane`, `vaneForeman` looks), each fielding Poison, Dark or
+Steel Aethers. The Draw Foreman stands on the breaker's only face, watching the
+cables; beaten, they leave ("One rig. One survey... this valley is very much
+bigger than one cave") and walk off for good. Throwing the breaker sets
+`mistvaultSiphonStopped` — ONE flag that:
+
+- clears the tideward mist (a barrier with `openWhen`) — the way to Tidewatch
+- darkens the rig's intake channels and lights the dry ones in the Mouth
+- holds every Galleries bridge for good
+- fills Route 2's dry spring again (`closedWhen`, the mirror of `openWhen`:
+  water closes over the basin — set only deep in the cave, so nobody is in it)
+- changes what a dozen people say, and is one `story` autosave.
+
+The Vane stay active: a Surveyor on Tidewatch's north pier measuring "Survey
+15" until the Sigil is won, then gone "up the coast, toward Stormrise", where
+the Draw Site's cell racks say the current was being shipped. Nothing more is
+revealed.
+
+### Cave species and moves
+
+Five species (39 in all), each with a type nothing else has, and two moves
+(63), each filling a real gap:
+
+| Species | Type | Where | Note |
+|---------|------|-------|------|
+| Gloamite | Rock/Dark | cave rubble | the cavern's own; Fighting hits it 4x |
+| Corrodit | Poison/Steel | cave rubble (scarce), the Vane | lives in the Vane's cable runs |
+| Minnet → Marlance (26) | Water → Water/Steel | the Grotto's shallows | Marlance is Ondine's ace |
+| Barnaclaw | Water/Rock | the shallows; the Tidal Hall | |
+
+**Riptide** (Water, physical 70): every Water attack before it was special.
+**Siphon Fang** (Dark, physical 60, drains): the Vane's signature; no Dark move
+healed. Three encounter tables: `mistvaultCave` (the Mouth's rubble, 15-18),
+`mistvaultGalleries` (16-19), and `mistvaultShallows` (17-20) on the Grotto's
+shallows through `encounters.byTerrain`.
+
+### Tidewatch Harbor
+
+A 36x28 harbour between the cliffs and the sea: the cave mouth up from the
+Grotto, the beach, the harbour road, **the Tidewatch light** on its point (the
+landmark — its lamp burns on the harbour current, and dimmed while the Vane
+drew on it), the waterfront boardwalk with two piers and moored boats, the
+**Mender's Hall** (the third recovery point), the **Supply Post**, and the
+**Tidal Hall** on the waterfront. Six people whose lines follow the story
+(before and after the Sigil), Kestrel, a Vane Surveyor, and Warden Hale at
+the rockslide. One ground item (a Clear Tonic on the beach).
+
+**The Supply Post** is the first to sell the **Ultra Orb** (1200) and the
+**Clear Tonic** (400), on top of Thistlewood's shelf. Audited: the prize money
+from Kestrel at the cordon to the Diver is 6220 coins — an Ultra Orb and a few
+Super Potions before the Leader, not the whole shelf.
+
+**Storage access** (section 2) is NOT built: Phase 12 does not build a storage
+manager. A fitter in the Mender's Hall says the Circle's storage link is not
+finished; catches with a full party go to storage exactly as before.
+
+### Kestrel, the third time
+
+Beside the fenced Hall road — so nobody reaches the Hall without walking into
+their sight — with Gustwing 18, Grubbit 19 (one fight from evolving) and the
+starter at 19. Kestrel stays afterwards, out of the road, with new lines after
+the fight and after the Sigil.
+
+### The Tidal Hall — one tide, three wheels
+
+A third puzzle, different from both others: ONE global state. Three tide
+wheels share one lever state (`state: 'tide'`), so turning any of them turns
+the tide for the whole Hall. **Low** tide surfaces the stone causeways and
+grounds the pontoons; **high** tide floods the causeways and floats the
+pontoons level with the walks. The climb is entrance → causeway (low) → lower
+walk → pontoons (high) → upper walk → causeway (low) → Ondine's dais, and the
+wheel you need is always the one on the walk you stand on. Every walk the tide
+can be changed from has a wheel; the dais has none but is only reachable at low
+tide; no wheel is next to moving floor. Proved over every tide and every place
+to stand (`tests/tidalHall.test.js`). Found at low tide; the tide is saved.
+
+Two Gym trainers, each on a one-tile step looking across a one-tile walk:
+Deckhand **Corwen** (Barnaclaw 18, Minnet 18) and Diver **Nerys** (Minnet 19,
+Brookel 19).
+
+### Leader Ondine and the Tidal Sigil
+
+**Barnaclaw 19, Brookel 19, Marlance 21** (ace). Stronger than Fern by every
+measure — eight levels higher, an evolved Water line, a Water/Steel ace two
+levels above the others — and 1600 coins. `badge: 'tidalSigil'` on the trainer
+entry; the Sigil data now names Ondine. Awarded once, after the win, through
+the same pipeline as Fern's; the Sigil screen reads **2 of 3**. After it: new
+lines from Ondine (no rematch), Kestrel, the harbourmaster, the keeper, the
+fisher, Pip, the Hall attendant and Warden Hale; the Vane Surveyor leaves.
+
+### Balance — measured, not guessed
+
+Everything below comes from walking on from the top of Route 2 through the real
+battle engine (`walkMistvault`, `walkToTidalSigil` in
+`tests/helpers/routeWalk.js`), every starter, with the experience the engine
+awards. Phase 12 also made the walk faithful about losses: a lost battle now
+keeps the experience it earned, exactly as the game does (the battle runs on
+the live party).
+
+- **Mistvault:** no Vane fight takes more than two tries for any starter, on
+  either Route 2 road, with or without Brede; the Foreman is the hardest (78-100%
+  per try). A Fire team that never switches IS walled by Gloamite and Corrodit
+  — so Warden Ashby tells Fire players to catch a Delvit from the Mouth's
+  rubble, and with one every fight is won first time. A test keeps that hint
+  honest: it fails if the hint stops being needed.
+- **Kestrel 3:** the first draft (Gustwing 19, Carapex 20, starter 22) won 13%
+  for the Fire player's walked team and 0% for the Grass player's — a gate, not
+  a rival. As shipped, 80% (Fire), 95% (Water), 75% (Grass) per try.
+- **Ondine:** like Fern, hard for exactly one starter. The Water and Grass
+  players' walked teams win every time; the Fire player's wins 28% of tries and
+  takes two in the walk. The first draft (20/20/22) walled the Fire player:
+  13%, twenty tries without a win.
+- **Levels:** the starter at 17-20 through the cave; the team's best creature
+  at 21-22 at the Sigil — GAME_DESIGN's plan of 18-22 for Hall 2.
+- **Fern, rechecked** with the corrected driver: unchanged and no wall —
+  Fire + Flittle 100%, Grass + Flittle 100%, Water + Flittle 43% at 13/12,
+  53% at 14/13, 85% at 15/14. Not changed.
+
+### Where Phase 12 ends
+
+The **Stormrise Climb** (north out of Tidewatch, toward Voltspire City) is
+buried under a rockslide: a barrier (`stormriseRockslide`, drawn as boulders)
+with `openWhen: 'stormriseOpen'`, a flag nothing sets. There is nothing behind
+it — no exit, no stranded road. Warden Hale says the Wardens are clearing it;
+the sign says CLOSED: rockslide. Kestrel, after the Sigil: "when the Wardens
+dig out the Stormrise road, I am going first." Phase 13 opens it with one flag
+and builds the road beyond.
+
+### Saving
+
+- **Save version 3 — unchanged.** Lever positions are plain booleans in the
+  existing `puzzles` record; the validator keeps only switch-moved barriers and
+  real lever states, and refuses a stored value for a barrier that follows a
+  signal (a bridge can never be held open by editing a save).
+- Story progress is two flags (`mistvaultOpen`, `mistvaultSiphonStopped`), a
+  Sigil and beaten trainers — all existing fields.
+- **Autosaves:** arriving on each new map; the cordon and the breaker (one
+  `story` autosave each); every battle; every item; healing. Never mid-turn of
+  a valve or a wheel — they are saved with the next save.
+- A real Phase 11 save, written by the released Phase 11 build and continued
+  in the Phase 12 build at the same address, loads exactly, with the cordon up.

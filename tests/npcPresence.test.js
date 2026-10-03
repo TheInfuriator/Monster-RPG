@@ -107,7 +107,8 @@ describe('presence and exit fields on every map', () => {
   for (const [mapId, map] of Object.entries(MAPS)) {
     for (const entry of map.npcs || []) {
       if (entry.presentWhen === undefined && entry.absentWhen === undefined
-        && entry.exitAfterDefeat === undefined && entry.returnAfterDefeat === undefined) continue;
+        && entry.exitAfterDefeat === undefined && entry.returnAfterDefeat === undefined
+        && entry.leaveBy === undefined) continue;
 
       describe(`${mapId}:${entry.id}`, () => {
         it('writes its conditions as a name or a list of names', () => {
@@ -120,6 +121,17 @@ describe('presence and exit fields on every map', () => {
           expect(entry.returnAfterDefeat).toBe(true);
           expect(entry.trainer).toBeTruthy();
           expect(entry.exitAfterDefeat).toBeUndefined();
+        });
+
+        it('only walks off mid-visit (leaveBy) if the story can send them away', () => {
+          if (entry.leaveBy === undefined) return;
+          // leaveBy is for someone a conversation makes absent while they stand there.
+          expect(entry.absentWhen).toBeDefined();
+          const { direction, steps } = entry.leaveBy;
+          expect(DIRECTIONS).toContain(direction);
+          expect(Number.isInteger(steps)).toBe(true);
+          expect(steps).toBeGreaterThanOrEqual(1);
+          expect(steps).toBeLessThanOrEqual(8);
         });
 
         it('only walks off after a defeat if it is a trainer who then leaves', () => {

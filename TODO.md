@@ -2,14 +2,17 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 11 — Kestrel + Route 2 / World Expansion I** ✅ complete
-Next phase: **Phase 12 — Mistvault Cavern + the second Beacon Hall** (recommended)
+Current phase: **Phase 12 — Mistvault Cavern + Tidewatch Harbor + the second
+Sigil** ✅ complete
+Next phase: **Phase 13 — the Stormrise Climb** (recommended; see below)
 
-**Playable end to end, past the first badge:** New Game → starter → Route 1 →
-its trainers → the north gate → Thistlewood → the Verdant Hall → Leader Fern →
-the Verdant Sigil → **Kestrel at the Thornway gate → Route 2 → its trainers →
-Kestrel again → the Wardens' cordon at Mistvault Cavern.** It survives closing
-the tab — and Phase 10 saves carry straight over.
+**Playable end to end, to the second Sigil:** New Game → starter → Route 1 →
+the Verdant Sigil → Kestrel at the Thornway gate → Route 2 → Kestrel again →
+**the cordon comes down → Mistvault Cavern (the Mouth, the Galleries' valve
+puzzle, the Draw Site) → the Hollow Vane's Draw Foreman and the siphon →
+Tidewatch Harbor → Kestrel a third time → the Tidal Hall's tide puzzle →
+Leader Ondine → the Tidal Sigil → the Stormrise rockslide.** It survives
+closing the tab — and Phase 11 saves carry straight over.
 
 ---
 
@@ -354,16 +357,88 @@ the tab — and Phase 10 saves carry straight over.
   40% bar and 85% two levels later, but close to the line — revisit if Fern
   is ever touched.
 
-## Phase 12 — Mistvault Cavern + Beacon Hall 2 (recommended next)
-- [ ] Mistvault Cavern: the dungeon behind the cordon (`mistvaultOpen`)
-- [ ] The Hollow Vane's first appearance — grunts, the aether-draw machines
-- [ ] Tidewatch Harbor and the Tidal Hall (Beacon Hall 2)
-- [ ] Kestrel's third meeting
+## Phase 12 — Mistvault Cavern + Tidewatch Harbor + the second Sigil ✅
+- [x] **Audit first:** canon for Mistvault (Dark/Rock, a puzzle, the Vane
+      event), the Hollow Vane (a resource company siphoning currents into
+      cells; Poison/Dark/Steel), Tidewatch (Hall 2, Tidal), Kestrel (3+ from
+      Phase 12) and the level plan — and every system to reuse
+- [x] **The cordon comes down** through real progression: Warden Corran, once
+      Kestrel is beaten below Mistvault, sets `mistvaultOpen`; the rope draws
+      back (picture and collision together), Kestrel runs in and fades
+      (`leaveBy`), one `story` autosave; Phase 11 saves load with it up
+- [x] **Levers, currents and signals** in `PuzzleSystem` — generic, not a
+      reskin of the root switches: faced levers with two positions stored as
+      booleans, valves passing a current along channels, barriers that follow
+      a signal (`openWhenSignal` / `closedWhenSignal`) or close on a world
+      condition (`closedWhen`), glows, an occupancy guard, full validation
+- [x] **Mistvault Cavern, three maps:** the Mouth (Ashby, the Vane's depot),
+      the Galleries (two dependent valves, four mist bridges, lit channels, an
+      optional east wing, a pocket), the Draw Site (the rig, the breaker, the
+      tideward mist, the Grotto's shallows); seven items; Kestrel stuck at the
+      chasm
+- [x] **Softlock safety proved:** every valve setting x every patch of floor
+      the player could stand in (`tests/helpers/leverProof.js`)
+- [x] **The Hollow Vane as data** (`src/data/factions.js`) and five Vane
+      trainers on the ordinary pipeline (`faction`, `rank`, validated); the
+      Draw Foreman at the breaker; `mistvaultSiphonStopped` clears the mist,
+      holds every bridge, lights the channels, refills Route 2's spring, and
+      autosaves; the Vane stay active (a Surveyor in Tidewatch until the Sigil)
+- [x] **5 species** (39 in all — Gloamite, Corrodit, Minnet → Marlance,
+      Barnaclaw) and **2 moves** (63 — Riptide, Siphon Fang); three cave
+      encounter tables, one on the Grotto's shallows; 23 new tiles
+- [x] **Tidewatch Harbor** (36x28): the third Mender's Hall (recovery point),
+      a Supply Post with the Ultra Orb and the Clear Tonic (audited against the
+      prize money), the Tidewatch light, piers and boats, people who follow the
+      story before and after the Sigil
+- [x] **Kestrel's third meeting** beside the fenced Hall road (Gustwing 18,
+      Grubbit 19, starter 19 — measured)
+- [x] **The Tidal Hall:** three tide wheels sharing ONE state; causeways that
+      flood and pontoons that float; low, high, low to the dais; proved over
+      every tide x every place to stand; a Deckhand and a Diver
+- [x] **Leader Ondine** (Barnaclaw 19, Brookel 19, Marlance 21) and the
+      **Tidal Sigil**, awarded once after the win; the Sigil screen reads 2 of 3
+- [x] **The Phase 13 boundary:** the Stormrise Climb under a rockslide
+      (`stormriseOpen`, set by nothing), a Warden and a sign
+- [x] **Balance measured** through the real engine from Route 2 to the Sigil
+      for every starter; Kestrel 3 and Ondine re-pitched from walls; Ashby
+      points Fire players at a Delvit; Fern re-checked and unchanged; the walk
+      now keeps a lost battle's experience, as the game does
+- [x] **Save version 3, unchanged:** lever positions are booleans in the
+      existing puzzle record; a real Phase 11 build's save continued in the
+      Phase 12 build at the same address
+- [x] `debug.levers()`, `debug.lever()`, `debug.stage()`
+- [x] Browser-verified with normal controls and true reloads — see CHANGELOG.md
+
+### Phase 12 deferrals
+- **Storage access in Tidewatch** (GAME_DESIGN section 2) is not built: the
+  phase excludes a storage manager. A fitter in the Mender's Hall says the
+  Circle's storage link is not finished; overflow still goes to storage.
+- **No cutscene system.** The Vane confrontation is a trainer fight plus a
+  breaker plus a flag — enough, and testable. A scripted reveal waits for the
+  Vane's leadership.
+- **NPCs are not ADDED mid-visit,** only sent away (`leaveBy`): adding one
+  could put them on the player's tile. Kestrel reaching the Draw Site after
+  the siphon stops would need it.
+- **The Fire starter is the hard path through Phase 12** (rock caves, a Water
+  Hall): a never-switching Fire team needs the Delvit Ashby points at, and
+  wins 28% of tries against Ondine. That matches Fern for the Water starter;
+  revisit if a smarter balance driver (one that switches) is written.
+- **Glows are pictures only;** a channel that should block or open uses a
+  barrier, as the bridges do.
+
+## Phase 13 — the Stormrise Climb (recommended next)
+- [ ] Lift the rockslide (`stormriseOpen` — one flag, one Warden's dialogue
+      branch) and build **Route 3 — the Stormrise Climb**: elevation, weather
+      flavour, rare Aethers (GAME_DESIGN section 2)
+- [ ] The Hollow Vane's next survey on the Climb — the cells were bound for
+      Stormrise; reveal a little more of why, not all of it
+- [ ] Kestrel's fourth meeting (a fourth Aether)
+- [ ] Storage access (a small, deliberate swap screen — not a full manager)
+- [ ] Measure the Climb from the Tidal Sigil with `walkToTidalSigil`'s team
 
 ## Later — Expansion
-- [ ] Route 3, Voltspire City
-- [ ] Beacon Hall 3, rival encounters 4+
-- [ ] Hollow Vane story arc
+- [ ] Voltspire City and Beacon Hall 3 (Storm), rival encounters 5+
+- [ ] The rest of the Hollow Vane story arc
 - [ ] Champion gauntlet (30+ creatures and 50+ moves: done in Phase 11)
 
 ## Later — Polish

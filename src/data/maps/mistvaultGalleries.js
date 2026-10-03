@@ -26,10 +26,13 @@
  *      |
  *  the pocket bridge
  *
- * The far valve does NOTHING unless the spring valve is sending current west:
- * the second valve depends on the first. That is the puzzle, and it is not a
- * hedge swap — no lever here moves a barrier directly; it moves the current,
- * and the bridges follow the current (PuzzleSystem: levers, `flow`, signals).
+ * The far valve does NOTHING unless the spring valve is sending current west
+ * — and it stands beyond the west bridge, which only holds while that current
+ * runs, so the player cannot even reach it until they have worked out the
+ * first valve. The second depends on the first. That is the puzzle, and it is
+ * not a hedge swap — no lever here moves a barrier directly; it moves the
+ * current, and the bridges follow the current (PuzzleSystem: levers, `flow`,
+ * signals).
  *
  * The channels in the walls LIGHT UP where the current runs, so the player
  * can see what each turn did. Everything starts as found: the spring valve
@@ -117,7 +120,6 @@ export const mistvaultGalleries = {
         east: 'The spring valve swings east. Light races along the channel toward the east chasm.',
         west: 'The spring valve swings west. Light races along the channel toward the west chasm.',
       },
-      dry: 'The spring valve turns, but no current reaches it.',
     },
     {
       id: 'farValve',
@@ -132,7 +134,6 @@ export const mistvaultGalleries = {
         pocket: 'The far valve turns. The current spills into the little channel up toward the pocket.',
         deep: 'The far valve turns. The current runs off along the deep channel, toward the great chasm.',
       },
-      dry: 'The far valve turns, but no current reaches it. The channel it feeds from is dark.',
     },
   ],
 

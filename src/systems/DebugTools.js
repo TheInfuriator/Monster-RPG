@@ -167,6 +167,7 @@ export function installDebugTools(game) {
           '  debug.sigils()                  every Sigil and whether it is earned',
           '  debug.sigil(id, earned=true)    award or remove a Sigil',
           '  debug.teleport(mapId, spawn)    change map',
+          '  debug.stage(name)               jump the story to a Phase 12 milestone (no name: list them)',
           '  debug.saves()                   both save slots: status and summary',
           '  debug.save(slot)                force a save into "manual" or "autosave"',
           '  debug.dumpSave(slot)            the raw saved text of a slot',
@@ -710,6 +711,37 @@ export function installDebugTools(game) {
 
       console.info(`[debug] ${id} earned -> ${hasBadge(id, gameState)} (${countBadges(gameState)} total)`);
       return hasBadge(id, gameState);
+    },
+
+    /**
+     * Put the STORY at a Phase 12 milestone and go there: the flags, beaten
+     * trainers and Sigils a player would have by then, recorded exactly the
+     * way real play records them. The party is left alone — bring your own
+     * (debug.give) — so a stage never hides a balance problem.
+     */
+    stage(name) {
+      const stages = {
+        cordon: { map: 'route2', spawn: 'default', trainers: ['kestrelThornway', 'kestrelRoute2'] },
+        mistvault: { map: 'mistvaultMouth', spawn: 'fromRoute2', trainers: ['kestrelThornway', 'kestrelRoute2'], flags: ['mistvaultOpen'] },
+        drawSite: { map: 'mistvaultCore', spawn: 'fromGalleries', trainers: ['kestrelThornway', 'kestrelRoute2'], flags: ['mistvaultOpen'] },
+        tidewatch: { map: 'tidewatch', spawn: 'fromMistvault', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped'] },
+        tidalHall: { map: 'tidalHall', spawn: 'default', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped'] },
+        tidalSigil: { map: 'tidewatch', spawn: 'fromTidalHall', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch', 'tidalLeaderOndine'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped'], sigils: ['tidalSigil'] },
+      };
+      if (!name || !stages[name]) {
+        console.info(`[debug] stages: ${Object.keys(stages).join(', ')}`);
+        return Object.keys(stages);
+      }
+      const stage = stages[name];
+      if (!gameState.starter) gameState.starter = 'drizzle';
+      setFlag('gotStarter');
+      awardBadge('verdantSigil', gameState);
+      for (const id of stage.trainers) recordTrainerVictory(id);
+      for (const flag of stage.flags || []) setFlag(flag);
+      for (const id of stage.sigils || []) awardBadge(id, gameState);
+      debug.teleport(stage.map, stage.spawn);
+      console.info(`[debug] story at "${name}": ${stage.map}`);
+      return name;
     },
 
     // --- World ---------------------------------------------------------

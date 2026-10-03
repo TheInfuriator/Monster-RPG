@@ -304,10 +304,19 @@ describe('the Galleries\' valves', () => {
     expect(state.puzzles.mistvaultGalleries.farValve).toBe(true);
   });
 
-  it('answers every turn in its own words, and says when a valve is dry', () => {
+  it('answers every turn in its own words', () => {
     for (const lever of getLevers(GALLERIES)) {
       for (const position of lever.positions) expect(lever.says[position]).toMatch(/\w/);
-      expect(lever.dry).toMatch(/no current/);
+    }
+  });
+
+  it('puts the far valve where it can only be reached once current reaches it', () => {
+    // Which is why neither valve needs a "dry" line: no player ever turns one dry.
+    const far = getLevers(GALLERIES).find((l) => l.id === 'farValve');
+    for (const spring of ['east', 'west']) {
+      const seen = reachable({ npcs: [], interactables: [] }, galleriesWith(spring, 'pocket'),
+        GALLERIES.spawnPoints.fromMouth);
+      expect(nextTo(seen, far), spring).toBe(spring === 'west');
     }
   });
 });
