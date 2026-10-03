@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import {
   createBarrierState, findPuzzleProblems, getChannels, getLeverAt, getLeverPositions,
   getPossibleSignals, getPoweredChannels, getPuzzleSignals, hasPuzzle, isPuzzleStateKey,
-  leverStateId, pressLever, exploreLeverStates,
+  leverStateId, pressLever, exploreLeverStates, nextLeverState,
 } from '../src/systems/PuzzleSystem.js';
 import { createNewGameState } from '../src/core/GameState.js';
 
@@ -235,5 +235,146 @@ describe('validation catches lever mistakes', () => {
 
   it('rejects a lever whose state id is a barrier\'s', () => {
     expect(broken({ levers: [{ ...valves.levers[2], state: 'floodF' }] })).toMatch(/also a barrier/);
+  });
+});
+
+/**
+ * Three wired coils and two circuits (Phase 13, the Storm Hall's idea).
+ *
+ *   #######
+ *   #.....#     coils at (1,2), (3,2), (5,2); each flips its neighbours too
+ *   #{.{.{#     circuit "pair" needs A and B lit; circuit "all" needs pair and C
+ *   #.....#     gate G at (3,4) opens while circuit:all holds
+ *   ###.###     (the gate's tile is floor in the source; the barrier draws it)
+ *   #.....#
+ *   #######
+ */
+const coils = {
+  id: 'coilTest',
+  name: 'Coil test',
+  tiles: [
+    '#######',
+    '#.....#',
+    '#{.{.{#',
+    '#.....#',
+    '###.###',
+    '#.....#',
+    '#######',
+  ],
+  levers: [
+    { id: 'coilA', name: 'a coil', x: 1, y: 2, look: 'coil', positions: ['dark', 'lit'], toggles: ['coilB'] },
+    { id: 'coilB', name: 'a coil', x: 3, y: 2, look: 'coil', positions: ['dark', 'lit'], toggles: ['coilA', 'coilC'] },
+    { id: 'coilC', name: 'a coil', x: 5, y: 2, look: 'coil', positions: ['dark', 'lit'], toggles: ['coilB'] },
+  ],
+  circuits: [
+    { id: 'pair', needs: ['coilA:lit', 'coilB:lit'] },
+    { id: 'all', needs: ['circuit:pair', 'coilC:lit'] },
+  ],
+  barriers: [
+    { id: 'gate', tile: '!', tiles: [[3, 4]], closed: true, openWhenSignal: 'circuit:all' },
+  ],
+  spawnPoints: { default: { x: 1, y: 1, facing: 'down' } },
+};
+
+describe('wired coils: one press flips its neighbours too', () => {
+  it('flips its own state and every state it toggles, leaving the record alone', () => {
+    const stored = { coilA: false, coilB: false, coilC: false };
+    expect(nextLeverState(coils, 'coilB', stored)).toEqual({ coilA: true, coilB: true, coilC: true });
+    expect(stored).toEqual({ coilA: false, coilB: false, coilC: false });
+    expect(nextLeverState(coils, 'coilA', {})).toEqual({ coilA: true, coilB: true });
+    expect(nextLeverState(coils, 'nope', {})).toBeNull();
+  });
+
+  it('stores every flipped coil when pressed in the world', () => {
+    const state = fresh();
+    pressLever(coils, 'coilA', { state });
+    expect(state.puzzles.coilTest).toEqual({ coilA: true, coilB: true });
+    pressLever(coils, 'coilC', { state });
+    expect(state.puzzles.coilTest).toEqual({ coilA: true, coilB: false, coilC: true });
+  });
+
+  it('reports its own new position, not a neighbour\'s', () => {
+    const state = fresh();
+    expect(pressLever(coils, 'coilB', { state }).position).toBe('lit');
+    expect(pressLever(coils, 'coilA', { state }).position).toBe('dark');
+  });
+
+  it('pressing the same coil twice puts everything back', () => {
+    const state = fresh();
+    pressLever(coils, 'coilB', { state });
+    pressLever(coils, 'coilB', { state });
+    expect(getLeverPositions(coils, state)).toEqual({ coilA: 'dark', coilB: 'dark', coilC: 'dark' });
+  });
+});
+
+describe('circuits: a signal that holds only while all its needs do', () => {
+  const signalsAfter = (...presses) => {
+    const state = fresh();
+    for (const id of presses) pressLever(coils, id, { state });
+    return getPuzzleSignals(coils, { state });
+  };
+
+  it('is off until every need holds, and can need an earlier circuit', () => {
+    expect(signalsAfter().has('circuit:pair')).toBe(false);
+    // A lights A and B: the pair holds, but C is dark.
+    expect(signalsAfter('coilA').has('circuit:pair')).toBe(true);
+    expect(signalsAfter('coilA').has('circuit:all')).toBe(false);
+    // B alone lights all three.
+    const all = signalsAfter('coilB');
+    expect(all.has('circuit:pair') && all.has('circuit:all')).toBe(true);
+  });
+
+  it('opens a gate that follows it, and reports it opened', () => {
+    const state = fresh();
+    expect(createBarrierState(coils, { state }).gate).toBe(true);
+    const outcome = pressLever(coils, 'coilB', { state });
+    expect(outcome.opened).toEqual(['gate']);
+    expect(createBarrierState(coils, { state }).gate).toBe(false);
+  });
+
+  it('is a signal validation knows about', () => {
+    expect(getPossibleSignals(coils).has('circuit:all')).toBe(true);
+    expect(findPuzzleProblems(coils)).toEqual([]);
+  });
+
+  it('is explored like any lever puzzle: a coil board reaches every pattern it can', () => {
+    // Three coils, but wired: only the patterns reachable by presses count.
+    const results = exploreLeverStates(coils, coils.spawnPoints.default);
+    expect(results.length).toBe(8);
+  });
+
+  it('saves only the coils, never a circuit', () => {
+    expect(isPuzzleStateKey(coils, 'coilB')).toBe(true);
+    expect(isPuzzleStateKey(coils, 'pair')).toBe(false);
+    expect(isPuzzleStateKey(coils, 'circuit:all')).toBe(false);
+  });
+});
+
+describe('validation catches coil and circuit mistakes', () => {
+  const broken = (changes) => findPuzzleProblems({ ...coils, ...changes }).join(' | ');
+  const withA = (changes) => ({ levers: [{ ...coils.levers[0], ...changes }, ...coils.levers.slice(1)] });
+
+  it('rejects a coil that toggles itself, an unknown one, or one twice', () => {
+    expect(broken(withA({ toggles: ['coilA'] }))).toMatch(/toggles itself/);
+    expect(broken(withA({ toggles: ['coilZ'] }))).toMatch(/unknown lever state/);
+    expect(broken(withA({ toggles: ['coilB', 'coilB'] }))).toMatch(/twice/);
+  });
+
+  it('rejects a circuit with no needs, a duplicate id, or a need nothing makes', () => {
+    expect(broken({ circuits: [{ id: 'x', needs: [] }] })).toMatch(/at least one/);
+    expect(broken({ circuits: [{ id: 'x', needs: ['coilA:lit'] }, { id: 'x', needs: ['coilB:lit'] }] }))
+      .toMatch(/duplicate/);
+    expect(broken({ circuits: [{ id: 'x', needs: ['coilA:blazing'] }] })).toMatch(/nothing produces/);
+  });
+
+  it('rejects a circuit that needs a later (or its own) circuit', () => {
+    expect(broken({ circuits: [{ id: 'a', needs: ['circuit:b'] }, { id: 'b', needs: ['coilA:lit'] }] }))
+      .toMatch(/EARLIER/);
+    expect(broken({ circuits: [{ id: 'a', needs: ['circuit:a'] }] })).toMatch(/EARLIER/);
+  });
+
+  it('rejects a gate following a circuit that does not exist', () => {
+    expect(broken({ barriers: [{ ...coils.barriers[0], openWhenSignal: 'circuit:ghost' }] }))
+      .toMatch(/nothing produces/);
   });
 });

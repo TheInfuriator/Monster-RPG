@@ -57,19 +57,15 @@ export const BADGES = {
     color: 0x4a86c4,
   },
 
-  /**
-   * Voltspire City's Hall. Not built — `leaderTrainerId` is null, which is
-   * how the data says "planned, not yet real" without a placeholder trainer
-   * that could accidentally be fought.
-   */
+  /** Voltspire City's Hall — built in Phase 13. The last of the three. */
   stormSigil: {
     id: 'stormSigil',
     name: 'Storm Sigil',
     order: 3,
     hall: 'The Storm Hall',
     town: 'Voltspire City',
-    leader: null,
-    leaderTrainerId: null,
+    leader: 'Halcyon',
+    leaderTrainerId: 'stormLeaderHalcyon',
     description: 'It hums faintly, even in still air.',
     icon: 'bolt',
     color: 0xe8a33d,

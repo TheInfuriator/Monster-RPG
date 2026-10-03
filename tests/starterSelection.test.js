@@ -203,7 +203,7 @@ describe('the world reacts to gotStarter', () => {
 describe('dialogue actions across all map data', () => {
   const KNOWN_ACTIONS = new Set([
     'starterSelect', 'practiceBattle', 'practiceBattleDouble', 'heal', 'blackoutTravel',
-    'resetPuzzle',
+    'resetPuzzle', 'storage',
   ]);
 
   /**

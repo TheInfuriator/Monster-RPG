@@ -21,7 +21,7 @@
 
 import { TILE_DEFINITIONS } from '../../src/data/tiles.js';
 import {
-  createBarrierState, getBarriers, getLevers, getLeverStateIds, leverStateId,
+  createBarrierState, getBarriers, getLevers, getLeverStateIds, nextLeverState,
 } from '../../src/systems/PuzzleSystem.js';
 
 const key = (x, y) => `${x},${y}`;
@@ -91,7 +91,7 @@ export function exploreSituations(definition, { starts, conditions = {} }) {
       const stand = SIDES.map(([dx, dy]) => ({ x: lever.x + dx, y: lever.y + dy }))
         .find((t) => reg.has(key(t.x, t.y)));
       if (!stand) continue;
-      const next = { ...stored, [leverStateId(lever)]: !stored[leverStateId(lever)] };
+      const next = nextLeverState(definition, lever.id, stored);
       node.next.push(visit(next, stand));
     }
     // Walking about inside the region is free; the region is the node.

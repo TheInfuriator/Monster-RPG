@@ -355,13 +355,17 @@ describe('trainer data', () => {
     expect(getTrainerDisplayName(null)).toBe('Trainer');
   });
 
-  it('rewards run in a sensible early-game band', () => {
+  it('rewards run in a sensible band for how strong the trainer is', () => {
     for (const trainer of Object.values(TRAINERS)) {
       // Enough to feel worth it against a 200-coin Potion, not enough to make
       // the economy meaningless. A LEADER is allowed a bigger purse — beating
       // one is the end of a whole region's worth of progress — but not an
-      // unbounded one, and only a Leader may claim it.
-      const ceiling = trainer.badge ? 2000 : 1000;
+      // unbounded one, and only a Leader may claim it. Later trainers (Phase
+      // 13) may pay a little more, in step with their levels — 55 coins a
+      // level, 80 for a Leader — so the purse grows with the shop's prices
+      // and never runs ahead of them.
+      const top = Math.max(...trainer.party.map((member) => member.level));
+      const ceiling = trainer.badge ? Math.max(2000, 80 * top) : Math.max(1000, 55 * top);
 
       expect(trainer.rewardMoney).toBeGreaterThanOrEqual(100);
       expect(

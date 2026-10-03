@@ -427,6 +427,20 @@ export const MOVES = {
     description: 'Bites and draws the target’s strength into the user.',
     effect: { kind: EFFECT_KINDS.DRAIN, fraction: 0.5 },
   },
+
+  // The Stormrise Climb (Phase 13): the first Ice and Dragon moves, for the
+  // first Ice and Dragon Aethers. Nothing else learns them yet.
+  rimeShard: {
+    id: 'rimeShard', name: 'Rime Shard', type: 'ice', category: PHYSICAL,
+    power: 65, accuracy: 100, pp: 20, priority: 0,
+    description: 'Flings a splinter of rime. May slow the target.',
+    effect: { kind: EFFECT_KINDS.STAT_CHANGE, target: 'foe', stat: 'speed', stages: -1, chance: 0.1 },
+  },
+  drakePulse: {
+    id: 'drakePulse', name: 'Drake Pulse', type: 'dragon', category: SPECIAL,
+    power: 75, accuracy: 100, pp: 15, priority: 0,
+    description: 'Breathes out a ring of storm-light that shakes the air.',
+  },
 };
 
 /** Every move id, handy for tests and debug tools. */

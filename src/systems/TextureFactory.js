@@ -64,6 +64,38 @@ function speckle(ctx, color, count, seed, size = 2, area = TILE_SIZE) {
   }
 }
 
+/** A storm coil post, dark or charged (the Storm Hall's lever). */
+function drawCoil(lit) {
+  const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+  rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x4b4f59);
+  rect(ctx, 10, 26, 12, 6, 0x2e3138);                     // its base
+  for (let y = 6; y < 26; y += 4) {
+    rect(ctx, 9, y, 14, 3, lit ? 0xd89a3c : 0x7a5a32);      // copper windings
+  }
+  rect(ctx, 12, 1, 8, 5, lit ? 0xf2d75c : 0x55595f);       // the cap
+  if (lit) {
+    rect(ctx, 6, 3, 2, 2, 0xfff4b0);
+    rect(ctx, 24, 5, 2, 2, 0xfff4b0);
+    rect(ctx, 14, 0, 4, 1, 0xfff4b0);
+  }
+  return canvas;
+}
+
+/** A floor wire run, dark or carrying charge, on the Storm Hall's grating. */
+function drawWire(core, glow) {
+  const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+  rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x4b4f59);
+  for (let i = 0; i < TILE_SIZE; i += 8) {
+    rect(ctx, i, 0, 1, TILE_SIZE, 0x3a3e47);
+    rect(ctx, 0, i, TILE_SIZE, 1, 0x3a3e47);
+  }
+  rect(ctx, 0, 13, TILE_SIZE, 6, core);
+  rect(ctx, 13, 0, 6, TILE_SIZE, core);
+  rect(ctx, 0, 15, TILE_SIZE, 2, glow);
+  rect(ctx, 15, 0, 2, TILE_SIZE, glow);
+  return canvas;
+}
+
 /** A valve tile whose handle points left (-1) or right (+1). */
 function drawValve(direction) {
   const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
@@ -930,6 +962,200 @@ const TILE_GENERATORS = {
 
   // A valve: an iron wheel on a pipe, its handle pointing the way the current
   // goes. Position 0 points left, position 1 points right.
+  // --- The Stormrise Climb (Phase 13) ------------------------------------------
+  'tile-heath': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x5f6f3a);
+    // Wind-bent tufts, all leaning the same way — the wind is from the west.
+    for (let row = 0; row < 4; row += 1) {
+      const y = row * 8;
+      const offset = row % 2 === 0 ? 1 : 5;
+      for (let i = 0; i < 4; i += 1) {
+        const x = offset + i * 8;
+        rect(ctx, x, y + 4, 3, 4, 0x8a8f4a);
+        rect(ctx, x + 2, y + 2, 3, 3, 0xa7a35a);
+        rect(ctx, x + 4, y + 1, 2, 2, 0xc2b46a);
+      }
+    }
+    return canvas;
+  },
+  'tile-frost-scree': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x8d99a6);
+    speckle(ctx, 0x6c7886, 18, 13013, 3);
+    speckle(ctx, 0xe4eef5, 22, 13014, 2);
+    speckle(ctx, 0xb5c6d3, 10, 13015, 4);
+    return canvas;
+  },
+  'tile-stormgrass': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x3d5048);
+    for (let row = 0; row < 4; row += 1) {
+      const y = row * 8;
+      const offset = row % 2 === 0 ? 0 : 4;
+      for (let i = 0; i < 4; i += 1) {
+        const x = offset + i * 8;
+        rect(ctx, x, y + 2, 2, 6, 0x6f8f86);
+        rect(ctx, x + 3, y + 3, 2, 5, 0x587a70);
+      }
+    }
+    // A few sparks caught in the grass.
+    speckle(ctx, 0xf2d75c, 4, 13016, 1);
+    return canvas;
+  },
+  'tile-snow': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xe6edf2);
+    speckle(ctx, 0xc9d6e0, 14, 13017, 3);
+    speckle(ctx, 0xffffff, 8, 13018, 2);
+    return canvas;
+  },
+  'tile-relay-mast': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x8d99a6);
+    // A steel lattice leg, a grey cell bolted on, and a crackle of current.
+    rect(ctx, 6, 0, 3, TILE_SIZE, 0x4b5059);
+    rect(ctx, 23, 0, 3, TILE_SIZE, 0x4b5059);
+    for (let y = 2; y < TILE_SIZE; y += 8) {
+      rect(ctx, 8, y, 16, 2, 0x5e6169);
+    }
+    rect(ctx, 11, 12, 10, 10, 0x7d8088);
+    ctx.strokeStyle = hex(0xdfe5ea);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(16, 17, 3, 0, Math.PI * 2);
+    ctx.stroke();
+    rect(ctx, 14, 3, 2, 3, 0x9ef0ff);
+    rect(ctx, 17, 6, 2, 3, 0x9ef0ff);
+    return canvas;
+  },
+  'tile-charged-fence': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x8d99a6);
+    rect(ctx, 3, 4, 3, 26, 0x4b5059);
+    rect(ctx, 26, 4, 3, 26, 0x4b5059);
+    // Three live wires, zig-zagging with current.
+    ctx.strokeStyle = hex(0x9ef0ff);
+    ctx.lineWidth = 2;
+    for (const y of [9, 17, 25]) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 4; x <= TILE_SIZE; x += 4) ctx.lineTo(x, y + (x % 8 === 0 ? -2 : 2));
+      ctx.stroke();
+    }
+    return canvas;
+  },
+
+  // --- Voltspire City (Phase 13) ---------------------------------------------
+  'tile-cobble': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x6d6a72);
+    for (let row = 0; row < 4; row += 1) {
+      const y = row * 8;
+      const offset = row % 2 === 0 ? 0 : 5;
+      for (let x = -5 + offset; x < TILE_SIZE; x += 10) {
+        rect(ctx, x + 1, y + 1, 8, 6, 0x8a8790);
+        rect(ctx, x + 1, y + 1, 8, 1, 0xa19ea8);
+      }
+    }
+    return canvas;
+  },
+  'tile-copper-roof': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x4f8f7f);     // verdigris
+    for (let x = 0; x < TILE_SIZE; x += 8) {
+      rect(ctx, x, 0, 2, TILE_SIZE, 0x3c7062);              // standing seams
+      rect(ctx, x + 2, 0, 1, TILE_SIZE, 0x76b3a2);
+    }
+    speckle(ctx, 0xb87a45, 5, 13019, 2);                    // copper showing through
+    return canvas;
+  },
+  'tile-voltspire': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x5a5560);
+    for (let y = 0; y < TILE_SIZE; y += 8) {
+      rect(ctx, 0, y + 7, TILE_SIZE, 1, 0x403c46);
+      rect(ctx, (y / 8) % 2 === 0 ? 8 : 20, y, 1, 7, 0x403c46);
+    }
+    rect(ctx, 0, 12, TILE_SIZE, 3, 0xc07a3d);              // a copper band
+    rect(ctx, 0, 12, TILE_SIZE, 1, 0xe2a466);
+    return canvas;
+  },
+  'tile-voltspire-top': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x8fa2b5);         // sky behind
+    rect(ctx, 4, 20, 24, 12, 0x5a5560);
+    rect(ctx, 4, 20, 24, 2, 0xc07a3d);
+    rect(ctx, 14, 2, 4, 18, 0xc07a3d);                       // the lightning rod
+    rect(ctx, 15, 2, 1, 18, 0xe2a466);
+    rect(ctx, 12, 0, 8, 3, 0xf2d75c);                        // a spark at its tip
+    return canvas;
+  },
+  'tile-street-lamp': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x6d6a72);
+    rect(ctx, 14, 10, 4, 22, 0x2e2b33);
+    rect(ctx, 10, 2, 12, 10, 0x2e2b33);
+    rect(ctx, 12, 4, 8, 6, 0xf2d75c);                        // an aether lamp
+    rect(ctx, 10, 28, 12, 4, 0x2e2b33);
+    return canvas;
+  },
+  'tile-storage-terminal': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 6, 4, 20, 26, 0x4a6a8f);
+    rect(ctx, 9, 7, 14, 10, 0x9ef0ff);                       // the screen
+    rect(ctx, 10, 9, 6, 2, 0x4a6a8f);
+    rect(ctx, 10, 13, 10, 2, 0x4a6a8f);
+    rect(ctx, 9, 20, 4, 4, 0xe8a33d);                        // a button
+    rect(ctx, 15, 20, 4, 4, 0x6fbf73);
+    return canvas;
+  },
+
+  // --- The Storm Hall (Phase 13) ------------------------------------------------
+  'tile-coil-0': () => drawCoil(false),
+  'tile-coil-1': () => drawCoil(true),
+  'tile-grating': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x4b4f59);
+    for (let i = 0; i < TILE_SIZE; i += 8) {
+      rect(ctx, i, 0, 1, TILE_SIZE, 0x3a3e47);
+      rect(ctx, 0, i, TILE_SIZE, 1, 0x3a3e47);
+    }
+    speckle(ctx, 0x5c616c, 6, 13020, 2);
+    return canvas;
+  },
+  'tile-wire': () => drawWire(0x2f3239, 0x55595f),
+  'tile-wire-lit': () => drawWire(0x5a4a1e, 0xf2d75c),
+
+  // --- Weather particles (Phase 13, see WeatherRenderer) ---------------------
+  'fx-streak': () => {
+    const { canvas, ctx } = makeCanvas(14, 2);
+    rect(ctx, 0, 0, 14, 1, 0xe8eef2);
+    rect(ctx, 4, 1, 10, 1, 0xc9d4dc);
+    return canvas;
+  },
+  'fx-drop': () => {
+    const { canvas, ctx } = makeCanvas(2, 9);
+    rect(ctx, 0, 0, 2, 9, 0x9fc4e4);
+    rect(ctx, 0, 0, 1, 9, 0xd2e6f6);
+    return canvas;
+  },
+  'fx-flake': () => {
+    const { canvas, ctx } = makeCanvas(4, 4);
+    rect(ctx, 1, 0, 2, 4, 0xf4f8fb);
+    rect(ctx, 0, 1, 4, 2, 0xf4f8fb);
+    return canvas;
+  },
+  'fx-mist': () => {
+    const { canvas, ctx } = makeCanvas(160, 64);
+    const gradient = ctx.createRadialGradient(80, 32, 4, 80, 32, 78);
+    gradient.addColorStop(0, 'rgba(230,236,240,0.9)');
+    gradient.addColorStop(1, 'rgba(230,236,240,0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 160, 64);
+    return canvas;
+  },
+
   'tile-valve-0': () => drawValve(-1),
   'tile-valve-1': () => drawValve(1),
 

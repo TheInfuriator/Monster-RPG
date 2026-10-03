@@ -109,6 +109,37 @@ export const SHOPS = {
       { item: 'ultraOrb' },
     ],
   },
+
+  /**
+   * Voltspire City's Supply Post (Phase 13). The last town before the
+   * championship: the player arrives with the Climb's prize money (and the
+   * Overseer's, and Kestrel's) and an Electric Hall ahead.
+   *
+   * What is new: the MENDER'S DRAUGHT (100 HP, 900). By the Storm Hall a
+   * team's HP has roughly doubled since Thistlewood, so a 50-HP Super Potion
+   * now heals half of what it used to; the Draught is the step up. It is the
+   * only new thing: every Orb that exists is already on sale, and the cures
+   * cover every status there is.
+   */
+  voltspireSupplyPost: {
+    id: 'voltspireSupplyPost',
+    name: 'Supply Post',
+    keeper: 'Cassia',
+    greeting: 'Storm prices — but you get what you pay for.',
+    stock: [
+      { item: 'potion' },
+      { item: 'superPotion' },
+      { item: 'mendersDraught' },
+      { item: 'antidote' },
+      { item: 'soothingBalm' },
+      { item: 'burnSalve' },
+      { item: 'rouser' },
+      { item: 'clearTonic' },
+      { item: 'basicOrb' },
+      { item: 'greatOrb' },
+      { item: 'ultraOrb' },
+    ],
+  },
 };
 
 /**

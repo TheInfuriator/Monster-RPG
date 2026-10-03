@@ -185,6 +185,13 @@ export class Player extends Phaser.GameObjects.Sprite {
     const targetY = this.tileY + vector.y;
 
     if (!this.canEnter(targetX, targetY)) {
+      // A ledge in the way, facing the way we are walking: hop over it.
+      const hop = this.map ? this.map.getLedgeHop(this.tileX, this.tileY, direction) : null;
+      if (hop && !(this.extraCollision && this.extraCollision(hop.x, hop.y))) {
+        this.startHop(hop.x, hop.y);
+        return true;
+      }
+
       // Blocked: keep facing that way and animate briefly so the bump reads as
       // "I tried", rather than the input being silently swallowed.
       this.playWalkAnimation(direction, false);
@@ -241,6 +248,49 @@ export class Player extends Phaser.GameObjects.Sprite {
           x: this.tileX,
           y: this.tileY,
           tile: this.map ? this.map.getTile(this.tileX, this.tileY) : null,
+        });
+      },
+    });
+  }
+
+  /**
+   * Hop down a ledge: two tiles in one short arc. Input is locked for the
+   * whole hop (`isMoving`), and ONE 'step' is announced, on landing — so the
+   * ledge tile itself never rolls an encounter, triggers a trainer or counts
+   * as a step; the landing tile does, like any other.
+   */
+  startHop(targetX, targetY) {
+    this.isMoving = true;
+    this.playWalkAnimation(this.facing, false);
+
+    const from = { x: this.x, y: this.y };
+    const destination = Player.tileToPixel(targetX, targetY);
+    const progress = { t: 0 };
+
+    this.moveTween = this.scene.tweens.add({
+      targets: progress,
+      t: 1,
+      duration: MOVEMENT.walkDuration * 2,
+      ease: 'Linear',
+      onUpdate: () => {
+        // Straight across, with a little lift in the middle: a hop, not a slide.
+        const lift = Math.sin(progress.t * Math.PI) * 10;
+        this.setPosition(
+          from.x + (destination.x - from.x) * progress.t,
+          from.y + (destination.y - from.y) * progress.t - lift
+        );
+      },
+      onComplete: () => {
+        this.tileX = targetX;
+        this.tileY = targetY;
+        this.snapToTile();
+        this.isMoving = false;
+        this.moveTween = null;
+        this.emit('step', {
+          x: this.tileX,
+          y: this.tileY,
+          tile: this.map ? this.map.getTile(this.tileX, this.tileY) : null,
+          hopped: true,
         });
       },
     });

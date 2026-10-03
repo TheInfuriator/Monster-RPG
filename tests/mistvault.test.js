@@ -477,9 +477,11 @@ describe('the Draw Site and the siphon', () => {
 // ---------------------------------------------------------------------------
 
 describe('the Hollow Vane', () => {
-  const vane = Object.values(TRAINERS).filter((t) => t.faction === 'hollowVane');
   const placed = CAVERN.flatMap((map) => (map.npcs || []).filter((n) => n.trainer)
     .map((npc) => ({ map: map.id, npc, trainer: TRAINERS[npc.trainer] })));
+  // The Vane in MISTVAULT. Later operations (Stormrise, Phase 13) have their
+  // own members, checked in tests/stormrise.test.js.
+  const vane = placed.map(({ trainer }) => trainer).filter((t) => t.faction === 'hollowVane');
 
   it('is a faction in data, with the types GAME_DESIGN.md gives it', () => {
     expect(FACTIONS.hollowVane.types).toEqual(['poison', 'dark', 'steel']);

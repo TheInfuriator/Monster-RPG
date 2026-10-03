@@ -157,6 +157,30 @@ export class TileMap {
     return exits.find((exit) => exit.x === x && exit.y === y) || null;
   }
 
+  /**
+   * Where a one-way LEDGE hop from (x, y) toward `direction` would land, or null.
+   *
+   * A ledge tile is a drop in the ground: solid to walk ONTO, but a player who
+   * steps toward it in the direction it faces hops clean over it and lands on
+   * the tile beyond. Never the other way: walking up at a ledge is walking
+   * into a wall. The landing tile must be walkable (walls, water, closed
+   * barriers and the map's edge all refuse the hop). Whether a PERSON is
+   * standing on it is the caller's question — this knows only the map.
+   *
+   * @returns {{ x: number, y: number } | null}
+   */
+  getLedgeHop(x, y, direction) {
+    const vector = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[direction];
+    if (!vector) return null;
+    const ledge = this.getTile(x + vector[0], y + vector[1]);
+    if (!ledge || ledge.ledge !== direction) return null;
+    if (this.isBlockedByBarrier(x + vector[0], y + vector[1])) return null;
+    const landX = x + vector[0] * 2;
+    const landY = y + vector[1] * 2;
+    if (!this.isWalkable(landX, landY)) return null;
+    return { x: landX, y: landY };
+  }
+
   /** The lever (valve, tide wheel) on a tile, or null. Faced, like a sign. */
   getLeverAt(x, y) {
     return (this.definition.levers || []).find((lever) => lever.x === x && lever.y === y) || null;

@@ -19,6 +19,9 @@
  * their boards and labels and what grunts let slip — and Phase 12 tells only
  * the first scraps: they siphon the aether currents into storage cells, they
  * are surveying the whole valley, and the cells are bound for Stormrise.
+ * Phase 13 adds the next: Stormrise is where the third current — the storm's
+ * — is drawn, and all three are meant for one place, "the Convergence".
+ * What happens there is still not told.
  */
 
 export const FACTIONS = {
@@ -36,6 +39,8 @@ export const FACTIONS = {
     ranks: {
       surveyor: { title: 'Vane Surveyor' },
       foreman: { title: 'Draw Foreman' },
+      // Phase 13: the one running the Stormrise relay.
+      overseer: { title: 'Relay Overseer' },
     },
   },
 };

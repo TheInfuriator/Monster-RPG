@@ -794,6 +794,89 @@ export const CREATURES = {
       { level: 31, move: 'stoneHammer' },
     ],
   },
+
+  // =========================================================================
+  // THE STORMRISE CLIMB (Phase 13)
+  // =========================================================================
+  // The Climb's own Aethers, one for each of its three grounds: Cirrup on the
+  // heath and the summit's stormgrass (and the Storm Hall's ace, grown into
+  // Stormcrest), Rimelet on the frost scree — the game's first Ice type, and a
+  // fair answer to a flier — and Thundrel, a rare find where the lightning
+  // comes down.
+  cirrup: {
+    id: 'cirrup', number: 40, name: 'Cirrup',
+    description: 'A puff of a bird that rides the updraughts up the Climb. Its down crackles when a storm is coming.',
+    types: ['electric', 'flying'],
+    baseStats: { hp: 42, attack: 40, defense: 36, spAttack: 58, spDefense: 44, speed: 70 },
+    growthRate: 'medium', baseExp: 62, catchRate: 160,
+    evolution: { method: 'level', level: 27, to: 'stormcrest' },
+    appearance: { body: 'bird', main: 0xc9d6e6, dark: 0xd9b43a },
+    learnset: [
+      { level: 1, move: 'peck' },
+      { level: 1, move: 'spark' },
+      { level: 6, move: 'gust' },
+      { level: 11, move: 'windrush' },
+      { level: 16, move: 'shockJolt' },
+      { level: 27, move: 'aerialDive' },
+      { level: 33, move: 'thunderLance' },
+    ],
+  },
+  stormcrest: {
+    id: 'stormcrest', number: 41, name: 'Stormcrest',
+    description: 'It rides the front of a storm with its crest raised like a lightning rod. Voltspire\'s old folk say it calls the weather in.',
+    types: ['electric', 'flying'],
+    baseStats: { hp: 66, attack: 60, defense: 56, spAttack: 90, spDefense: 64, speed: 94 },
+    growthRate: 'medium', baseExp: 168, catchRate: 45,
+    evolution: null,
+    appearance: { body: 'bird', main: 0x6f86b8, dark: 0xe0be3c },
+    learnset: [
+      { level: 1, move: 'peck' },
+      { level: 1, move: 'spark' },
+      { level: 1, move: 'gust' },
+      { level: 1, move: 'shockJolt' },
+      { level: 27, move: 'aerialDive' },
+      { level: 33, move: 'thunderLance' },
+      { level: 41, move: 'recklessCharge' },
+    ],
+  },
+
+  rimelet: {
+    id: 'rimelet', number: 42, name: 'Rimelet',
+    description: 'A white stoat that hunts across the frost scree. Its coat grows rime instead of fur, and it sheds it in splinters.',
+    types: ['ice'],
+    baseStats: { hp: 52, attack: 70, defense: 52, spAttack: 48, spDefense: 56, speed: 72 },
+    growthRate: 'medium', baseExp: 96, catchRate: 120,
+    evolution: null,
+    appearance: { body: 'quadruped', main: 0xdcecf2, dark: 0x6fa3b8 },
+    learnset: [
+      { level: 1, move: 'scratch' },
+      { level: 1, move: 'quickJab' },
+      { level: 8, move: 'cowerCry' },
+      { level: 13, move: 'rimeShard' },
+      { level: 19, move: 'gnaw' },
+      { level: 25, move: 'sharpenClaws' },
+      { level: 31, move: 'crunchBite' },
+    ],
+  },
+
+  thundrel: {
+    id: 'thundrel', number: 43, name: 'Thundrel',
+    description: 'A storm-drake no longer than an arm, seen only where lightning has just come down. Few who see one believe it after.',
+    types: ['electric', 'dragon'],
+    baseStats: { hp: 62, attack: 72, defense: 60, spAttack: 88, spDefense: 64, speed: 84 },
+    growthRate: 'slow', baseExp: 170, catchRate: 45,
+    evolution: null,
+    appearance: { body: 'serpent', main: 0x5a5fb8, dark: 0xe0be3c },
+    learnset: [
+      { level: 1, move: 'tackle' },
+      { level: 1, move: 'spark' },
+      { level: 9, move: 'windrush' },
+      { level: 15, move: 'shockJolt' },
+      { level: 21, move: 'drakePulse' },
+      { level: 29, move: 'thunderLance' },
+      { level: 37, move: 'bodySlam' },
+    ],
+  },
 };
 
 /** Every species id. */

@@ -74,6 +74,19 @@
  * channels the story lights for good. `closedWhen: '<world condition>'` is the mirror of `openWhen`: shut
  * while the condition holds (Route 2's spring filling back up).
  *
+ * COILS AND CIRCUITS (Phase 13)
+ * Two more optional fields, for the Storm Hall's coils:
+ *
+ *   toggles: ['coilB', 'coilC']   a lever that ALSO flips other lever states
+ *                                 when pressed (wired coils: press one, its
+ *                                 neighbours flip too)
+ *   circuits: [{ id: 'first', needs: ['coilA:lit', 'coilB:lit'] }]
+ *                                 makes `circuit:first` hold only while EVERY
+ *                                 one of its needs holds
+ *
+ * A barrier can follow a circuit like any other signal
+ * (`openWhenSignal: 'circuit:first'`). A circuit may need an earlier one.
+ *
  * WHAT DECIDES A BARRIER, in order:
  *   openWhen (world)  ->  closedWhen (world)  ->  a signal  ->  a switch  ->  as declared
  */
@@ -361,7 +374,33 @@ export function getPuzzleSignals(definition, { state = gameState, conditions = {
   for (const channel of getPoweredChannels(definition, positions, conditions)) {
     signals.add(`current:${channel}`);
   }
+  // Circuits, in the order declared — so one may need an earlier one.
+  for (const circuit of getCircuits(definition)) {
+    if ((circuit.needs || []).every((need) => signals.has(need))) signals.add(`circuit:${circuit.id}`);
+  }
   return signals;
+}
+
+/** Every circuit a map declares: AND-gates over signals. */
+export function getCircuits(definition) {
+  return (definition && definition.circuits) || [];
+}
+
+/**
+ * The stored lever record after pressing one lever: its own state flips, and
+ * so does every state it `toggles`. A new object; `stored` is not touched.
+ *
+ * @param {object} definition
+ * @param {string} leverId
+ * @param {Record<string, boolean>} stored the map's puzzle record
+ * @returns {Record<string, boolean> | null} null for an unknown lever
+ */
+export function nextLeverState(definition, leverId, stored = {}) {
+  const lever = getLevers(definition).find((entry) => entry.id === leverId);
+  if (!lever) return null;
+  const next = { ...stored };
+  for (const id of [leverStateId(lever), ...(lever.toggles || [])]) next[id] = !(stored[id] === true);
+  return next;
 }
 
 /** Every signal this map could EVER produce — what validation checks references against. */
@@ -371,6 +410,7 @@ export function getPossibleSignals(definition) {
     for (const position of lever.positions || []) possible.add(`${leverStateId(lever)}:${position}`);
   }
   for (const channel of getChannels(definition)) possible.add(`current:${channel}`);
+  for (const circuit of getCircuits(definition)) possible.add(`circuit:${circuit.id}`);
   return possible;
 }
 
@@ -398,10 +438,11 @@ export function pressLever(definition, leverId, {
 
   const id = leverStateId(lever);
   const current = readStoredState(definition.id, state);
-  const next = !(current[id] === true);
+  const nextStored = nextLeverState(definition, leverId, current);
+  const next = nextStored[id];
 
   const before = createBarrierState(definition, { conditions, state });
-  const trial = { puzzles: { ...(state.puzzles || {}), [definition.id]: { ...current, [id]: next } } };
+  const trial = { puzzles: { ...(state.puzzles || {}), [definition.id]: nextStored } };
   const after = createBarrierState(definition, { conditions, state: trial });
 
   const opened = Object.keys(after).filter((b) => before[b] && !after[b]);
@@ -412,7 +453,7 @@ export function pressLever(definition, leverId, {
     .some(([x, y]) => blocked.has(`${x},${y}`)));
   if (wouldTrap) return refuse('occupied');
 
-  getStoredState(definition.id, state)[id] = next;
+  Object.assign(getStoredState(definition.id, state), nextStored);
 
   // A valve whose input channel is dark turns, but passes nothing on — worth
   // saying, because it is exactly the clue the player needs.
@@ -460,7 +501,7 @@ export function exploreLeverStates(definition, start, { conditions = {} } = {}) 
         .some(([dx, dy]) => reachable.has(`${lever.x + dx},${lever.y + dy}`));
       if (!nextTo) continue;
 
-      const next = { ...stored, [leverStateId(lever)]: !stored[leverStateId(lever)] };
+      const next = nextLeverState(definition, lever.id, stored);
       const nextKey = key(next);
       if (seen.has(nextKey)) continue;
       seen.add(nextKey);
@@ -589,7 +630,7 @@ export function findPuzzleProblems(definition) {
   const levers = getLevers(definition);
   const glows = definition.glows || [];
   if (barriers.length === 0 && switches.length === 0 && levers.length === 0
-    && glows.length === 0 && !definition.flow) return problems;
+    && glows.length === 0 && !definition.flow && getCircuits(definition).length === 0) return problems;
 
   const rows = definition.tiles;
   const height = rows.length;
@@ -759,6 +800,35 @@ function findLeverProblems(definition, { barrierTiles, inBounds, sourceTile }) {
     for (const position of Object.keys(lever.says || {})) {
       if (!positions.includes(position)) problems.push(`${where}: says something for unknown position "${position}"`);
     }
+    const toggled = new Set();
+    for (const other of lever.toggles || []) {
+      if (other === leverStateId(lever)) problems.push(`${where}: toggles itself — it already does`);
+      else if (!getLeverStateIds(definition).has(other)) problems.push(`${where}: toggles unknown lever state "${other}"`);
+      // Twice would flip it back: almost certainly a typo.
+      if (toggled.has(other)) problems.push(`${where}: toggles "${other}" twice`);
+      toggled.add(other);
+    }
+  }
+
+  // Circuits: unique ids, needs that something produces, earlier circuits only.
+  const circuitIds = new Set();
+  for (const circuit of getCircuits(definition)) {
+    const where = `${definition.id} circuit "${circuit.id}"`;
+    if (!circuit.id) problems.push(`${definition.id}: a circuit has no id`);
+    if (circuitIds.has(circuit.id)) problems.push(`${where}: duplicate id`);
+    if (!Array.isArray(circuit.needs) || circuit.needs.length === 0) {
+      problems.push(`${where}: needs at least one signal`);
+    } else {
+      for (const need of circuit.needs) {
+        const ownCircuit = need.startsWith('circuit:');
+        if (ownCircuit && !circuitIds.has(need.slice('circuit:'.length))) {
+          problems.push(`${where}: needs "${need}", which is not an EARLIER circuit`);
+        } else if (!ownCircuit && !possible.has(need)) {
+          problems.push(`${where}: needs "${need}", which nothing produces`);
+        }
+      }
+    }
+    circuitIds.add(circuit.id);
   }
 
   // The current only flows one way: a channel can never feed itself.

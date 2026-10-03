@@ -23,7 +23,7 @@ export const thistlewoodMendersHall = {
     '____________', // 0
     '_I________I_', // 1
     '||||||||||||', // 2
-    '_OOHHOOOOPO_', // 3  healing array
+    '_OOHHOOOOP?_', // 3  healing array; the storage terminal (10,3)
     '_OOOOOOOOOO_', // 4  Mender Rell stands here
     '_CCCCOOOOOO_', // 5  counter
     '_OOOOOOOAAO_', // 6  benches
@@ -84,6 +84,15 @@ export const thistlewoodMendersHall = {
   ],
 
   interactables: [
+    {
+      // The storage terminal (Phase 13): the same in every Mender's Hall.
+      x: 10,
+      y: 3,
+      type: 'sign',
+      dialogue: [
+        { action: 'storage', pages: ['A storage terminal. Its screen glows a patient green.'] },
+      ],
+    },
     {
       x: 3,
       y: 3,

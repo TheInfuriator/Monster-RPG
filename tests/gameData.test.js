@@ -28,6 +28,7 @@ import { BADGES, findBadgeProblems } from '../src/data/badges.js';
 import { badgeTextureKey } from '../src/config/assets.js';
 import { BADGE_TEXTURE_KEYS } from '../src/systems/TextureFactory.js';
 import { findPuzzleProblems } from '../src/systems/PuzzleSystem.js';
+import { findWeatherProblems } from '../src/systems/WeatherRenderer.js';
 import { collectAllPages, resolveDialogue } from '../src/systems/DialogueResolver.js';
 import { KEY_BINDINGS, DIRECTION_VECTORS, DIRECTIONS } from '../src/config/controls.js';
 
@@ -243,6 +244,10 @@ describe('every registered map is well-formed', () => {
         // is checked the moment it exists — a barrier on a solid tile, a switch
         // pointing at nothing, an NPC standing where a hedge can grow.
         expect(findPuzzleProblems(definition)).toEqual([]);
+      });
+
+      it('declares only weather the game can draw', () => {
+        expect(findWeatherProblems(definition)).toEqual([]);
       });
 
       it('is fully enclosed, so the player cannot walk off the edge', () => {

@@ -155,6 +155,62 @@ export const ENCOUNTER_TABLES = {
     { species: 'brookel', minLevel: 19, maxLevel: 20, weight: 6 },
   ],
 
+  /**
+   * The Stormrise Climb — the lower terraces' HEATH. Phase 13.
+   *
+   * Pitched from real progression: walking the road to the Tidal Sigil
+   * through the real engine (tests/helpers/routeWalk.js) leaves a starter at
+   * 17-22 and the team's best at 21-22, so the Climb opens at 20-22 and rises
+   * a level per map. The Thornway's faces come back up a few levels, and
+   * Cirrup, the Climb's own bird, is the common new face.
+   */
+  stormriseHeath: [
+    { species: 'cirrup', minLevel: 20, maxLevel: 22, weight: 24 },
+    { species: 'jabbit', minLevel: 20, maxLevel: 22, weight: 20 },
+    { species: 'gustwing', minLevel: 20, maxLevel: 22, weight: 14 },
+    { species: 'delvit', minLevel: 20, maxLevel: 22, weight: 14 },
+    { species: 'zaplet', minLevel: 20, maxLevel: 22, weight: 14 },
+    { species: 'glimmote', minLevel: 20, maxLevel: 21, weight: 10 },
+    // Deliberately rare.
+    { species: 'burrzap', minLevel: 21, maxLevel: 23, weight: 4 },
+  ],
+
+  /**
+   * The Stormrise Climb — the Frost Shelf's FROST SCREE. Phase 13.
+   *
+   * Rimelet's ground: the game's first Ice type, and the natural answer to
+   * the fliers further up. A Corrodit or two have wandered off the Vane's
+   * cable runs, as they did in Mistvault.
+   */
+  stormriseScree: [
+    { species: 'rimelet', minLevel: 21, maxLevel: 23, weight: 28 },
+    { species: 'pebblit', minLevel: 21, maxLevel: 23, weight: 18 },
+    { species: 'cirrup', minLevel: 21, maxLevel: 23, weight: 16 },
+    { species: 'delvit', minLevel: 21, maxLevel: 23, weight: 14 },
+    { species: 'corrodit', minLevel: 21, maxLevel: 23, weight: 10 },
+    { species: 'carapex', minLevel: 22, maxLevel: 23, weight: 8 },
+    // Deliberately rare.
+    { species: 'cragmaw', minLevel: 24, maxLevel: 24, weight: 4 },
+  ],
+
+  /**
+   * The Stormrise Climb — the summit's STORMGRASS. Phase 13.
+   *
+   * Where the lightning comes down: the Climb's highest levels, its electric
+   * Aethers, and the rare one the whole route is known for. Thundrel is rare
+   * but FAIR: about one encounter in twenty-three, on ground the road crosses,
+   * at a level a player can catch with the Orbs they can buy.
+   */
+  stormriseSummit: [
+    { species: 'cirrup', minLevel: 22, maxLevel: 24, weight: 28 },
+    { species: 'zaplet', minLevel: 22, maxLevel: 23, weight: 20 },
+    { species: 'rimelet', minLevel: 22, maxLevel: 24, weight: 16 },
+    { species: 'gustwing', minLevel: 22, maxLevel: 24, weight: 14 },
+    { species: 'voltmane', minLevel: 24, maxLevel: 25, weight: 8 },
+    // The rare-but-fair find.
+    { species: 'thundrel', minLevel: 23, maxLevel: 24, weight: 4 },
+  ],
+
   /** The patch on Emberhollow's northern edge — a safe taste of the mechanic. */
   emberhollowEdge: [
     { species: 'nibbit', minLevel: 2, maxLevel: 3, weight: 60 },

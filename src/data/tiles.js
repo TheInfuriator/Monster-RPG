@@ -39,7 +39,11 @@ export const TILE_DEFINITIONS = {
   'S': { id: 'sign', solid: true, texture: 'tile-sign' },
   'F': { id: 'fence', solid: true, texture: 'tile-fence' },
   'o': { id: 'floor', solid: false, texture: 'tile-floor' },
-  'L': { id: 'ledge_down', solid: false, ledge: 'down', texture: 'tile-ledge' },
+  // A one-way LEDGE (Phase 13): solid to walk onto, but stepping toward it in
+  // its direction hops the player over it to the tile beyond — down only, so
+  // a ledge is a shortcut back down a slope and never a way up. See
+  // TileMap.getLedgeHop() and Player.startHop().
+  'L': { id: 'ledge_down', solid: true, ledge: 'down', texture: 'tile-ledge' },
 
   // --- Interior tiles (houses, the lodge, the Mender's Hall, the shop) ---
   //
@@ -144,6 +148,37 @@ export const TILE_DEFINITIONS = {
   // low tide). Both walkable in the map source; barriers draw the water.
   ')': { id: 'wet_stone', solid: false, texture: 'tile-wet-stone' },
   '(': { id: 'pontoon', solid: false, texture: 'tile-pontoon' },
+
+  // --- The Stormrise Climb (Phase 13) ----------------------------------------
+  //
+  // Three encounter terrains, one per height, each with its own table on the
+  // map that has it (encounters.byTerrain): heath in the foothills, frost
+  // scree on the ridge, stormgrass on the summit meadow.
+  '1': { id: 'heath', solid: false, encounter: true, texture: 'tile-heath' },
+  '2': { id: 'frost_scree', solid: false, encounter: true, texture: 'tile-frost-scree' },
+  '3': { id: 'stormgrass', solid: false, encounter: true, texture: 'tile-stormgrass' },
+  '5': { id: 'snow', solid: false, texture: 'tile-snow' },
+  // The Hollow Vane's relay mast, and the charged fence it powers (a barrier
+  // look: drawn — and solid — only while the relay runs).
+  '6': { id: 'relay_mast', solid: true, texture: 'tile-relay-mast' },
+  '!': { id: 'charged_fence', solid: true, texture: 'tile-charged-fence' },
+
+  // --- Voltspire City (Phase 13) ---------------------------------------------
+  '8': { id: 'cobblestone', solid: false, texture: 'tile-cobble' },
+  '0': { id: 'copper_roof', solid: true, texture: 'tile-copper-roof' },
+  '7': { id: 'voltspire', solid: true, texture: 'tile-voltspire' },
+  '>': { id: 'voltspire_top', solid: true, texture: 'tile-voltspire-top' },
+  ':': { id: 'street_lamp', solid: true, texture: 'tile-street-lamp' },
+  // The storage terminal in every Mender's Hall (an object, drawn on the floor).
+  '?': { id: 'storage_terminal', solid: true, object: true, texture: 'tile-storage-terminal' },
+
+  // --- The Storm Hall (Phase 13) ------------------------------------------------
+  // A coil post's body; the lever sprite over it shows it dark or lit.
+  '{': { id: 'coil', solid: true, texture: 'tile-coil-0' },
+  ']': { id: 'grating', solid: false, texture: 'tile-grating' },
+  // A wire run across the floor: dark, and the lit version a glow draws.
+  'd': { id: 'wire', solid: false, texture: 'tile-wire' },
+  '<': { id: 'wire_lit', solid: false, texture: 'tile-wire-lit' },
 };
 
 /** The tile used when a map contains a character this file does not define. */

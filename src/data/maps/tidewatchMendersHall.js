@@ -19,7 +19,7 @@ export const tidewatchMendersHall = {
     '____________', // 0
     '_I________I_', // 1
     '||||||||||||', // 2
-    '_OOHHOOOOPO_', // 3  healing array
+    '_OOHHOOOOP?_', // 3  healing array; the storage terminal (10,3)
     '_OOOOOOOOOO_', // 4  Mender Coral stands here
     '_CCCCOOOOOO_', // 5  counter
     '_OOOOOOOAAO_', // 6  benches
@@ -62,12 +62,12 @@ export const tidewatchMendersHall = {
       movement: 'static',
       dialogue: [
         {
-          // GAME_DESIGN.md gives Tidewatch "storage access". Phase 12 does
-          // not build a storage manager (it is out of scope), so the town
-          // says so honestly rather than pretending: the terminal is not in yet.
+          // GAME_DESIGN.md gives Tidewatch "storage access". Phase 12 said
+          // honestly that the link was not finished; Phase 13 finishes it —
+          // the terminal is in, here and in every Mender's Hall.
           pages: [
-            'I am fitting a storage link for the Circle — so a Warden can send a creature to safe keeping and call it back.',
-            'Not finished, I am afraid. Anything you catch with a full party still goes to storage the usual way.',
+            'The storage link is finished! That terminal in the corner — and one like it in every Mender\'s Hall in the valley.',
+            'Send an Aether to safe keeping, call one back, or trade one for another. Six can travel with you; the rest wait, exactly as you left them.',
           ],
         },
       ],
@@ -75,6 +75,15 @@ export const tidewatchMendersHall = {
   ],
 
   interactables: [
+    {
+      // The storage terminal (Phase 13): the same in every Mender's Hall.
+      x: 10,
+      y: 3,
+      type: 'sign',
+      dialogue: [
+        { action: 'storage', pages: ['A storage terminal. Its screen glows a patient green.'] },
+      ],
+    },
     {
       x: 3,
       y: 3,

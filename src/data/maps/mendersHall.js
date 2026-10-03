@@ -21,7 +21,7 @@ export const mendersHall = {
     '____________', // 0
     '_I________I_', // 1
     '||||||||||||', // 2
-    '_OOHHOOOOOO_', // 3  healing machine
+    '_OOHHOOOOO?_', // 3  healing machine; the storage terminal (10,3)
     '_OOOOOOOOOO_', // 4  the Mender stands here
     '_CCCCOOOOOO_', // 5  counter
     '_OOOOOOOAAO_', // 6  waiting benches
@@ -77,6 +77,15 @@ export const mendersHall = {
   ],
 
   interactables: [
+    {
+      // The storage terminal (Phase 13): the same in every Mender's Hall.
+      x: 10,
+      y: 3,
+      type: 'sign',
+      dialogue: [
+        { action: 'storage', pages: ['A storage terminal. Its screen glows a patient green.'] },
+      ],
+    },
     {
       x: 3,
       y: 3,

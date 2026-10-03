@@ -2,8 +2,8 @@
  * tidewatch.test.js
  * ----------------------------------------------------------------------------
  * Tidewatch Harbor (Phase 12): the town out of Mistvault, its services, its
- * people, the rival beside the Hall road — and the honest end of Phase 12 at
- * the Stormrise rockslide.
+ * people, the rival beside the Hall road — and the Stormrise rockslide, the
+ * honest end of Phase 12, which Phase 13 lifts.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -14,9 +14,8 @@ import { getWorldConditions } from '../src/systems/ProgressionSystem.js';
 import { getSightTiles } from '../src/systems/SightSystem.js';
 import { resolveDialogue } from '../src/systems/DialogueResolver.js';
 import { isNpcPresent } from '../src/systems/NpcPresence.js';
-import { getShopStock, SHOPS } from '../src/data/shops.js';
+import { getShopStock } from '../src/data/shops.js';
 import { TRAINERS } from '../src/data/trainers.js';
-import { BADGES } from '../src/data/badges.js';
 import { createNewGameState } from '../src/core/GameState.js';
 import { recordTrainerVictory } from '../src/systems/TrainerSystem.js';
 import { awardBadge } from '../src/systems/BadgeSystem.js';
@@ -68,11 +67,11 @@ const say = (npc, state) => resolveDialogue(npc.dialogue, getWorldConditions(sta
 const npc = (id) => TOWN.npcs.find((n) => n.id === id);
 
 describe('Tidewatch Harbor: the town', () => {
-  it('is reached only through Mistvault, and leads back into it', () => {
+  it('is reached through Mistvault and down the Stormrise Climb, and leads back to both', () => {
     const into = Object.values(MAPS)
       .filter((map) => !map.interior && map.exits.some((exit) => exit.to === 'tidewatch'))
       .map((map) => map.id);
-    expect([...new Set(into)]).toEqual(['mistvaultCore']);
+    expect([...new Set(into)].sort()).toEqual(['mistvaultCore', 'stormriseLower']);
     for (const exit of TOWN.exits) expect(MAPS[exit.to].spawnPoints[exit.spawn]).toBeDefined();
   });
 
@@ -86,8 +85,11 @@ describe('Tidewatch Harbor: the town', () => {
   });
 
   it('lets a player reach every door, person, sign and item from the cave mouth', () => {
+    // With the rockslide lifted: the Stormrise exits are behind it until then
+    // (the rockslide tests below check that half).
     const state = arrivedState();
     recordTrainerVictory('kestrelTidewatch', state);
+    state.flags.stormriseOpen = true;
     const seen = reachable(built(state), state);
     for (const exit of TOWN.exits) expect(seen.has(key(exit.x, exit.y)), `${exit.to}`).toBe(true);
     const conditions = getWorldConditions(state);
@@ -102,7 +104,7 @@ describe('Tidewatch Harbor: the town', () => {
     const healers = Object.values(MAPS).filter((map) => (map.npcs || [])
       .some((n) => (n.dialogue || []).some?.((b) => b && b.action === 'heal')));
     expect(healers.map((m) => m.id).sort()).toEqual(
-      ['mendersHall', 'thistlewoodMendersHall', 'tidewatchMendersHall'].sort()
+      ['mendersHall', 'thistlewoodMendersHall', 'tidewatchMendersHall', 'voltspireMendersHall'].sort()
     );
   });
 
@@ -127,7 +129,8 @@ describe('the Supply Post (economy audit)', () => {
   });
 
   it('is the first shop to sell either', () => {
-    for (const shop of Object.keys(SHOPS).filter((id) => id !== 'tidewatchSupplyPost')) {
+    // The shops of the towns before it. (Voltspire's, further on, keeps both.)
+    for (const shop of ['emberhollowSupplyPost', 'thistlewoodSupplyPost']) {
       expect(stock(shop)).not.toContain('ultraOrb');
       expect(stock(shop)).not.toContain('clearTonic');
     }
@@ -211,50 +214,77 @@ describe('the people of Tidewatch follow the story', () => {
   });
 });
 
-describe('where Phase 12 ends: the Stormrise rockslide', () => {
+describe('the Stormrise rockslide: Phase 12\'s end, lifted in Phase 13', () => {
   const slide = TOWN.barriers.find((b) => b.id === 'stormriseRockslide');
+  const hale = () => npc('stormriseWarden');
 
-  it('stays down whatever the player has done', () => {
+  it('stays down, whatever else the player has done, until stormriseOpen is set', () => {
     const state = arrivedState();
     for (const id of Object.keys(TRAINERS)) recordTrainerVictory(id, state);
     awardBadge('tidalSigil', state);
     const map = built(state);
     for (const [x, y] of slide.tiles) expect(map.isWalkable(x, y)).toBe(false);
+    state.flags.stormriseOpen = true;
+    const open = built(state);
+    for (const [x, y] of slide.tiles) expect(open.isWalkable(x, y)).toBe(true);
   });
 
-  it('is opened by a flag nothing in the game sets', () => {
+  it('is opened by exactly one thing: Warden Hale, and only for a Tidal Sigil-holder', () => {
     expect(slide.openWhen).toBe('stormriseOpen');
     const setters = [];
     for (const map of Object.values(MAPS)) {
       for (const entry of [...(map.npcs || []), ...(map.interactables || [])]) {
         for (const branch of Array.isArray(entry.dialogue) ? entry.dialogue : []) {
-          if (branch && (branch.setFlags || []).includes('stormriseOpen')) setters.push(entry.id);
+          if (branch && (branch.setFlags || []).includes('stormriseOpen')) setters.push([map.id, entry.id, branch.when]);
         }
       }
     }
     for (const trainer of Object.values(TRAINERS)) {
       if ((trainer.setFlags || []).includes('stormriseOpen')) setters.push(trainer.id);
     }
-    expect(setters).toEqual([]);
+    expect(setters).toEqual([['tidewatch', 'stormriseWarden', 'badge:tidalSigil']]);
   });
 
-  it('has nothing behind it: no exit, no stranded road', () => {
-    expect(TOWN.exits.some((exit) => exit.y <= slide.tiles[0][1])).toBe(false);
-    const map = new TileMap(TOWN);
-    for (let x = 0; x < map.width; x += 1) expect(map.isWalkable(x, 0)).toBe(false);
+  it('says why it is shut before the Sigil, opens with it, and says the road is clear after', () => {
+    const before = arrivedState();
+    expect(say(hale(), before).pages.join(' ')).toMatch(/rockslide/);
+    expect(say(hale(), before).setFlags).toEqual([]);
+
+    const holder = arrivedState();
+    awardBadge('tidalSigil', holder);
+    expect(say(hale(), holder).setFlags).toEqual(['stormriseOpen']);
+
+    holder.flags.stormriseOpen = true;
+    expect(say(hale(), holder).setFlags).toEqual([]);
+    expect(say(hale(), holder).pages.join(' ')).toMatch(/road is clear/);
   });
 
-  it('says so, in person and on a sign — before and after the Sigil', () => {
+  it('has the sign follow it: CLOSED, then OPEN', () => {
     const sign = TOWN.interactables.find((e) => e.x === 16 && e.y === 9);
-    expect(sign.dialogue.join(' ')).toMatch(/CLOSED: rockslide/);
-    const warden = npc('stormriseWarden');
-    const after = arrivedState();
-    awardBadge('tidalSigil', after);
-    expect(say(warden, arrivedState()).pages.join(' ')).toMatch(/rockslide/);
-    expect(say(warden, after).pages.join(' ')).toMatch(/Stormrise road will open/);
+    const state = arrivedState();
+    expect(say(sign, state).pages.join(' ')).toMatch(/CLOSED: rockslide/);
+    state.flags.stormriseOpen = true;
+    expect(say(sign, state).pages.join(' ')).toMatch(/OPEN/);
   });
 
-  it('leaves the third Sigil honestly unbuilt', () => {
-    expect(BADGES.stormSigil.leaderTrainerId).toBeNull();
+  it('leads only up the Stormrise Climb, and nothing behind it is reachable while it is down', () => {
+    const north = TOWN.exits.filter((exit) => exit.y <= slide.tiles[0][1]);
+    expect(north.map((exit) => exit.to)).toEqual(['stormriseLower', 'stormriseLower']);
+    const shut = arrivedState();
+    awardBadge('tidalSigil', shut);
+    const seen = reachable(built(shut), shut);
+    for (const exit of north) expect(seen.has(key(exit.x, exit.y))).toBe(false);
+    shut.flags.stormriseOpen = true;
+    const open = reachable(built(shut), shut);
+    for (const exit of north) expect(open.has(key(exit.x, exit.y))).toBe(true);
+  });
+
+  it('sends Hale up the Climb once the Vane\'s relay is grounded', () => {
+    const state = arrivedState();
+    state.flags.stormriseOpen = true;
+    expect(isNpcPresent(hale(), getWorldConditions(state))).toBe(true);
+    state.flags.stormriseRelayStopped = true;
+    expect(isNpcPresent(hale(), getWorldConditions(state))).toBe(false);
+    expect(isNpcPresent(MAPS.stormriseHigh.npcs.find((n) => n.id === 'haleShelf'), getWorldConditions(state))).toBe(true);
   });
 });

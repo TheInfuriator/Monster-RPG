@@ -33,6 +33,7 @@ import {
 import { InputManager } from '../core/InputManager.js';
 import { TileMap } from '../systems/TileMap.js';
 import { MapRenderer } from '../systems/MapRenderer.js';
+import { WeatherRenderer, chooseWeather, planWeather } from '../systems/WeatherRenderer.js';
 import { NpcManager } from '../systems/NpcManager.js';
 import { isNpcPresent, stepsToLeave, wayHome } from '../systems/NpcPresence.js';
 import { EncounterSystem } from '../systems/EncounterSystem.js';
@@ -196,6 +197,8 @@ export class WorldScene extends Phaser.Scene {
     // rather than rendering an empty screen with no explanation.
     const definition = getMapDefinition(mapId);
     this.map = new TileMap(definition);
+    // A new map starts with no sky; syncBarriers() below draws the one it has.
+    this.weather = null;
 
     // Gates and hedges BEFORE anything is drawn or anyone is placed, so the
     // first frame already shows the world as it really is.
@@ -240,6 +243,23 @@ export class WorldScene extends Phaser.Scene {
         conditions,
       });
     }
+    // The sky the map declares (Phase 13) — a picture only, never state —
+    // which the story can change too (Stormrise's relay).
+    this.refreshWeather(conditions);
+  }
+
+  /**
+   * Draw the sky this map shows under these conditions. Nothing is rebuilt
+   * unless the sky actually changed, so calling it after every flag is free.
+   */
+  refreshWeather(conditions) {
+    const choice = chooseWeather(this.map.definition.weather, conditions);
+    const plan = planWeather(choice);
+    const key = plan ? `${plan.kind}:${plan.count}` : 'none';
+    if (this.weather && this.weather.key === key) return;
+    if (!this.weather && key === 'none') return;
+    if (this.weather) this.weather.destroy();
+    this.weather = plan ? new WeatherRenderer(this, choice) : null;
   }
 
   /**
@@ -1215,6 +1235,11 @@ export class WorldScene extends Phaser.Scene {
         this.resetMapPuzzle();
         break;
 
+      case 'storage':
+        // A Mender's Hall storage terminal (Phase 13).
+        this.openMenu({ mode: 'storage' });
+        break;
+
       default:
         // Parameterised actions look like 'shop:emberhollowSupplyPost', so a
         // new shop is a data change with no code behind it.
@@ -1392,8 +1417,10 @@ export class WorldScene extends Phaser.Scene {
       ...options,
       onFinished: () => {
         this.scene.resume();
-        // Coins and the bag change hands at a shop counter.
+        // Coins and the bag change hands at a shop counter; Aethers move
+        // between the party and storage at a terminal.
         if (options.mode === 'shop') this.requestAutosave('shop');
+        if (options.mode === 'storage') this.requestAutosave('storage');
         this.releasePlayer();
       },
     });
@@ -1680,7 +1707,10 @@ export class WorldScene extends Phaser.Scene {
   // Frame loop
   // -------------------------------------------------------------------------
 
-  update() {
+  update(time, delta) {
+    // Weather keeps blowing whatever else is happening — it is only a picture.
+    if (this.weather) this.weather.update(delta);
+
     if (this.controls.justPressed('debug')) {
       this.debug.toggle();
     }
@@ -1722,6 +1752,10 @@ export class WorldScene extends Phaser.Scene {
     if (this.mapRenderer) {
       this.mapRenderer.destroy();
       this.mapRenderer = null;
+    }
+    if (this.weather) {
+      this.weather.destroy();
+      this.weather = null;
     }
     if (this.npcManager) {
       this.npcManager.destroy();

@@ -20,11 +20,13 @@
  * the Hall road — where Kestrel is waiting. North: the Stormrise Climb, under a
  * rockslide.
  *
- * WHERE PHASE 12 ENDS
- * The Stormrise road is buried under a rockslide that the Wardens are still
- * clearing. `stormriseOpen` is a flag NOTHING sets in Phase 12 — exactly the
- * honest seam Mistvault's cordon was in Phase 11. A Warden and a sign say why;
- * there is no invisible wall and no empty road beyond.
+ * THE ROCKSLIDE (Phase 12 -> Phase 13)
+ * In Phase 12 the Stormrise road was buried under a rockslide, behind
+ * `stormriseOpen`, a flag nothing set. Phase 13 lifts it the way Phase 12
+ * lifted Mistvault's cordon: once the player holds the Tidal Sigil, Warden
+ * Hale has the road cleared, and talking to them sets `stormriseOpen` — the
+ * boulders roll aside while the player watches, and the game autosaves. A
+ * Phase 12 save loads with the slide still down and Hale ready to say so.
  */
 
 import { TRAINERS } from '../trainers.js';
@@ -35,8 +37,8 @@ export const tidewatch = {
   music: 'town',
 
   /**
-   * The rockslide on the Stormrise Climb. Phase 13 lifts it with one flag
-   * (and adds the road beyond); until then nothing does.
+   * The rockslide on the Stormrise Climb. Lifted by one flag, set by Warden
+   * Hale once the Tidal Sigil is won (Phase 13).
    */
   barriers: [
     {
@@ -52,7 +54,7 @@ export const tidewatch = {
   tiles: [
     // 0         1         2         3
     // 012345678901234567890123456789012345
-    '%%%%%%%%%%%%%%%%%%%%%%%%%%%%~~~~~~~~', //  0  the northern cliffs
+    '%%%%%%%%%%%%%%%%%--%%%%%%%%%~~~~~~~~', //  0  the northern cliffs; north exit up the Stormrise Climb
     '%%%%%%%%%%%%%%%%%--%%%%%%%%%~~~~~~~~', //  1  THE ROCKSLIDE across the Stormrise road at (17..18, 1)
     '~~TTTTTTTTTTTTTT.--.TTTTTTTT~~~~~~~~', //  2  Warden Hale at (19,2)
     '~~%99ssss........--.aaaaaaaa~~~~~~~~', //  3  the Tidewatch light (3..4, 3..7); the Tidal Hall (20..27, 3..7)
@@ -89,6 +91,8 @@ export const tidewatch = {
     fromMendersHall: { x: 7, y: 13, facing: 'down' },
     fromSupplyPost: { x: 13, y: 13, facing: 'down' },
     fromTidalHall: { x: 23, y: 8, facing: 'down' },
+    // Down off the Stormrise Climb, just below where the rockslide was.
+    fromStormrise: { x: 17, y: 2, facing: 'down' },
   },
 
   exits: [
@@ -98,6 +102,8 @@ export const tidewatch = {
     { x: 13, y: 12, to: 'tidewatchSupplyPost', spawn: 'default' },
     { x: 23, y: 7, to: 'tidalHall', spawn: 'default' },
     { x: 24, y: 7, to: 'tidalHall', spawn: 'default' },
+    { x: 17, y: 0, to: 'stormriseLower', spawn: 'fromTidewatch' },
+    { x: 18, y: 0, to: 'stormriseLower', spawn: 'fromTidewatch' },
   ],
 
   npcs: [
@@ -118,6 +124,13 @@ export const tidewatch = {
       presentWhen: 'trainer:kestrelRoute2',
       returnAfterDefeat: true,
       dialogue: [
+        {
+          when: 'stormriseOpen',
+          pages: [
+            'The Stormrise road is open! I KNEW Hale would dig it out for a Sigil-holder.',
+            'Just let me take my turn with Ondine first. Then I am right behind you. Again.',
+          ],
+        },
         {
           when: 'badge:tidalSigil',
           pages: [
@@ -255,7 +268,9 @@ export const tidewatch = {
       ],
     },
     {
-      // The honest end of Phase 12: a Warden at the rockslide.
+      // The Warden at the rockslide. Opens the Stormrise road for a holder of
+      // the Tidal Sigil (Phase 13), then goes up the Climb themself once the
+      // Vane's relay is grounded (they reappear on the Frost Shelf).
       id: 'stormriseWarden',
       name: 'Warden Hale',
       x: 19,
@@ -263,12 +278,24 @@ export const tidewatch = {
       facing: 'left',
       sprite: 'warden',
       movement: 'static',
+      absentWhen: 'stormriseRelayStopped',
       dialogue: [
         {
-          when: 'badge:tidalSigil',
+          when: 'stormriseOpen',
           pages: [
-            'Two Sigils, and you still cannot get past a pile of rocks. The Circle has a sense of humour.',
-            'The Stormrise road will open once we have it cleared and shored up. Not before. I will not have a Warden buried on my watch.',
+            'The road is clear all the way to the Frost Shelf. Past that, the Climb is in a strange temper — the sky has been dead still for a month.',
+            'Some grey coats went up before the slide came down. If you meet them, mind yourself.',
+          ],
+        },
+        {
+          // PHASE 13: the rockslide comes down. Only for a Tidal Sigil-holder,
+          // so it is earned — and it ends with the boulders rolling aside.
+          when: 'badge:tidalSigil',
+          setFlags: ['stormriseOpen'],
+          pages: [
+            'A Tidal Sigil! Then you are exactly who the Circle told me to wait for.',
+            'We have had the slide shored up since the morning. Stand back — I will have the last of it moved.',
+            'There. The Stormrise Climb, open. Voltspire City is at the top, and the Storm Hall with it. Go carefully.',
           ],
         },
         {
@@ -305,8 +332,19 @@ export const tidewatch = {
       y: 9,
       type: 'sign',
       dialogue: [
-        'THE STORMRISE CLIMB — to Voltspire City.',
-        'CLOSED: rockslide. The Wardens are clearing the road.',
+        {
+          when: 'stormriseOpen',
+          pages: [
+            'THE STORMRISE CLIMB — to Voltspire City.',
+            'OPEN. Mind the ledges, and the weather.',
+          ],
+        },
+        {
+          pages: [
+            'THE STORMRISE CLIMB — to Voltspire City.',
+            'CLOSED: rockslide. The Wardens are clearing the road.',
+          ],
+        },
       ],
     },
     {

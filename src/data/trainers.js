@@ -617,6 +617,88 @@ export const TRAINERS = {
   },
 
   // -------------------------------------------------------------------------
+  // The Storm Hall, Voltspire City (Phase 13)
+  // -------------------------------------------------------------------------
+  // Electric through and through, with the Climb's own fliers: Zaplet and
+  // Voltmane, Burrzap, Cirrup — and Halcyon's ace, a Stormcrest. One
+  // Stormwright waits past each chamber's gate, so the coils and the fights
+  // are one climb. Pitched from a real walk of the road to here (see
+  // tests/stormriseBalance.test.js).
+
+  stormHallAda: {
+    id: 'stormHallAda',
+    name: 'Ada',
+    title: 'Stormwright',
+    rewardMoney: 820,
+    party: [
+      { species: 'zaplet', level: 23 },
+      { species: 'cirrup', level: 23 },
+    ],
+    intro: [
+      'Through the first gate already? Then you have the trick of it. Let us see if you have the spark.',
+    ],
+    outro: [
+      'Grounded. Fairly, too.',
+    ],
+  },
+
+  stormHallFenn: {
+    id: 'stormHallFenn',
+    name: 'Fenn',
+    title: 'Stormwright',
+    rewardMoney: 860,
+    party: [
+      { species: 'burrzap', level: 23 },
+      { species: 'voltmane', level: 24 },
+    ],
+    intro: [
+      'Two gates! Most challengers are still sitting in the first chamber, touching coils at random.',
+    ],
+    outro: [
+      'You do not waste a move, do you? Halcyon will like that.',
+    ],
+  },
+
+  stormHallInes: {
+    id: 'stormHallInes',
+    name: 'Ines',
+    title: 'Stormwright',
+    rewardMoney: 900,
+    party: [
+      { species: 'cirrup', level: 24 },
+      { species: 'voltmane', level: 24 },
+    ],
+    intro: [
+      'The whole Hall is lit. That means you are good enough to fight me — not that you will win.',
+    ],
+    outro: [
+      'Go on, then. The storm is waiting for you.',
+    ],
+  },
+
+  stormLeaderHalcyon: {
+    id: 'stormLeaderHalcyon',
+    name: 'Halcyon',
+    title: 'Leader',
+    rewardMoney: 2000,
+    badge: 'stormSigil',
+    party: [
+      { species: 'voltmane', level: 25 },
+      { species: 'burrzap', level: 25 },
+      { species: 'stormcrest', level: 27 },
+    ],
+    intro: [
+      'For a month this Hall was dark. Then this morning the storm came back over the Climb — and here you are.',
+      'I am Halcyon. I keep the Storm Hall, and I do not believe in coincidences.',
+      'Show me what grounded a Vane relay. Show me everything.',
+    ],
+    outro: [
+      'Struck, and grounded. Well done.',
+      'Take the Storm Sigil. Three of three — the valley has not seen a Warden like you in a long while.',
+    ],
+  },
+
+  // -------------------------------------------------------------------------
   // The Hollow Vane in Mistvault Cavern (Phase 12)
   // -------------------------------------------------------------------------
   // Ordinary trainers with a faction and a rank (src/data/factions.js). Their
@@ -733,6 +815,217 @@ export const TRAINERS = {
     ],
     victoryLines: [
       'Go home, Warden. The current has better uses than you.',
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // Route 3 — the Stormrise Climb (Phase 13)
+  // -------------------------------------------------------------------------
+  // Pitched from what players really have at the Tidal Sigil (team's best
+  // 21-22; see tests/stormriseBalance.test.js): two on the lower terraces at
+  // 21-22, one on the Frost Shelf, two on the summit at 22-23. Each watches a
+  // stretch of the road, so the climb is a run of fights with breathing room.
+
+  stormriseClimber: {
+    id: 'stormriseClimber',
+    name: 'Tamsin',
+    title: 'Climber',
+    rewardMoney: 760,
+    party: [
+      { species: 'gustwing', level: 21 },
+      { species: 'delvit', level: 21 },
+    ],
+    intro: [
+      'Up from the harbour? The road has been shut for a month — you are the first fresh face I have seen.',
+      'Let us see if you have the legs for the Climb!',
+    ],
+    outro: [
+      'Good legs. Good partners, too.',
+    ],
+  },
+
+  stormriseHerder: {
+    id: 'stormriseHerder',
+    name: 'Bryn',
+    title: 'Herder',
+    rewardMoney: 780,
+    party: [
+      { species: 'chompkin', level: 21 },
+      { species: 'glimmote', level: 21 },
+      { species: 'jabbit', level: 22 },
+    ],
+    intro: [
+      'Mind the heath — my herd grazes it. And mind ME.',
+    ],
+    outro: [
+      'Off you go, then. The terraces get steeper from here.',
+    ],
+  },
+
+  stormriseMountaineer: {
+    id: 'stormriseMountaineer',
+    name: 'Ossian',
+    title: 'Mountaineer',
+    rewardMoney: 840,
+    party: [
+      { species: 'rimelet', level: 22 },
+      { species: 'cragmaw', level: 23 },
+    ],
+    intro: [
+      'Forty years on this mountain and I have never seen the sky sit this still.',
+      'Something is wrong with the weather. Until I know what, I am fighting anyone who comes up the road.',
+    ],
+    outro: [
+      'Strong. The Vane are camped east of the road. If anyone can find out what they are doing to my sky, it is you.',
+    ],
+  },
+
+  stormriseStormchaser: {
+    id: 'stormriseStormchaser',
+    name: 'Vey',
+    title: 'Stormchaser',
+    rewardMoney: 860,
+    party: [
+      { species: 'zaplet', level: 22 },
+      { species: 'cirrup', level: 22 },
+      { species: 'burrzap', level: 23 },
+    ],
+    intro: [
+      'The storm is BACK! A month of dead air, and now listen to it!',
+      'I have been waiting all month for a fight in weather like this!',
+    ],
+    outro: [
+      'Ha! Struck twice in one day!',
+    ],
+  },
+
+  stormriseSkyherd: {
+    id: 'stormriseSkyherd',
+    name: 'Linnet',
+    title: 'Skyherd',
+    rewardMoney: 820,
+    party: [
+      { species: 'gustwing', level: 22 },
+      { species: 'cirrup', level: 23 },
+    ],
+    intro: [
+      'My flock rides the updraughts over the saddle. They have been grounded for weeks — until this morning.',
+      'Now they want to show off. Shall we?',
+    ],
+    outro: [
+      'Fair winds to you. Voltspire is just over the pass.',
+    ],
+  },
+
+  // The Hollow Vane on the Frost Shelf: one Surveyor on the road, and the
+  // Overseer of the relay, the operation's real confrontation.
+  vaneMarl: {
+    id: 'vaneMarl',
+    name: 'Marl',
+    title: 'Vane Surveyor',
+    faction: 'hollowVane',
+    rank: 'surveyor',
+    rewardMoney: 800,
+    party: [
+      { species: 'gloamite', level: 21 },
+      { species: 'corrodit', level: 22 },
+    ],
+    intro: [
+      'Survey 16 is a closed site. The fence is charged, and so am I.',
+    ],
+    outro: [
+      'The Overseer is at the relay. Do not say I sent you.',
+    ],
+  },
+
+  vaneOverseer: {
+    id: 'vaneOverseer',
+    name: 'Crale',
+    title: 'Relay Overseer',
+    faction: 'hollowVane',
+    rank: 'overseer',
+    rewardMoney: 1240,
+    party: [
+      { species: 'corrodit', level: 22 },
+      { species: 'gloamite', level: 22 },
+      { species: 'ironvole', level: 24 },
+    ],
+    intro: [
+      'The one who shut down Survey 14. Vossler described you. He was not kind.',
+      'This is a lightning relay. Every bolt that strikes this mountain comes down that mast and into a cell, instead of into the sky.',
+      'The storm has been ours for a month. You are not taking it back.',
+    ],
+    outro: [
+      'Ground the relay, then. Go on — the console behind me.',
+      'The cells are already on their way down to the Convergence, with the earth\'s current and the sea\'s. You are too late to matter.',
+    ],
+    victoryLines: [
+      'Go home, Warden. The sky belongs to whoever can hold it.',
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // Kestrel, fourth meeting: the summit of the Stormrise Climb (Phase 13)
+  // -------------------------------------------------------------------------
+  // Kestrel took the goat track while the relay fence was up and was waiting
+  // at the top of the pass when the storm came back. The first meeting where
+  // the rivalry gives a little: they have seen what the Vane are doing, and
+  // the Sigils are no longer the whole point.
+  kestrelStormrise: {
+    id: 'kestrelStormrise',
+    name: 'Kestrel',
+    title: 'Rival',
+    rival: 'kestrel',
+    stage: 4,
+    requires: 'trainer:kestrelTidewatch',
+    rewardMoney: 1200,
+    party: [
+      { species: 'gustwing', level: 22 },
+      { species: 'carapex', level: 22 },
+      { species: 'rimelet', level: 22 },
+      { rivalStarter: true, level: 24 },
+    ],
+    intro: [
+      {
+        when: 'starter:pyrret',
+        pages: [
+          'You grounded the relay. I watched the storm come back from up here — it went right over my head.',
+          'I took the goat track round the fence. Took me all night. And then I just stood here, watching it. I did not know what to do.',
+          'So I am going to do what I know. One more fight before Voltspire. My Puddlurk is not afraid of a little rain.',
+        ],
+      },
+      {
+        when: 'starter:drizzle',
+        pages: [
+          'You grounded the relay. I watched the storm come back from up here — it went right over my head.',
+          'I took the goat track round the fence. Took me all night. And then I just stood here, watching it. I did not know what to do.',
+          'So I am going to do what I know. One more fight before Voltspire. My Bramblit has roots like iron now.',
+        ],
+      },
+      {
+        when: 'starter:sproutle',
+        pages: [
+          'You grounded the relay. I watched the storm come back from up here — it went right over my head.',
+          'I took the goat track round the fence. Took me all night. And then I just stood here, watching it. I did not know what to do.',
+          'So I am going to do what I know. One more fight before Voltspire. My Cindraw likes the cold. It burns hotter.',
+        ],
+      },
+      {
+        pages: [
+          'You grounded the relay. I watched the storm come back from up here — it went right over my head.',
+          'I took the goat track round the fence. Took me all night. And then I just stood here, watching it. I did not know what to do.',
+          'So I am going to do what I know. One more fight before Voltspire.',
+        ],
+      },
+    ],
+    outro: [
+      'Four. Four in a row. ...You know what? Fine.',
+      'I used to think the Sigils were the whole point. Then I watched the Vane sit on a mountain and switch off the SKY.',
+      'Go on to Voltspire. I am going to find out where those cells went. Somebody should.',
+    ],
+    victoryLines: [
+      'Finally! ...It does not feel like I thought it would.',
+      'Go and get patched up. Voltspire has a Mender — it is just over the pass.',
     ],
   },
 };

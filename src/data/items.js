@@ -55,6 +55,19 @@ export const ITEMS = {
     price: 550,
     effect: { type: 'heal', amount: 50 },
   },
+  /**
+   * Phase 13: the first healing item past the Super Potion, sold only in
+   * Voltspire. Twice the Super Potion's 50 HP for well under twice its price,
+   * because by the Storm Hall a team's HP has roughly doubled since Thistlewood.
+   */
+  mendersDraught: {
+    id: 'mendersDraught',
+    name: 'Mender\'s Draught',
+    category: 'healing',
+    description: 'Restores 100 HP to one Aether.',
+    price: 900,
+    effect: { type: 'heal', amount: 100 },
+  },
   antidote: {
     id: 'antidote',
     name: 'Antidote',

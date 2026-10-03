@@ -16,7 +16,9 @@
  *   bagTarget who to use the selected item on
  *   index     what has been seen and caught
  *   sigils    the Beacon Hall Sigils, earned and still to come
- *   storage   what is waiting back home
+ *   storage   what is waiting in storage (a read-only summary)
+ *   terminal  a Mender's Hall storage terminal: deposit, withdraw, swap —
+ *             opened straight into by the terminal (Phase 13)
  *   save      write the Manual Save, after saying what it will replace
  *   settings  text speed and volume — the same panel the title screen uses
  *   shop      buying and selling, opened straight into by a shopkeeper
@@ -24,7 +26,8 @@
  * Runs ON TOP of a paused overworld, so the map and the player's position are
  * exactly as they were left.
  *
- * It owns no rules. Party order changes go through PartySystem, index reads
+ * It owns no rules. Party order changes go through PartySystem, storage moves
+ * through StorageSystem, index reads
  * through CreatureIndex, and creature facts through CreatureFactory — this file
  * only draws them and reads the keyboard.
  */
@@ -62,6 +65,10 @@ import {
   getMaxAffordable,
 } from '../systems/ShopSystem.js';
 import { readSlot, saveToSlot } from '../save/SaveManager.js';
+import {
+  canDeposit, canWithdraw, depositCreature, withdrawCreature, swapCreatures,
+} from '../systems/StorageSystem.js';
+import { PARTY } from '../config/balance.js';
 import { describeSlotTitle, describeSlotLines } from '../ui/saveText.js';
 import { SettingsPanel } from '../ui/SettingsPanel.js';
 
@@ -78,6 +85,11 @@ const ROOT_PITCH = 30;
  * thing a shop sold could never be seen or bought.
  */
 const SHOP_ROWS_PER_PAGE = 7;
+/** Rows per column on the storage terminal: a full party, and a page of storage. */
+const TERMINAL_ROWS = 6;
+const TERMINAL_PITCH = 28;
+const TERMINAL_COLUMNS = { party: 18, storage: 242 };
+const TERMINAL_COLUMN_WIDTH = 214;
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -100,14 +112,14 @@ export class MenuScene extends Phaser.Scene {
     this.canSave = data?.canSave === true;
 
     /**
-     * 'menu' is the pause menu; 'shop' is a shopkeeper's counter, opened
-     * straight into the shop and closing back to the world rather than to a
-     * menu the player never asked for.
+     * 'menu' is the pause menu; 'shop' is a shopkeeper's counter and
+     * 'storage' a storage terminal, each opened straight into and closing
+     * back to the world rather than to a menu the player never asked for.
      */
-    this.mode = data?.mode === 'shop' ? 'shop' : 'menu';
+    this.mode = ['shop', 'storage'].includes(data?.mode) ? data.mode : 'menu';
     this.shopId = data?.shopId || null;
 
-    this.view = this.mode === 'shop' ? 'shop' : 'root';
+    this.view = { shop: 'shop', storage: 'terminal' }[this.mode] || 'root';
     this.rootIndex = 0;
     this.partyIndex = 0;
     /** The slot being moved, or null when not reordering. */
@@ -129,6 +141,20 @@ export class MenuScene extends Phaser.Scene {
     this.shopOffset = 0;
     this.shopQuantity = 1;
     this.shopMessage = '';
+
+    // Storage terminal
+    /** Which column the cursor is in: 'party' or 'storage'. */
+    this.termSide = 'party';
+    this.termIndex = { party: 0, storage: 0 };
+    /** First stored row drawn — storage longer than a page scrolls. */
+    this.termOffset = 0;
+    /** The open action list ({ items, index }), or null. */
+    this.termMenu = null;
+    /** The party slot being swapped out, or null when not swapping. */
+    this.termSwapFrom = null;
+    /** ...or the stored slot being swapped in, when the swap began there. */
+    this.termSwapInto = null;
+    this.termMessage = '';
 
     // Save
     this.saveSlot = null;
@@ -176,6 +202,7 @@ export class MenuScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
 
     if (this.mode === 'shop') this.showShop();
+    else if (this.mode === 'storage') this.showTerminal();
     else this.showRoot();
   }
 
@@ -1168,7 +1195,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   // -------------------------------------------------------------------------
-  // Storage (a summary, not a management screen — see TODO.md)
+  // Storage (a summary; moving Aethers happens at a Mender's Hall terminal)
   // -------------------------------------------------------------------------
 
   showStorage() {
@@ -1185,6 +1212,9 @@ export class MenuScene extends Phaser.Scene {
     if (stored.length === 0) {
       this.text(ROW.x, ROW.y, 'Nothing in storage.', { fontSize: '12px' });
       this.text(ROW.x, ROW.y + 18, 'Aethers caught with a full party wait here.', {
+        color: CSS_COLORS.parchmentDim,
+      });
+      this.text(ROW.x, ROW.y + 34, 'Send them to storage or call them back at any Mender\'s Hall terminal.', {
         color: CSS_COLORS.parchmentDim,
       });
       return;
@@ -1216,6 +1246,275 @@ export class MenuScene extends Phaser.Scene {
 
   updateStorage() {
     if (this.controls.justPressed('cancel')) this.showRoot();
+  }
+
+  // -------------------------------------------------------------------------
+  // The storage terminal (Phase 13)
+  // -------------------------------------------------------------------------
+  //
+  // Two columns — the party on the left, storage on the right. Up/Down picks,
+  // Left/Right changes column, Confirm opens what can be done with that
+  // Aether. Every move is ONE call to StorageSystem, which checks every rule
+  // before it changes anything; until Confirm is pressed on a move, nothing
+  // has happened, so Cancel at any point is always safe.
+
+  showTerminal() {
+    this.view = 'terminal';
+    this.drawTerminal();
+  }
+
+  /** The list a column shows. */
+  terminalList(side) {
+    return side === 'party' ? gameState.party : (gameState.storage || []);
+  }
+
+  /** Keep both cursors on a real row (or 0 when a column is empty). */
+  clampTerminal() {
+    for (const side of ['party', 'storage']) {
+      const count = this.terminalList(side).length;
+      this.termIndex[side] = Math.max(0, Math.min(this.termIndex[side], count - 1));
+    }
+    const index = this.termIndex.storage;
+    if (index < this.termOffset) this.termOffset = index;
+    if (index >= this.termOffset + TERMINAL_ROWS) this.termOffset = index - TERMINAL_ROWS + 1;
+    this.termOffset = Math.max(0, Math.min(this.termOffset, Math.max(0, this.terminalList('storage').length - TERMINAL_ROWS)));
+  }
+
+  /** The Aether under the cursor, or null. */
+  terminalSelected() {
+    return this.terminalList(this.termSide)[this.termIndex[this.termSide]] || null;
+  }
+
+  drawTerminal() {
+    this.clampTerminal();
+    this.clearBody();
+    const stored = this.terminalList('storage');
+    this.title.setText('STORAGE TERMINAL');
+
+    if (this.termMenu) this.hint.setText('Up/Down  choose      Confirm  do it      Cancel  back');
+    else if (this.termSwapFrom !== null) this.hint.setText('Up/Down  pick who comes out      Confirm  swap      Cancel  stop');
+    else this.hint.setText('Arrows  choose      Confirm  options      Cancel  leave the terminal');
+
+    this.drawTerminalColumn('party', `PARTY  ${gameState.party.length}/${PARTY.maxSize}`, gameState.party, 0);
+    this.drawTerminalColumn('storage', `STORED  ${stored.length}`, stored, this.termOffset);
+
+    // The highlighted Aether in full, so a choice is never made blind.
+    const creature = this.terminalSelected();
+    const detailY = 44 + TERMINAL_ROWS * TERMINAL_PITCH + 14;
+    if (creature) {
+      const species = getCreatureSpecies(creature);
+      const status = getStatus(creature.status);
+      const types = (species?.types || []).map((t) => getTypeName(t)).join('/');
+      const name = creature.nickname ? `${getDisplayName(creature)} (${species?.name})` : getDisplayName(creature);
+      this.text(18, detailY, `${name}   Lv ${creature.level}   ${types}   HP ${creature.currentHp}/${creature.stats.hp}`
+        + (status ? `   ${status.name}` : ''), { fontSize: '10px' });
+      const moves = (creature.moves || []).map((m) => `${getMove(m.moveId)?.name || m.moveId} ${m.pp}`).join('   ');
+      this.text(18, detailY + 14, moves, { fontSize: '9px', color: CSS_COLORS.parchmentDim });
+    }
+    if (this.termMessage) {
+      this.text(18, detailY + 30, this.termMessage, { fontSize: '10px', color: CSS_COLORS.accent });
+    }
+
+    if (this.termMenu) this.drawTerminalMenu();
+  }
+
+  drawTerminalColumn(side, heading, list, offset) {
+    const x = TERMINAL_COLUMNS[side];
+    const active = this.termSide === side;
+    this.text(x, 30, heading, { fontSize: '10px', color: active ? CSS_COLORS.accent : CSS_COLORS.parchmentDim });
+
+    if (list.length === 0) {
+      this.text(x, 50, side === 'party' ? 'Nobody with you.' : 'Nobody in storage.', { color: CSS_COLORS.parchmentDim });
+      return;
+    }
+
+    list.slice(offset, offset + TERMINAL_ROWS).forEach((creature, row) => {
+      const i = offset + row;
+      const y = 46 + row * TERMINAL_PITCH;
+      const selected = active && i === this.termIndex[side];
+      const swapping = (side === 'party' && i === this.termSwapFrom)
+        || (side === 'storage' && i === this.termSwapInto);
+
+      if (swapping) this.box(x - 4, y - 3, TERMINAL_COLUMN_WIDTH, TERMINAL_PITCH - 2, COLORS.accentDark);
+      else if (selected) this.box(x - 4, y - 3, TERMINAL_COLUMN_WIDTH, TERMINAL_PITCH - 2, COLORS.inkLight);
+
+      this.body.add(this.add.image(x + 10, y + 10, creatureTextureKey(creature.speciesId)).setScale(0.3));
+      this.text(x + 26, y, getDisplayName(creature), {
+        fontSize: '10px', color: selected || swapping ? CSS_COLORS.accent : CSS_COLORS.parchment,
+      });
+      this.text(x + 26, y + 12, `Lv ${creature.level}`, { fontSize: '8px', color: CSS_COLORS.parchmentDim });
+      this.text(x + 120, y, `${creature.currentHp}/${creature.stats.hp}`, { fontSize: '9px' });
+      this.hpBar(x + 120, y + 13, 60, creature);
+
+      const status = getStatus(creature.status);
+      if (status) {
+        this.box(x + 184, y, 24, 10, COLORS.danger);
+        this.text(x + 196, y + 1, status.tag, { fontSize: '7px', color: CSS_COLORS.ink }).setOrigin(0.5, 0);
+      }
+    });
+
+    if (side === 'storage') {
+      if (offset > 0) this.text(x + TERMINAL_COLUMN_WIDTH - 16, 30, '▲', { color: CSS_COLORS.parchmentDim });
+      if (offset + TERMINAL_ROWS < list.length) {
+        this.text(x + TERMINAL_COLUMN_WIDTH - 16, 46 + TERMINAL_ROWS * TERMINAL_PITCH - 12, '▼', { color: CSS_COLORS.parchmentDim });
+      }
+    }
+  }
+
+  /** The little list of what can be done with the highlighted Aether. */
+  drawTerminalMenu() {
+    const { items, index } = this.termMenu;
+    const width = 120;
+    const x = this.termSide === 'party' ? TERMINAL_COLUMNS.storage + 80 : TERMINAL_COLUMNS.party + 80;
+    const y = 60;
+    this.box(x - 2, y - 2, width + 4, items.length * 20 + 12, COLORS.parchment);
+    this.box(x, y, width, items.length * 20 + 8, COLORS.ink);
+    items.forEach((item, i) => {
+      const selected = i === index;
+      if (selected) this.box(x + 2, y + 3 + i * 20, width - 4, 18, COLORS.inkLight);
+      this.text(x + 10, y + 6 + i * 20, item.label, {
+        fontSize: '11px',
+        color: item.enabled === false ? CSS_COLORS.parchmentDim : selected ? CSS_COLORS.accent : CSS_COLORS.parchment,
+      });
+    });
+  }
+
+  /** Open the action list for the Aether under the cursor. */
+  openTerminalMenu() {
+    const creature = this.terminalSelected();
+    if (!creature) return;
+    const side = this.termSide;
+    const index = this.termIndex[side];
+    const name = getDisplayName(creature);
+    const storedCount = this.terminalList('storage').length;
+
+    const items = side === 'party'
+      ? [
+        { label: 'Deposit', enabled: canDeposit(gameState, index).ok, run: () => this.terminalDeposit(index, name) },
+        {
+          label: 'Swap',
+          enabled: storedCount > 0,
+          run: () => this.terminalStartSwap(index, name),
+          refusal: 'Nobody is in storage to swap with.',
+        },
+        { label: 'Cancel', run: () => {} },
+      ]
+      : [
+        { label: 'Withdraw', enabled: canWithdraw(gameState, index).ok, run: () => this.terminalWithdraw(index, name) },
+        {
+          label: 'Swap',
+          enabled: gameState.party.length > 0,
+          run: () => this.terminalStartSwapFromStorage(index, name),
+        },
+        { label: 'Cancel', run: () => {} },
+      ];
+    this.termMenu = { items, index: 0 };
+    this.termMessage = '';
+    this.drawTerminal();
+  }
+
+  terminalDeposit(index, name) {
+    const result = depositCreature(gameState, index);
+    this.termMessage = result.ok ? `${name} was sent to storage.` : result.message;
+  }
+
+  terminalWithdraw(index, name) {
+    const result = withdrawCreature(gameState, index);
+    this.termMessage = result.ok ? `${name} joined your party.` : result.message;
+  }
+
+  /** Swapping starts from a party member: now pick who comes out of storage. */
+  terminalStartSwap(partyIndex, name) {
+    this.termSwapFrom = partyIndex;
+    this.termSide = 'storage';
+    this.termMessage = `Who should take ${name}'s place?`;
+  }
+
+  /** ...or from a stored Aether: pick who goes in, then it is the same swap. */
+  terminalStartSwapFromStorage(storageIndex, name) {
+    this.termSwapFrom = null;
+    this.termSwapInto = storageIndex;
+    this.termSide = 'party';
+    this.termMessage = `Who should make way for ${name}?`;
+  }
+
+  terminalFinishSwap(partyIndex, storageIndex) {
+    const result = swapCreatures(gameState, partyIndex, storageIndex);
+    this.termMessage = result.ok
+      ? `${getDisplayName(result.withdrawn)} and ${getDisplayName(result.deposited)} traded places.`
+      : result.message;
+    this.termSwapFrom = null;
+    this.termSwapInto = null;
+  }
+
+  updateTerminal() {
+    const c = this.controls;
+
+    // The action list.
+    if (this.termMenu) {
+      const menu = this.termMenu;
+      if (c.justPressed('up')) menu.index = (menu.index - 1 + menu.items.length) % menu.items.length;
+      else if (c.justPressed('down')) menu.index = (menu.index + 1) % menu.items.length;
+      else if (c.justPressed('cancel')) this.termMenu = null;
+      else if (c.justPressed('confirm')) {
+        const item = menu.items[menu.index];
+        this.termMenu = null;
+        if (item.enabled === false) {
+          // Say WHY, in StorageSystem's own words where it has them.
+          const index = this.termIndex[this.termSide];
+          const check = this.termSide === 'party' ? canDeposit(gameState, index) : canWithdraw(gameState, index);
+          this.termMessage = item.refusal || check.message;
+        } else {
+          item.run();
+        }
+      } else return;
+      this.drawTerminal();
+      return;
+    }
+
+    const swapping = this.termSwapFrom !== null || this.termSwapInto !== null;
+    const list = this.terminalList(this.termSide);
+
+    if (c.justPressed('cancel')) {
+      if (swapping) {
+        // Nothing has moved yet: stopping a swap is free.
+        this.termSwapFrom = null;
+        this.termSwapInto = null;
+        this.termMessage = 'Swap cancelled. Nothing was moved.';
+        this.drawTerminal();
+        return;
+      }
+      this.close();
+      return;
+    }
+
+    if (list.length > 0 && c.justPressed('up')) {
+      this.termIndex[this.termSide] = (this.termIndex[this.termSide] - 1 + list.length) % list.length;
+      this.drawTerminal();
+      return;
+    }
+    if (list.length > 0 && c.justPressed('down')) {
+      this.termIndex[this.termSide] = (this.termIndex[this.termSide] + 1) % list.length;
+      this.drawTerminal();
+      return;
+    }
+    // Changing column is for browsing; mid-swap the column is the answer's.
+    if (!swapping && (c.justPressed('left') || c.justPressed('right'))) {
+      this.termSide = this.termSide === 'party' ? 'storage' : 'party';
+      this.termMessage = '';
+      this.drawTerminal();
+      return;
+    }
+
+    if (c.justPressed('confirm')) {
+      if (this.termSwapFrom !== null) this.terminalFinishSwap(this.termSwapFrom, this.termIndex.storage);
+      else if (this.termSwapInto !== null) this.terminalFinishSwap(this.termIndex.party, this.termSwapInto);
+      else {
+        this.openTerminalMenu();
+        return;
+      }
+      this.drawTerminal();
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -1382,6 +1681,7 @@ export class MenuScene extends Phaser.Scene {
       case 'index': this.updateIndex(); break;
       case 'sigils': this.updateSigils(); break;
       case 'storage': this.updateStorage(); break;
+      case 'terminal': this.updateTerminal(); break;
       case 'save': this.updateSave(); break;
       case 'settings': if (this.settingsPanel) this.settingsPanel.update(this.controls); break;
       default: break;

@@ -31,6 +31,13 @@ import { tidewatch } from './tidewatch.js';
 import { tidewatchMendersHall } from './tidewatchMendersHall.js';
 import { tidewatchSupplyPost } from './tidewatchSupplyPost.js';
 import { tidalHall } from './tidalHall.js';
+import { stormriseLower } from './stormriseLower.js';
+import { stormriseHigh } from './stormriseHigh.js';
+import { stormriseSummit } from './stormriseSummit.js';
+import { voltspire } from './voltspire.js';
+import { voltspireMendersHall } from './voltspireMendersHall.js';
+import { voltspireSupplyPost } from './voltspireSupplyPost.js';
+import { stormHall } from './stormHall.js';
 
 export const MAPS = {
   emberhollow,
@@ -52,6 +59,13 @@ export const MAPS = {
   tidewatchMendersHall,
   tidewatchSupplyPost,
   tidalHall,
+  stormriseLower,
+  stormriseHigh,
+  stormriseSummit,
+  voltspire,
+  voltspireMendersHall,
+  voltspireSupplyPost,
+  stormHall,
 };
 
 /**
