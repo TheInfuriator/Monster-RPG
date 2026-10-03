@@ -38,9 +38,62 @@ export class MapRenderer {
     this.overheadLayer = null;
     /** One sprite per barrier tile, keyed by barrier id. */
     this.barrierSprites = new Map();
+    /** One sprite per lever (its handle), keyed by lever id. Phase 12. */
+    this.leverSprites = new Map();
+    /** Lit-channel sprites, each with the signal that lights it. Phase 12. */
+    this.glowSprites = [];
 
     this.render();
     this.createBarriers();
+    this.createPuzzleSprites();
+  }
+
+  /**
+   * Levers and glowing channels — created once, then only re-textured or
+   * shown and hidden, exactly like barriers, so nothing is allocated when a
+   * valve turns.
+   */
+  createPuzzleSprites() {
+    const definition = this.map.definition;
+    for (const lever of definition.levers || []) {
+      const sprite = this.scene.add
+        .image(lever.x * TILE_SIZE, lever.y * TILE_SIZE, `tile-${lever.look}-0`)
+        .setOrigin(0, 0)
+        .setDepth(DEPTHS.decoration);
+      this.leverSprites.set(lever.id, sprite);
+    }
+    for (const glow of definition.glows || []) {
+      const texture = getTileByChar(glow.tile).texture;
+      for (const [x, y] of glow.tiles || []) {
+        const sprite = this.scene.add
+          .image(x * TILE_SIZE, y * TILE_SIZE, texture)
+          .setOrigin(0, 0)
+          .setDepth(DEPTHS.decoration)
+          .setVisible(false);
+        this.glowSprites.push({ sprite, signal: glow.signal, when: glow.when });
+      }
+    }
+  }
+
+  /**
+   * Show every lever in its position and light every channel the current is
+   * running along. Called with what PuzzleSystem says — never decided here.
+   * A glow lights on a lever's `signal` or, for one the story switches on
+   * for good, a world condition `when`.
+   *
+   * @param {{ signals: Set<string>, positions: Record<string, string>,
+   *           conditions?: Record<string, boolean> }} view
+   */
+  refreshPuzzle({ signals, positions, conditions = {} }) {
+    for (const lever of this.map.definition.levers || []) {
+      const sprite = this.leverSprites.get(lever.id);
+      const stateId = lever.state || lever.id;
+      const index = Math.max(0, lever.positions.indexOf(positions[stateId]));
+      if (sprite) sprite.setTexture(`tile-${lever.look}-${index}`);
+    }
+    for (const { sprite, signal, when } of this.glowSprites) {
+      sprite.setVisible(signal ? signals.has(signal) : Boolean(conditions[when]));
+    }
   }
 
   /**
@@ -169,6 +222,10 @@ export class MapRenderer {
       }
     }
     this.barrierSprites.clear();
+    for (const sprite of this.leverSprites.values()) sprite.destroy();
+    this.leverSprites.clear();
+    for (const { sprite } of this.glowSprites) sprite.destroy();
+    this.glowSprites = [];
 
     if (this.groundLayer) {
       this.groundLayer.destroy();

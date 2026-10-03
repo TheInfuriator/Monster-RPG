@@ -103,6 +103,47 @@ export const TILE_DEFINITIONS = {
   '+': { id: 'cordon', solid: true, texture: 'tile-cordon' },
   // A signpost on rocky ground. Interactable like any sign.
   '$': { id: 'sign_stone', solid: true, texture: 'tile-sign-stone' },
+
+  // --- Mistvault Cavern (Phase 12) ------------------------------------------
+  //
+  // A cave reads differently from a route: darker floor, darker walls, and
+  // its encounter terrain — loose rubble, and shallows you wade through — is
+  // as busy and obvious as tall grass. Everything the Hollow Vane brought in
+  // (cables, machinery, storage cells, a notice board) is grey and steel so
+  // it never looks like part of the cave.
+  'c': { id: 'cave_floor', solid: false, texture: 'tile-cave-floor' },
+  'Y': { id: 'cave_wall', solid: true, texture: 'tile-cave-wall' },
+  ';': { id: 'cave_rubble', solid: false, encounter: true, texture: 'tile-cave-rubble' },
+  'N': { id: 'shallows', solid: false, encounter: true, texture: 'tile-shallows' },
+  'v': { id: 'chasm', solid: true, texture: 'tile-chasm' },
+  // A mist bridge is walkable in the map source; a barrier draws the chasm
+  // over it while no current runs beneath (see PuzzleSystem, openWhenSignal).
+  'n': { id: 'mist_bridge', solid: false, texture: 'tile-mist-bridge' },
+  // Current channels cut in the rock. Dark when dry; a `glows` entry draws the
+  // lit version over them while the current flows. The spring is always lit.
+  'q': { id: 'channel', solid: true, texture: 'tile-channel' },
+  'Q': { id: 'channel_lit', solid: true, texture: 'tile-channel-lit' },
+  'E': { id: 'vault_spring', solid: true, texture: 'tile-vault-spring' },
+  'z': { id: 'vane_cables', solid: false, texture: 'tile-vane-cables' },
+  'm': { id: 'vane_machinery', solid: true, texture: 'tile-vane-machinery' },
+  'l': { id: 'storage_cells', solid: true, texture: 'tile-storage-cells' },
+  'J': { id: 'vane_board', solid: true, texture: 'tile-vane-board' },
+  // A valve's iron body. The handle drawn over it shows which way it is set.
+  'y': { id: 'valve', solid: true, texture: 'tile-valve-0' },
+  // The mist the siphon leaves behind: a barrier look, thick enough to stop you.
+  'i': { id: 'thick_mist', solid: true, texture: 'tile-thick-mist' },
+
+  // --- Tidewatch Harbor and the Tidal Hall (Phase 12) --------------------------
+  '[': { id: 'boardwalk', solid: false, texture: 'tile-boardwalk' },
+  'U': { id: 'moored_boat', solid: true, texture: 'tile-moored-boat' },
+  'Z': { id: 'lighthouse', solid: true, texture: 'tile-lighthouse' },
+  '9': { id: 'lighthouse_lamp', solid: true, texture: 'tile-lighthouse-lamp' },
+  'a': { id: 'slate_roof', solid: true, texture: 'tile-slate-roof' },
+  '^': { id: 'tide_wheel', solid: true, texture: 'tile-wheel-0' },
+  // The Hall's lower floor (flooded at high tide) and its pontoons (sunk at
+  // low tide). Both walkable in the map source; barriers draw the water.
+  ')': { id: 'wet_stone', solid: false, texture: 'tile-wet-stone' },
+  '(': { id: 'pontoon', solid: false, texture: 'tile-pontoon' },
 };
 
 /** The tile used when a map contains a character this file does not define. */

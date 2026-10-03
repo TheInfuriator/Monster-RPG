@@ -105,6 +105,56 @@ export const ENCOUNTER_TABLES = {
     { species: 'gustwing', minLevel: 17, maxLevel: 18, weight: 4 },
   ],
 
+  /**
+   * Mistvault Cavern — the Mouth's rubble. Phase 12.
+   *
+   * GAME_DESIGN.md promised Mistvault "Dark/Rock creatures": Umbrat is home at
+   * last, Gloamite is the cavern's own, and the scree's diggers come in from
+   * outside. A Corrodit got loose from the Vane's cable runs. Pitched a little
+   * above the scree, at what a player really has at the top of Route 2.
+   */
+  mistvaultCave: [
+    { species: 'umbrat', minLevel: 15, maxLevel: 17, weight: 26 },
+    { species: 'gloamite', minLevel: 15, maxLevel: 17, weight: 20 },
+    { species: 'delvit', minLevel: 15, maxLevel: 17, weight: 16 },
+    { species: 'pebblit', minLevel: 15, maxLevel: 17, weight: 14 },
+    { species: 'wispel', minLevel: 16, maxLevel: 18, weight: 10 },
+    // Deliberately scarce: it does not belong here.
+    { species: 'corrodit', minLevel: 16, maxLevel: 17, weight: 6 },
+  ],
+
+  /**
+   * Mistvault Cavern — the Galleries and the Draw Site. Phase 12.
+   *
+   * Deeper, a level up, and more Corrodit the closer the Vane's rig gets.
+   */
+  mistvaultGalleries: [
+    { species: 'gloamite', minLevel: 16, maxLevel: 18, weight: 24 },
+    { species: 'umbrat', minLevel: 16, maxLevel: 18, weight: 20 },
+    { species: 'corrodit', minLevel: 16, maxLevel: 18, weight: 14 },
+    { species: 'pebblit', minLevel: 16, maxLevel: 18, weight: 12 },
+    { species: 'delvit', minLevel: 16, maxLevel: 18, weight: 10 },
+    { species: 'wispel', minLevel: 17, maxLevel: 19, weight: 10 },
+    // Deliberately rare.
+    { species: 'carapex', minLevel: 17, maxLevel: 19, weight: 5 },
+  ],
+
+  /**
+   * Mistvault Cavern — the Tideward Grotto's SHALLOWS. Phase 12.
+   *
+   * A second habitat on the Core (encounters.byTerrain), only reachable once
+   * the siphon is stopped: sea water seeping in from Tidewatch, and the fish
+   * and crabs that came with it. The game's first Water habitat.
+   */
+  mistvaultShallows: [
+    { species: 'minnet', minLevel: 17, maxLevel: 19, weight: 34 },
+    { species: 'dampling', minLevel: 17, maxLevel: 19, weight: 22 },
+    { species: 'barnaclaw', minLevel: 17, maxLevel: 19, weight: 18 },
+    { species: 'gloamite', minLevel: 17, maxLevel: 19, weight: 12 },
+    // Deliberately rare.
+    { species: 'brookel', minLevel: 19, maxLevel: 20, weight: 6 },
+  ],
+
   /** The patch on Emberhollow's northern edge — a safe taste of the mechanic. */
   emberhollowEdge: [
     { species: 'nibbit', minLevel: 2, maxLevel: 3, weight: 60 },

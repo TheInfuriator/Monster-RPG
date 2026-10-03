@@ -128,6 +128,43 @@ export const CHARACTER_PALETTES = {
     boots: 0x262626,
     accent: 0xe8a33d,
   },
+  // The Hollow Vane (Phase 12): a plain grey survey coat with a dark collar
+  // and a pale hollow ring on the chest — the stamp on the stake by Route 2's
+  // dry spring. `emblem` is optional; only the Vane wear one.
+  vane: {
+    hair: 0x3a3a40,
+    skin: 0xd8ad86,
+    skinShade: 0xb78b65,
+    tunic: 0x7d8088,
+    tunicShade: 0x5e6169,
+    trousers: 0x34363c,
+    boots: 0x1f2024,
+    accent: 0x2b2d33,
+    emblem: 0xdfe5ea,
+  },
+  // A Vane foreman: the same coat in charcoal, with a silver collar.
+  vaneForeman: {
+    hair: 0x9a9690,
+    skin: 0xc79670,
+    skinShade: 0xa57652,
+    tunic: 0x45474f,
+    tunicShade: 0x33353b,
+    trousers: 0x26272c,
+    boots: 0x17181b,
+    accent: 0xb9c2c9,
+    emblem: 0xe6ecef,
+  },
+  // A Warden of the Circle: an olive field cloak with a gold clasp.
+  warden: {
+    hair: 0x5a3b26,
+    skin: 0xe0b48e,
+    skinShade: 0xbd9068,
+    tunic: 0x56704c,
+    tunicShade: 0x40553a,
+    trousers: 0x3d3a33,
+    boots: 0x2a241c,
+    accent: 0xd8b84a,
+  },
 };
 
 /**

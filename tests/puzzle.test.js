@@ -501,7 +501,7 @@ describe('puzzle validation catches mistakes', () => {
 
   it('rejects a barrier drawn as a character that does not exist', () => {
     expect(broken({
-      barriers: [{ id: 'gateA', tile: 'Z', tiles: [[2, 2]] }],
+      barriers: [{ id: 'gateA', tile: '§', tiles: [[2, 2]] }],
       switches: [],
     })).toMatch(/not a known map character/);
   });

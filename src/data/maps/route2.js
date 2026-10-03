@@ -4,7 +4,7 @@
  * The road north out of Thistlewood, opened in Phase 11 by beating Kestrel at
  * the Thornway gate. It climbs through bramble cutting and thicket, over the
  * Brow, and up a scree slope to the mouth of Mistvault Cavern — which the
- * Wardens have roped off. That cordon is where Phase 11 ends.
+ * Wardens have roped off until the Circle sends word (Phase 12).
  *
  * THE SHAPE, SOUTH TO NORTH
  *   the cutting   rows 38-49  the road from Thistlewood, the bramble crew, a
@@ -18,7 +18,8 @@
  *                             second habitat, with its own wild Aethers — a
  *                             trainer on a spur and items in the far corners.
  *   the gully     rows 4-9    one tile wide, straight up into Kestrel's sight.
- *   the landing   rows 0-3    Mistvault's mouth behind the Wardens' cordon.
+ *   the landing   rows 0-3    Mistvault's mouth behind the Wardens' cordon,
+ *                             which comes down in Phase 12 (see below).
  *
  * TWO HABITATS, ONE MAP
  * Tall grass rolls on `route2Thicket`, scree on `route2Scree` — see
@@ -27,7 +28,8 @@
  *   .  grass       "  tall grass      *  scree        -  road    =  gravel
  *   T  tree        &  bramble        %  rock face    @  boulder
  *   u  dry spring  j  survey stake   X  cave mouth   S  sign   $  sign on rock
- *   +  the cordon (drawn by the barrier at the top, not written in the grid)
+ *   c  cave floor (the way into Mistvault)
+ *   +  the cordon, ~ the spring's water (barriers, not written in the grid)
  */
 
 import { TRAINERS } from '../trainers.js';
@@ -45,12 +47,20 @@ export const route2 = {
   },
 
   /**
-   * The Wardens' cordon across Mistvault Cavern.
+   * Two barriers, both moved by the story and nothing else.
    *
-   * `mistvaultOpen` is a flag NOTHING sets in Phase 11, so the cordon stays
-   * up and the cavern is visible but unreachable — the same honest seam the
-   * Thornway gate was before this phase. Phase 12 (the dungeon) opens it with
-   * one flag, and adds the cavern's exit tiles behind it.
+   * THE CORDON across Mistvault Cavern. Phase 11 left it up. In Phase 12,
+   * once Kestrel has been beaten up here, Warden Corran has word from the
+   * Circle and takes it down: their dialogue sets `mistvaultOpen`, the rope
+   * draws back while the player watches, and the game autosaves. A Phase 11
+   * save has no such flag, so it loads with the cordon still up and Corran
+   * ready to say so.
+   *
+   * THE SPRING. Dry since the Vane started drawing on the current. Once the
+   * siphon in Mistvault is stopped (`mistvaultSiphonStopped`), the basin fills
+   * with water again — a barrier that CLOSES on a condition (`closedWhen`).
+   * The flag is only ever set deep in Mistvault, so nobody can be standing in
+   * the basin when it fills.
    */
   barriers: [
     {
@@ -61,13 +71,25 @@ export const route2 = {
       closed: true,
       openWhen: 'mistvaultOpen',
     },
+    {
+      id: 'springWater',
+      name: 'the spring',
+      tile: '~',
+      tiles: [
+        [21, 34], [22, 34], [23, 34], [24, 34],
+        [21, 35], [22, 35], [23, 35], [24, 35],
+        [21, 36], [22, 36], [23, 36], [24, 36],
+      ],
+      closed: false,
+      closedWhen: 'mistvaultSiphonStopped',
+    },
   ],
 
   tiles: [
     // 0         1         2
     // 012345678901234567890123456789
-    '%%%%%%%%%%%%%XXXX%%%%%%%%%%%%%', //  0  Mistvault Cavern — the end of Phase 11
-    '%%%%%%%%%%%%%XXXX%%%%%%%%%%%%%', //  1
+    '%%%%%%%%%%%%%XccX%%%%%%%%%%%%%', //  0  Mistvault Cavern: exits at (14..15, 0)
+    '%%%%%%%%%%%%%XccX%%%%%%%%%%%%%', //  1
     '%%%%%%%%%%%@@----@@%%%%%%%%%%%', //  2  the Wardens' cordon at (13..16, 2)
     '%%%%%%%%%%$==========%%%%%%%%%', //  3  the landing: sign (10,3), Warden Corran (20,3)
     '%%%%%%%%%%%%@==@%%%%%%%%%%%%%%', //  4  Kestrel waits at (14,4), looking down the gully
@@ -121,12 +143,17 @@ export const route2 = {
   spawnPoints: {
     // Arriving from Thistlewood: just inside the southern treeline.
     fromThistlewood: { x: 14, y: 48, facing: 'up' },
+    // Out of Mistvault Cavern: in the cave mouth, above the cordon.
+    fromMistvault: { x: 14, y: 1, facing: 'down' },
     default: { x: 14, y: 48, facing: 'up' },
   },
 
   exits: [
     { x: 14, y: 49, to: 'thistlewood', spawn: 'fromRoute2' },
     { x: 15, y: 49, to: 'thistlewood', spawn: 'fromRoute2' },
+    // Behind the cordon: closed until `mistvaultOpen`, so unreachable till then.
+    { x: 14, y: 0, to: 'mistvaultMouth', spawn: 'fromRoute2' },
+    { x: 15, y: 0, to: 'mistvaultMouth', spawn: 'fromRoute2' },
   ],
 
   npcs: [
@@ -140,6 +167,12 @@ export const route2 = {
       sprite: 'villager',
       movement: 'lookAround',
       dialogue: [
+        {
+          when: 'mistvaultSiphonStopped',
+          pages: [
+            'Did you hear? The spring is running again! Came back all at once, Tobiah says, like someone pulled a plug.',
+          ],
+        },
         {
           when: 'trainer:kestrelRoute2',
           pages: [
@@ -192,6 +225,13 @@ export const route2 = {
       sprite: 'elder',
       movement: 'static',
       dialogue: [
+        {
+          when: 'mistvaultSiphonStopped',
+          pages: [
+            'Look at it! Brimming, and running clear. Back the moment something deep in Mistvault went quiet.',
+            'Whoever drove that stake, I hope they found what they were looking for somewhere else. Far from here.',
+          ],
+        },
         {
           pages: [
             'This spring has run for three hundred years. Four days ago it stopped. Just stopped.',
@@ -297,6 +337,10 @@ export const route2 = {
       sprite: 'rival',
       movement: 'static',
       presentWhen: 'trainer:kestrelThornway',
+      // Into the cavern the moment the cordon comes down — "I am going in
+      // first" — and never back here again.
+      absentWhen: 'mistvaultOpen',
+      leaveBy: { direction: 'up', steps: 3 },
       // After a challenge they are standing in the one-tile gully: walk back
       // up to the landing, or nobody gets past until the map reloads.
       returnAfterDefeat: true,
@@ -324,10 +368,28 @@ export const route2 = {
       movement: 'static',
       dialogue: [
         {
-          when: 'trainer:kestrelRoute2',
+          when: 'mistvaultSiphonStopped',
           pages: [
-            'Your friend has been arguing with me for an hour. The answer is still no.',
-            'When the Circle sends word, you two will be the first to hear it. Until then the cavern stays shut.',
+            'A runner came up from the Grotto side. Whatever was drawing on the current has stopped — and the Thornway spring is running again.',
+            'The Circle owes you two. I will make sure they know it.',
+          ],
+        },
+        {
+          when: 'mistvaultOpen',
+          pages: [
+            'Warden Ashby is waiting inside the mouth. The cavern road comes out at Tidewatch Harbor, if you get that far.',
+            'Mind yourself in there. Whatever is in Mistvault, it is not just restless Aethers.',
+          ],
+        },
+        {
+          // PHASE 12: the Circle's word comes. Only once Kestrel is beaten up
+          // here — so it is earned — and it ends with the cordon coming down.
+          when: 'trainer:kestrelRoute2',
+          setFlags: ['mistvaultOpen'],
+          pages: [
+            'Word has just come up from the Circle. Warden Ashby went into Mistvault at first light — and asked for Sigil-holders to follow.',
+            'That is you, and that is your friend, more is the pity. The cordon comes down.',
+            'Find Ashby inside the mouth. And keep your wits about you — the Circle did not say what they were expecting to find.',
           ],
         },
         {
@@ -365,8 +427,19 @@ export const route2 = {
       y: 3,
       type: 'sign',
       dialogue: [
-        'MISTVAULT CAVERN — the cavern road to Tidewatch Harbor',
-        'CLOSED by order of the Warden Circle. No entry until further notice.',
+        {
+          when: 'mistvaultOpen',
+          pages: [
+            'MISTVAULT CAVERN — the cavern road to Tidewatch Harbor',
+            'OPEN to Sigil-holders, by order of the Warden Circle. Report to Warden Ashby inside.',
+          ],
+        },
+        {
+          pages: [
+            'MISTVAULT CAVERN — the cavern road to Tidewatch Harbor',
+            'CLOSED by order of the Warden Circle. No entry until further notice.',
+          ],
+        },
       ],
     },
     {
@@ -375,9 +448,20 @@ export const route2 = {
       y: 35,
       type: 'sign',
       dialogue: [
-        'A surveyor\'s stake, driven deep into the dry basin.',
-        'Its grey tag is stamped with a hollow ring crossed by a line, like a weathervane with nothing at its heart.',
-        'Under it, in small print: SURVEY 14 — CURRENT DRAW. No name.',
+        {
+          when: 'mistvaultSiphonStopped',
+          pages: [
+            'The surveyor\'s stake stands in running water now. SURVEY 14 — CURRENT DRAW.',
+            'The same hollow ring as on the Vane\'s coats in Mistvault.',
+          ],
+        },
+        {
+          pages: [
+            'A surveyor\'s stake, driven deep into the dry basin.',
+            'Its grey tag is stamped with a hollow ring crossed by a line, like a weathervane with nothing at its heart.',
+            'Under it, in small print: SURVEY 14 — CURRENT DRAW. No name.',
+          ],
+        },
       ],
     },
 

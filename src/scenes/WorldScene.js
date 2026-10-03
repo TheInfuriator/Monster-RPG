@@ -34,7 +34,7 @@ import { InputManager } from '../core/InputManager.js';
 import { TileMap } from '../systems/TileMap.js';
 import { MapRenderer } from '../systems/MapRenderer.js';
 import { NpcManager } from '../systems/NpcManager.js';
-import { stepsToLeave, wayHome } from '../systems/NpcPresence.js';
+import { isNpcPresent, stepsToLeave, wayHome } from '../systems/NpcPresence.js';
 import { EncounterSystem } from '../systems/EncounterSystem.js';
 import { findInteractionTarget } from '../systems/InteractionSystem.js';
 import { resolveDialogue } from '../systems/DialogueResolver.js';
@@ -56,6 +56,7 @@ import {
 import { findChallenger } from '../systems/SightSystem.js';
 import {
   createBarrierState, getSwitchAt, pressSwitch, resetPuzzle, getBarrier,
+  pressLever, getPuzzleSignals, getLeverPositions,
 } from '../systems/PuzzleSystem.js';
 import { getWorldConditions } from '../systems/ProgressionSystem.js';
 import { awardBadge } from '../systems/BadgeSystem.js';
@@ -200,6 +201,8 @@ export class WorldScene extends Phaser.Scene {
     // first frame already shows the world as it really is.
     this.syncBarriers();
     this.mapRenderer = new MapRenderer(this, this.map);
+    // Now there is a picture: show every lever's position and every lit channel.
+    this.syncBarriers();
 
     this.cameras.main.setBackgroundColor(COLORS.ink);
   }
@@ -220,14 +223,60 @@ export class WorldScene extends Phaser.Scene {
    * @param {string[]} [options.animate] barrier ids to animate rather than snap
    */
   syncBarriers({ animate = [] } = {}) {
-    if (this.map.barriers.length === 0) return;
+    const definition = this.map.definition;
+    const conditions = getWorldConditions(gameState);
 
-    this.map.setBarrierState(createBarrierState(this.map.definition, {
-      conditions: getWorldConditions(gameState),
+    if (this.map.barriers.length > 0) {
+      this.map.setBarrierState(createBarrierState(definition, { conditions, state: gameState }));
+    }
+
+    // Levers and glowing channels (Phase 12) follow the same stored state —
+    // the handle and the light are never out of step with the collision.
+    if (this.mapRenderer) {
+      if (this.map.barriers.length > 0) this.mapRenderer.refreshBarriers({ animate });
+      this.mapRenderer.refreshPuzzle({
+        signals: getPuzzleSignals(definition, { state: gameState, conditions }),
+        positions: getLeverPositions(definition, gameState),
+        conditions,
+      });
+    }
+  }
+
+  /**
+   * The player pressed Confirm at a lever — a valve, a tide wheel.
+   *
+   * PuzzleSystem decides what moves (and refuses if a barrier would close on
+   * somebody); this animates the barriers that changed and says what
+   * happened, in the lever's own words from the map data.
+   */
+  useLever(lever) {
+    const occupants = [
+      { x: this.player.tileX, y: this.player.tileY },
+      ...this.npcManager.npcs.map((npc) => ({ x: npc.tileX, y: npc.tileY })),
+    ];
+    const outcome = pressLever(this.map.definition, lever.id, {
       state: gameState,
-    }));
+      occupants,
+      conditions: getWorldConditions(gameState),
+    });
 
-    if (this.mapRenderer) this.mapRenderer.refreshBarriers({ animate });
+    if (!outcome.changed) {
+      // Only reachable if somebody stands where a barrier would close — the
+      // maps are validated so nobody can. Say something rather than nothing.
+      const name = lever.name || 'it';
+      this.startDialogue([`${name[0].toUpperCase()}${name.slice(1)} will not move while someone is in the way.`]);
+      return;
+    }
+
+    this.syncBarriers({ animate: [...outcome.opened, ...outcome.closed] });
+    // A valve with no current reaching it says so — the clue that another
+    // valve upstream has to be turned first.
+    const said = outcome.dry
+      ? lever.dry
+      : lever.says && lever.says[outcome.position];
+    // In the dialogue box rather than a toast: these say what the current
+    // did, which is the puzzle's whole feedback, and a toast is one short line.
+    this.startDialogue([said || `You turn ${lever.name || 'the lever'}.`]);
   }
 
   /**
@@ -812,6 +861,31 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /**
+   * Send away anyone the story has just made absent — a flag set while they
+   * are standing right there (Kestrel, the moment Mistvault's cordon comes
+   * down). They walk off along their map entry's `leaveBy` if it has one,
+   * then fade. Presence is derived from the story every time a map loads, so
+   * nothing about this is saved: next visit they are simply not there.
+   */
+  dismissAbsentNpcs() {
+    const conditions = getWorldConditions(gameState);
+    for (const npc of [...this.npcManager.npcs]) {
+      if (npc.leaving || isNpcPresent(npc.definition, conditions)) continue;
+      npc.leaving = true;
+
+      const fade = () => this.tweens.add({
+        targets: npc,
+        alpha: 0,
+        duration: 220,
+        onComplete: () => this.npcManager.remove(npc),
+      });
+      const way = npc.definition.leaveBy;
+      if (way) npc.walkLine(way.direction, way.steps, fade);
+      else fade();
+    }
+  }
+
+  /**
    * Hand over a Leader's Sigil, once.
    *
    * Called only after a WIN, and only once the outro has finished playing — so
@@ -1020,6 +1094,11 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    if (target.kind === 'lever') {
+      this.useLever(target.lever);
+      return;
+    }
+
     const entry = target.target;
     if (entry.type === 'item') {
       this.pickUpItem(entry);
@@ -1076,6 +1155,7 @@ export class WorldScene extends Phaser.Scene {
         // is also worth an autosave.
         if (flags.length > 0) {
           this.syncBarriers({ animate: this.map.barriers.map((b) => b.id) });
+          this.dismissAbsentNpcs();
           this.requestAutosave('story');
         }
 

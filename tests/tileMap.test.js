@@ -139,7 +139,7 @@ describe('map validation', () => {
 describe('unknown tile characters', () => {
   it('falls back to a solid void tile and warns instead of crashing', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const map = new TileMap({ id: 'typo', tiles: ['.Z.'] });
+    const map = new TileMap({ id: 'typo', tiles: ['.§.'] });
 
     expect(map.getTile(1, 0).id).toBe('void');
     expect(map.isWalkable(1, 0)).toBe(false);

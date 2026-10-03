@@ -24,6 +24,9 @@ import { thistlewoodSupplyPost } from './thistlewoodSupplyPost.js';
 import { thistlewoodCottage } from './thistlewoodCottage.js';
 import { route2 } from './route2.js';
 import { verdantHall } from './verdantHall.js';
+import { mistvaultMouth } from './mistvaultMouth.js';
+import { mistvaultGalleries } from './mistvaultGalleries.js';
+import { mistvaultCore } from './mistvaultCore.js';
 
 export const MAPS = {
   emberhollow,
@@ -38,6 +41,9 @@ export const MAPS = {
   thistlewoodCottage,
   route2,
   verdantHall,
+  mistvaultMouth,
+  mistvaultGalleries,
+  mistvaultCore,
 };
 
 /**

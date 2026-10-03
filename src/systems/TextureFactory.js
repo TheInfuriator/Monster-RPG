@@ -64,6 +64,52 @@ function speckle(ctx, color, count, seed, size = 2, area = TILE_SIZE) {
   }
 }
 
+/** A valve tile whose handle points left (-1) or right (+1). */
+function drawValve(direction) {
+  const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+  rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x3d3a47);
+  rect(ctx, 13, 20, 6, 12, 0x4b5059);             // the pipe
+  ctx.strokeStyle = hex(0x8a919b);
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(16, 14, 9, 0, Math.PI * 2);
+  ctx.stroke();
+  rect(ctx, 14, 12, 4, 4, 0xd8b84a);              // the hub
+  // The handle, and an arrow the colour of the current.
+  const tip = 16 + direction * 13;
+  ctx.strokeStyle = hex(0x7fe3d8);
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(16, 14);
+  ctx.lineTo(tip, 14);
+  ctx.moveTo(tip, 14);
+  ctx.lineTo(tip - direction * 5, 9);
+  ctx.moveTo(tip, 14);
+  ctx.lineTo(tip - direction * 5, 19);
+  ctx.stroke();
+  return canvas;
+}
+
+/** A tide wheel with its marker down (low tide) or up (high tide). */
+function drawTideWheel(high) {
+  const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+  rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x5e7380);
+  rect(ctx, 4, 26, 24, 6, 0x6b5136);              // its stand
+  ctx.strokeStyle = hex(0xb89263);
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(16, 14, 11, 0, Math.PI * 2);
+  for (let i = 0; i < 4; i += 1) {
+    const angle = (Math.PI / 4) * i;
+    ctx.moveTo(16 - Math.cos(angle) * 11, 14 - Math.sin(angle) * 11);
+    ctx.lineTo(16 + Math.cos(angle) * 11, 14 + Math.sin(angle) * 11);
+  }
+  ctx.stroke();
+  rect(ctx, 13, high ? 1 : 22, 6, 5, 0x4a86c4);    // the tide marker
+  rect(ctx, 14, high ? 2 : 23, 4, 3, 0xbfe0ff);
+  return canvas;
+}
+
 // ---------------------------------------------------------------------------
 // Tile generators. Each returns a finished 32x32 canvas.
 // ---------------------------------------------------------------------------
@@ -714,6 +760,272 @@ const TILE_GENERATORS = {
     return canvas;
   },
 
+  // ---- Mistvault Cavern (Phase 12) ------------------------------------------
+
+  'tile-cave-floor': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x3d3a47);
+    speckle(ctx, 0x34313d, 22, 30001, 3);
+    speckle(ctx, 0x4a4656, 8, 30002, 2);
+    return canvas;
+  },
+
+  // Darker than any floor and lit from above, so the walls of a passage read
+  // at a glance even where the cave is gloomy.
+  'tile-cave-wall': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x1f1d26);
+    rect(ctx, 0, 0, TILE_SIZE, 4, 0x2e2b38);
+    rect(ctx, 4, 9, 9, 6, 0x2a2733);
+    rect(ctx, 18, 16, 10, 7, 0x2a2733);
+    rect(ctx, 4, 9, 9, 1, 0x3a3646);
+    rect(ctx, 18, 16, 10, 1, 0x3a3646);
+    speckle(ctx, 0x16141c, 10, 30011, 2);
+    return canvas;
+  },
+
+  // Encounter terrain: busy loose stone, nothing like the smooth floor.
+  'tile-cave-rubble': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x332f3c);
+    const random = createSeededRandom(30021);
+    for (let i = 0; i < 10; i += 1) {
+      const x = 1 + Math.floor(random() * (TILE_SIZE - 8));
+      const y = 1 + Math.floor(random() * (TILE_SIZE - 7));
+      const w = 4 + Math.floor(random() * 4);
+      rect(ctx, x, y + 1, w, 4, 0x5a5468);
+      rect(ctx, x + 1, y, w - 2, 2, 0x766f86);
+      rect(ctx, x + 1, y + 5, w - 1, 1, 0x1f1d26);
+    }
+    return canvas;
+  },
+
+  // Shallow water you can wade through — and where water Aethers hide.
+  'tile-shallows': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x3c6f86);
+    speckle(ctx, 0x335f73, 12, 30031, 3);
+    for (const [x, y, w] of [[3, 6, 9], [17, 11, 10], [6, 20, 11], [20, 25, 8]]) {
+      rect(ctx, x, y, w, 2, 0x8fc4d6);
+      rect(ctx, x + 2, y + 2, w - 4, 1, 0x5f9bb3);
+    }
+    return canvas;
+  },
+
+  'tile-chasm': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x0b0a0f);
+    speckle(ctx, 0x15131c, 8, 30041, 3);
+    rect(ctx, 0, 0, TILE_SIZE, 2, 0x1a1822);
+    return canvas;
+  },
+
+  // Condensed current: pale, glowing, a little see-through-looking.
+  'tile-mist-bridge': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x0b0a0f);
+    rect(ctx, 2, 0, 28, TILE_SIZE, 0x8fd9d2);
+    for (const y of [3, 11, 19, 27]) rect(ctx, 2, y, 28, 2, 0xc7f1ec);
+    rect(ctx, 2, 0, 2, TILE_SIZE, 0x5fb3ac);
+    rect(ctx, 28, 0, 2, TILE_SIZE, 0x5fb3ac);
+    return canvas;
+  },
+
+  'tile-channel': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x1f1d26);
+    rect(ctx, 11, 0, 10, TILE_SIZE, 0x2b2834);
+    rect(ctx, 0, 11, TILE_SIZE, 10, 0x2b2834);
+    rect(ctx, 14, 0, 4, TILE_SIZE, 0x121118);
+    rect(ctx, 0, 14, TILE_SIZE, 4, 0x121118);
+    return canvas;
+  },
+
+  // The same groove with the current running in it. Drawn over 'channel'
+  // while the signal holds, so the player can SEE where the current goes.
+  'tile-channel-lit': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x1f1d26);
+    rect(ctx, 11, 0, 10, TILE_SIZE, 0x2b4a52);
+    rect(ctx, 0, 11, TILE_SIZE, 10, 0x2b4a52);
+    rect(ctx, 14, 0, 4, TILE_SIZE, 0x7fe3d8);
+    rect(ctx, 0, 14, TILE_SIZE, 4, 0x7fe3d8);
+    rect(ctx, 15, 0, 2, TILE_SIZE, 0xd9fffb);
+    rect(ctx, 0, 15, TILE_SIZE, 2, 0xd9fffb);
+    return canvas;
+  },
+
+  'tile-vault-spring': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x2b4a52);
+    rect(ctx, 2, 2, 28, 28, 0x56c9cf);
+    speckle(ctx, 0x9ff0ea, 10, 30051, 3);
+    rect(ctx, 6, 8, 12, 2, 0xd9fffb);
+    rect(ctx, 14, 20, 12, 2, 0xd9fffb);
+    return canvas;
+  },
+
+  // Thick grey cables pegged along the floor, with yellow survey tags.
+  'tile-vane-cables': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x3d3a47);
+    speckle(ctx, 0x34313d, 16, 30061, 3);
+    rect(ctx, 0, 9, TILE_SIZE, 4, 0x24272d);
+    rect(ctx, 0, 19, TILE_SIZE, 4, 0x24272d);
+    rect(ctx, 0, 9, TILE_SIZE, 1, 0x4b5059);
+    rect(ctx, 0, 19, TILE_SIZE, 1, 0x4b5059);
+    rect(ctx, 9, 8, 3, 6, 0xd8b84a);
+    rect(ctx, 22, 18, 3, 6, 0xd8b84a);
+    return canvas;
+  },
+
+  // Riveted steel housing with the hollow-vane mark: a ring crossed by a line.
+  'tile-vane-machinery': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x5c636d);
+    rect(ctx, 2, 2, 28, 28, 0x6f7680);
+    rect(ctx, 2, 2, 28, 2, 0x8a919b);
+    for (const [x, y] of [[4, 4], [26, 4], [4, 26], [26, 26]]) rect(ctx, x, y, 2, 2, 0x3e434b);
+    ctx.strokeStyle = hex(0xe3e6ea);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(16, 16, 6, 0, Math.PI * 2);
+    ctx.moveTo(6, 16);
+    ctx.lineTo(26, 16);
+    ctx.stroke();
+    return canvas;
+  },
+
+  // Storage cells: squat canisters, each with a faint captured glow.
+  'tile-storage-cells': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x3d3a47);
+    for (const x of [2, 17]) {
+      rect(ctx, x, 6, 13, 22, 0x4b5059);
+      rect(ctx, x, 6, 13, 3, 0x8a919b);
+      rect(ctx, x + 3, 12, 7, 12, 0x6fd3c8);
+      rect(ctx, x + 4, 13, 2, 10, 0xc7f1ec);
+      rect(ctx, x, 26, 13, 2, 0x24272d);
+    }
+    return canvas;
+  },
+
+  'tile-vane-board': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x3d3a47);
+    rect(ctx, 6, 18, 3, 12, 0x4b5059);
+    rect(ctx, 23, 18, 3, 12, 0x4b5059);
+    rect(ctx, 3, 4, 26, 16, 0x6f7680);
+    rect(ctx, 5, 6, 22, 12, 0xd8d3c4);
+    rect(ctx, 7, 8, 12, 1, 0x3e434b);
+    rect(ctx, 7, 11, 16, 1, 0x3e434b);
+    rect(ctx, 7, 14, 10, 1, 0x3e434b);
+    ctx.strokeStyle = hex(0x3e434b);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(23.5, 9.5, 2.5, 0, Math.PI * 2);
+    ctx.stroke();
+    return canvas;
+  },
+
+  // A valve: an iron wheel on a pipe, its handle pointing the way the current
+  // goes. Position 0 points left, position 1 points right.
+  'tile-valve-0': () => drawValve(-1),
+  'tile-valve-1': () => drawValve(1),
+
+  'tile-thick-mist': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x8c8a9c);
+    speckle(ctx, 0xa9a7b8, 26, 30071, 5);
+    speckle(ctx, 0x77758a, 12, 30072, 4);
+    return canvas;
+  },
+
+  // ---- Tidewatch Harbor and the Tidal Hall (Phase 12) ------------------------
+
+  'tile-boardwalk': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x8a6a46);
+    for (const y of [0, 8, 16, 24]) {
+      rect(ctx, 0, y, TILE_SIZE, 7, 0xa5825a);
+      rect(ctx, 0, y + 6, TILE_SIZE, 1, 0x6b5136);
+    }
+    for (const [x, y] of [[4, 2], [26, 10], [12, 18], [22, 26]]) rect(ctx, x, y, 2, 2, 0x5a432c);
+    return canvas;
+  },
+
+  'tile-moored-boat': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, COLORS.water);
+    rect(ctx, 4, 22, 10, 2, COLORS.waterDark);
+    rect(ctx, 3, 8, 26, 16, 0x8b4a33);
+    rect(ctx, 5, 10, 22, 12, 0xb5714b);
+    rect(ctx, 3, 8, 26, 2, 0xd8b98a);
+    rect(ctx, 14, 2, 3, 12, 0x6b5136);
+    return canvas;
+  },
+
+  // The Tidewatch itself: a whitewashed tower striped red, with its lamp.
+  'tile-lighthouse': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xc9c1a8);
+    rect(ctx, 6, 0, 20, TILE_SIZE, 0xeeeae0);
+    rect(ctx, 6, 10, 20, 8, 0xc0453a);
+    rect(ctx, 6, 0, 3, TILE_SIZE, 0xd6d1c4);
+    rect(ctx, 13, 22, 6, 10, 0x6b5136);
+    return canvas;
+  },
+
+  'tile-lighthouse-lamp': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xc9c1a8);
+    rect(ctx, 8, 2, 16, 4, 0x3e434b);
+    rect(ctx, 9, 6, 14, 14, 0xf2d06b);
+    rect(ctx, 12, 9, 8, 8, 0xfff4c2);
+    rect(ctx, 6, 20, 20, 4, 0x3e434b);
+    rect(ctx, 6, 24, 20, 8, 0xeeeae0);
+    return canvas;
+  },
+
+  'tile-slate-roof': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x4f6478);
+    for (let row = 0; row < 4; row += 1) {
+      const y = row * 8;
+      const offset = row % 2 === 0 ? 0 : 6;
+      rect(ctx, 0, y + 7, TILE_SIZE, 1, 0x34465a);
+      for (let x = offset; x < TILE_SIZE; x += 12) rect(ctx, x, y, 1, 7, 0x34465a);
+      rect(ctx, 0, y, TILE_SIZE, 1, 0x667d93);
+    }
+    return canvas;
+  },
+
+  // A tide wheel. The blue marker sits at the bottom for low tide and at the
+  // top for high tide — and every wheel in a Hall shows the same tide.
+  'tile-wheel-0': () => drawTideWheel(false),
+  'tile-wheel-1': () => drawTideWheel(true),
+
+  'tile-wet-stone': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x5e7380);
+    rect(ctx, 0, 15, TILE_SIZE, 2, 0x4a5d69);
+    rect(ctx, 15, 0, 2, 15, 0x4a5d69);
+    rect(ctx, 7, 17, 2, 15, 0x4a5d69);
+    speckle(ctx, 0x7f98a5, 8, 30081, 2);
+    return canvas;
+  },
+
+  // A floating walkway: planks lashed over barrels, water showing at the edges.
+  'tile-pontoon': () => {
+    const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+    rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, COLORS.water);
+    rect(ctx, 2, 2, 28, 28, 0x9b7a50);
+    for (const x of [2, 11, 20]) rect(ctx, x, 2, 8, 28, 0xb89263);
+    rect(ctx, 2, 6, 28, 2, 0x5a432c);
+    rect(ctx, 2, 24, 28, 2, 0x5a432c);
+    return canvas;
+  },
+
   // A deliberately hideous magenta/black check, so an unknown map character is
   // impossible to miss on screen.
   'tile-void': () => {
@@ -846,6 +1158,16 @@ function drawCharacterFrame(ctx, palette, facing, step) {
   rect(ctx, 23, 19 - armOffset, 3, 8, palette.tunic);
   rect(ctx, 6, 26 + armOffset, 3, 3, palette.skin); // hands
   rect(ctx, 23, 26 - armOffset, 3, 3, palette.skin);
+
+  // An emblem on the chest (the Hollow Vane's hollow ring), seen from the
+  // front and the side but not the back.
+  if (palette.emblem !== undefined && facing !== 'up') {
+    const ex = facing === 'down' ? 14 : 16;
+    rect(ctx, ex, 20, 4, 1, palette.emblem);
+    rect(ctx, ex, 23, 4, 1, palette.emblem);
+    rect(ctx, ex, 20, 1, 4, palette.emblem);
+    rect(ctx, ex + 3, 20, 1, 4, palette.emblem);
+  }
 
   // Head
   rect(ctx, 9, 5, 14, 12, palette.skin);

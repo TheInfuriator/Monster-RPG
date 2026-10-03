@@ -23,6 +23,7 @@ import { DIRECTION_VECTORS } from '../config/controls.js';
  * @param {number} context.tileY
  * @param {string} context.facing
  * @returns {{ kind: 'npc', npc: object, x: number, y: number }
+ *          | { kind: 'lever', lever: object, x: number, y: number }
  *          | { kind: 'interactable', target: object, x: number, y: number }
  *          | null}
  */
@@ -39,11 +40,15 @@ export function findInteractionTarget({ map, getNpcAt, tileX, tileY, facing }) {
   const npc = getNpcAt ? getNpcAt(x, y) : null;
   if (npc) return { kind: 'npc', npc, x, y };
 
-  // 2. A sign, a shelf, or an item on the ground in front of you.
+  // 2. A lever — a valve or a tide wheel (Phase 12).
+  const lever = map.getLeverAt ? map.getLeverAt(x, y) : null;
+  if (lever) return { kind: 'lever', lever, x, y };
+
+  // 3. A sign, a shelf, or an item on the ground in front of you.
   const interactable = map.getInteractableAt(x, y);
   if (interactable) return { kind: 'interactable', target: interactable, x, y };
 
-  // 3. Someone standing behind a counter you are facing.
+  // 4. Someone standing behind a counter you are facing.
   const tile = map.getTile(x, y);
   if (tile && tile.counter) {
     const behindX = x + vector.x;

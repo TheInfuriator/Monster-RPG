@@ -40,7 +40,7 @@ import { ITEMS } from '../data/items.js';
 import { STATUS_CONDITIONS } from '../data/statuses.js';
 import { TRAINERS } from '../data/trainers.js';
 import { BADGES } from '../data/badges.js';
-import { isSwitchDriven } from '../systems/PuzzleSystem.js';
+import { isPuzzleStateKey } from '../systems/PuzzleSystem.js';
 import { calculateStats, experienceForLevel } from '../systems/StatCalculator.js';
 import { generateInstanceId } from '../systems/CreatureFactory.js';
 import { createNewGameState } from '../core/GameState.js';
@@ -501,8 +501,10 @@ function validatePuzzles(raw, report) {
 
     puzzles[mapId] = {};
     for (const [barrierId, closed] of Object.entries(barriers)) {
-      if (!isSwitchDriven(definition, barrierId)) {
-        report.warn(`${definition.name}: "${barrierId}" is not a switch-moved barrier; removed.`);
+      // A switch-moved barrier, or (Phase 12) a lever's position — both are
+      // plain booleans, so the save's shape did not change.
+      if (!isPuzzleStateKey(definition, barrierId)) {
+        report.warn(`${definition.name}: "${barrierId}" is not a switch-moved barrier or a lever; removed.`);
       } else if (typeof closed !== 'boolean') {
         report.warn(`${definition.name}: "${barrierId}" held ${show(closed)}; removed.`);
       } else {

@@ -406,6 +406,27 @@ export const MOVES = {
     description: 'Bites down hard. May shake the target’s guard.',
     effect: { kind: EFFECT_KINDS.STAT_CHANGE, target: 'foe', stat: 'defense', stages: -1, chance: 0.2 },
   },
+
+  // ------------------------------------------------------ Phase 12: Mistvault
+  // Two moves, each filling a real gap rather than adding variety for its
+  // own sake:
+  //   Riptide      the first PHYSICAL Water move. Every Water attack so far
+  //                was special, which left a hard-hitting fish or crab
+  //                nothing to hit with.
+  //   Siphon Fang  the Hollow Vane's signature: a Dark bite that drains, the
+  //                one thing the Vane do to everything. No Dark move healed.
+  riptide: {
+    id: 'riptide', name: 'Riptide', type: 'water', category: PHYSICAL,
+    power: 70, accuracy: 100, pp: 15, priority: 0,
+    description: 'Slams into the target on a surge of current. May slow it down.',
+    effect: { kind: EFFECT_KINDS.STAT_CHANGE, target: 'foe', stat: 'speed', stages: -1, chance: 0.2 },
+  },
+  siphonFang: {
+    id: 'siphonFang', name: 'Siphon Fang', type: 'dark', category: PHYSICAL,
+    power: 60, accuracy: 100, pp: 15, priority: 0,
+    description: 'Bites and draws the target’s strength into the user.',
+    effect: { kind: EFFECT_KINDS.DRAIN, fraction: 0.5 },
+  },
 };
 
 /** Every move id, handy for tests and debug tools. */

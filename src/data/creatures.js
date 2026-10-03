@@ -686,6 +686,114 @@ export const CREATURES = {
       { level: 38, move: 'thunderLance' },
     ],
   },
+
+  // =========================================================================
+  // MISTVAULT CAVERN AND TIDEWATCH (Phase 12)
+  // =========================================================================
+  // GAME_DESIGN.md has always promised Mistvault "Dark/Rock creatures" and the
+  // Hollow Vane "Poison, Dark and Steel". Five new species, each with a type
+  // nothing else has:
+  //   Gloamite   Rock/Dark      the cavern's own — weak to Fighting four times over
+  //   Corrodit   Poison/Steel   the Vane's — it lives in their cable runs
+  //   Minnet     Water          the shallows' common fish...
+  //   Marlance   Water/Steel    ...and what it grows into at 26
+  //   Barnaclaw  Water/Rock     the harbour's crab, and the Tidal Hall's
+  // Totals sit with the other single-stage finds (about 310-330) and the
+  // evolved route families (about 410).
+
+  gloamite: {
+    id: 'gloamite', number: 35, name: 'Gloamite',
+    description: 'A crystal-backed mite that lives where no light reaches. It feeds on the glow that seeps from aether veins.',
+    types: ['rock', 'dark'],
+    baseStats: { hp: 52, attack: 66, defense: 72, spAttack: 34, spDefense: 50, speed: 38 },
+    growthRate: 'medium', baseExp: 88, catchRate: 110,
+    evolution: null,
+    appearance: { body: 'bug', main: 0x5b5470, dark: 0x2f2a3b },
+    learnset: [
+      { level: 1, move: 'scratch' },
+      { level: 1, move: 'rockToss' },
+      { level: 8, move: 'screech' },
+      { level: 12, move: 'pebbleVolley' },
+      { level: 16, move: 'nightRend' },
+      { level: 21, move: 'hardenShell' },
+      { level: 27, move: 'crunchBite' },
+      { level: 34, move: 'stoneHammer' },
+    ],
+  },
+
+  corrodit: {
+    id: 'corrodit', number: 36, name: 'Corrodit',
+    description: 'A rust-red slug that eats the corrosion off metal and leaves a worse kind behind. The Vane keep them in their cable runs.',
+    types: ['poison', 'steel'],
+    baseStats: { hp: 58, attack: 54, defense: 70, spAttack: 58, spDefense: 64, speed: 26 },
+    growthRate: 'medium', baseExp: 90, catchRate: 100,
+    evolution: null,
+    appearance: { body: 'blob', main: 0xa0583e, dark: 0x5f6670 },
+    learnset: [
+      { level: 1, move: 'tackle' },
+      { level: 1, move: 'acidSpit' },
+      { level: 7, move: 'rustBreath' },
+      { level: 13, move: 'metalClaw' },
+      { level: 18, move: 'siphonFang' },
+      { level: 24, move: 'hardenShell' },
+      { level: 30, move: 'ironSweep' },
+    ],
+  },
+
+  minnet: {
+    id: 'minnet', number: 37, name: 'Minnet',
+    description: 'A silver minnow that schools in cave shallows by the hundred. Alone, it is bolder than it has any right to be.',
+    types: ['water'],
+    baseStats: { hp: 40, attack: 54, defense: 38, spAttack: 34, spDefense: 38, speed: 64 },
+    growthRate: 'medium', baseExp: 56, catchRate: 180,
+    evolution: { method: 'level', level: 26, to: 'marlance' },
+    appearance: { body: 'serpent', main: 0x9fb8c8, dark: 0x5d7a8f },
+    learnset: [
+      { level: 1, move: 'tackle' },
+      { level: 1, move: 'waterJet' },
+      { level: 7, move: 'quickJab' },
+      { level: 12, move: 'sharpenClaws' },
+      { level: 17, move: 'riptide' },
+      { level: 26, move: 'metalClaw' },
+      { level: 32, move: 'ironSweep' },
+    ],
+  },
+  marlance: {
+    id: 'marlance', number: 38, name: 'Marlance',
+    description: 'Its snout hardens into a steel-bright lance. Harbour folk swear a Marlance once holed a fishing boat out of spite.',
+    types: ['water', 'steel'],
+    baseStats: { hp: 64, attack: 90, defense: 62, spAttack: 48, spDefense: 58, speed: 88 },
+    growthRate: 'medium', baseExp: 150, catchRate: 60,
+    evolution: null,
+    appearance: { body: 'serpent', main: 0xb9c4cf, dark: 0x3f6a8a },
+    learnset: [
+      { level: 1, move: 'waterJet' },
+      { level: 1, move: 'quickJab' },
+      { level: 1, move: 'riptide' },
+      { level: 26, move: 'metalClaw' },
+      { level: 32, move: 'ironSweep' },
+      { level: 40, move: 'recklessCharge' },
+    ],
+  },
+
+  barnaclaw: {
+    id: 'barnaclaw', number: 39, name: 'Barnaclaw',
+    description: 'It glues itself to pier stones and pinches anything that stands still for too long. Prying one off takes a whole crew.',
+    types: ['water', 'rock'],
+    baseStats: { hp: 56, attack: 72, defense: 84, spAttack: 36, spDefense: 52, speed: 30 },
+    growthRate: 'medium', baseExp: 92, catchRate: 110,
+    evolution: null,
+    appearance: { body: 'bug', main: 0x7d8a6a, dark: 0x4a5a6e },
+    learnset: [
+      { level: 1, move: 'scratch' },
+      { level: 1, move: 'waterJet' },
+      { level: 6, move: 'hardenShell' },
+      { level: 11, move: 'rockToss' },
+      { level: 17, move: 'riptide' },
+      { level: 24, move: 'pebbleVolley' },
+      { level: 31, move: 'stoneHammer' },
+    ],
+  },
 };
 
 /** Every species id. */

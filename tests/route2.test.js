@@ -29,6 +29,7 @@ import { createNewGameState } from '../src/core/GameState.js';
 import { recordTrainerVictory } from '../src/systems/TrainerSystem.js';
 import { awardBadge } from '../src/systems/BadgeSystem.js';
 import { createSeededRandom } from '../src/utils/rng.js';
+import { resolveDialogue } from '../src/systems/DialogueResolver.js';
 import { walkRoute2 } from './helpers/routeWalk.js';
 
 const ROUTE = MAPS.route2;
@@ -87,14 +88,16 @@ describe('the Thornway\'s shape', () => {
     expect(area(ROUTE)).toBeLessThan(area(MAPS.route1) * 3);
   });
 
-  it('connects to Thistlewood both ways', () => {
+  it('connects to Thistlewood and to Mistvault Cavern, both ways', () => {
     for (const exit of ROUTE.exits) {
-      expect(exit.to).toBe('thistlewood');
-      expect(MAPS.thistlewood.spawnPoints[exit.spawn]).toBeDefined();
+      expect(['thistlewood', 'mistvaultMouth']).toContain(exit.to);
+      expect(MAPS[exit.to].spawnPoints[exit.spawn]).toBeDefined();
     }
-    const back = MAPS.thistlewood.exits.filter((exit) => exit.to === 'route2');
-    expect(back.length).toBeGreaterThan(0);
-    for (const exit of back) expect(ROUTE.spawnPoints[exit.spawn]).toBeDefined();
+    for (const other of ['thistlewood', 'mistvaultMouth']) {
+      const back = MAPS[other].exits.filter((exit) => exit.to === 'route2');
+      expect(back.length).toBeGreaterThan(0);
+      for (const exit of back) expect(ROUTE.spawnPoints[exit.spawn]).toBeDefined();
+    }
   });
 
   it('can only be reached through the Thornway gate', () => {
@@ -113,17 +116,24 @@ describe('the Thornway\'s shape', () => {
     }
   });
 
-  it('lets a player reach every tile they can stand on', () => {
-    const map = builtRoute();
-    const seen = reachable(map);
-    const stranded = [];
-    for (let y = 0; y < map.height; y += 1) {
-      for (let x = 0; x < map.width; x += 1) {
-        const occupied = [...ROUTE.npcs, ...ROUTE.interactables].some((e) => e.x === x && e.y === y);
-        if (map.isWalkable(x, y) && !occupied && !seen.has(key(x, y))) stranded.push(key(x, y));
+  it('lets a player reach every tile they can stand on — the cave mouth once the cordon is down', () => {
+    const stranded = (state) => {
+      const map = builtRoute(state);
+      const seen = reachable(map);
+      const out = [];
+      for (let y = 0; y < map.height; y += 1) {
+        for (let x = 0; x < map.width; x += 1) {
+          const occupied = [...ROUTE.npcs, ...ROUTE.interactables].some((e) => e.x === x && e.y === y);
+          if (map.isWalkable(x, y) && !occupied && !seen.has(key(x, y))) out.push(key(x, y));
+        }
       }
-    }
-    expect(stranded).toEqual([]);
+      return out.sort();
+    };
+    // Cordon up: the only tiles out of reach are the cave mouth behind it.
+    expect(stranded(arrivedState())).toEqual(['14,0', '14,1', '15,0', '15,1']);
+    const open = arrivedState();
+    open.flags.mistvaultOpen = true;
+    expect(stranded(open)).toEqual([]);
   });
 
   it('lets a player walk up to every person, sign and item', () => {
@@ -312,33 +322,94 @@ describe('trainers on the Thornway', () => {
   });
 });
 
-describe('the end of the road', () => {
+describe('the cordon and the way into Mistvault (Phase 12)', () => {
   const cordon = ROUTE.barriers.find((b) => b.id === 'mistvaultCordon');
+  const warden = ROUTE.npcs.find((npc) => npc.id === 'cordonWarden');
+  const mouthExits = ROUTE.exits.filter((exit) => exit.to === 'mistvaultMouth');
 
-  it('is a cordon across Mistvault\'s mouth that no Phase 11 story opens', () => {
+  it('stays up through all of Phase 11, whoever has been beaten', () => {
     const state = arrivedState();
-    recordTrainerVictory('kestrelRoute2', state);
-    for (const trainer of Object.values(TRAINERS)) recordTrainerVictory(trainer.id, state);
+    for (const id of ['kestrelRoute2', 'route2Cutter', 'route2Forager', 'route2Lookout', 'route2ScreeWalker']) {
+      recordTrainerVictory(id, state);
+    }
     const map = builtRoute(state);
     for (const [x, y] of cordon.tiles) expect(map.isWalkable(x, y)).toBe(false);
-    // Nothing in the game sets the flag that opens it.
+    // No trainer opens it: only the Warden does.
     const setters = Object.values(TRAINERS).flatMap((t) => t.setFlags || []);
     expect(setters).not.toContain(cordon.openWhen);
   });
 
-  it('has only rock and cave behind it, and no way out of the map', () => {
-    const map = builtRoute();
-    for (const [x] of cordon.tiles) {
-      for (let y = 0; y < cordon.tiles[0][1]; y += 1) expect(map.isWalkable(x, y)).toBe(false);
-    }
-    expect(ROUTE.exits.every((exit) => exit.to === 'thistlewood')).toBe(true);
+  it('comes down when Warden Corran has word — and only once Kestrel is beaten up here', () => {
+    const state = arrivedState();
+    const before = resolveDialogue(warden.dialogue, getWorldConditions(state));
+    expect(before.setFlags).toEqual([]);
+    expect(before.pages.join(' ')).toMatch(/closed/i);
+
+    recordTrainerVictory('kestrelRoute2', state);
+    const after = resolveDialogue(warden.dialogue, getWorldConditions(state));
+    expect(after.setFlags).toEqual(['mistvaultOpen']);
+    expect(after.pages.join(' ')).toMatch(/cordon comes down/);
+
+    // Saying it twice changes nothing: the next conversation sets no flag.
+    state.flags.mistvaultOpen = true;
+    const again = resolveDialogue(warden.dialogue, getWorldConditions(state));
+    expect(again.setFlags).toEqual([]);
+
+    const map = builtRoute(state);
+    for (const [x, y] of cordon.tiles) expect(map.isWalkable(x, y)).toBe(true);
   });
 
-  it('says so, in person and on a sign', () => {
-    const warden = ROUTE.npcs.find((npc) => npc.id === 'cordonWarden');
+  it('is the only way in: the cave mouth behind it holds the map\'s exits to the cavern', () => {
+    expect(mouthExits.length).toBe(2);
+    for (const exit of mouthExits) {
+      expect(exit.y).toBeLessThan(cordon.tiles[0][1]);
+      expect(MAPS.mistvaultMouth.spawnPoints[exit.spawn]).toBeDefined();
+    }
+    // Cordon up: no exit to the cavern can be walked to.
+    const seen = reachable(builtRoute());
+    for (const exit of mouthExits) expect(seen.has(key(exit.x, exit.y))).toBe(false);
+    // And arriving BACK from the cavern puts you behind the cordon, in the mouth.
+    const spawn = ROUTE.spawnPoints.fromMistvault;
+    expect(spawn.y).toBeLessThan(cordon.tiles[0][1]);
+  });
+
+  it('sends Kestrel in first, for good, the moment it comes down', () => {
+    const kestrel = ROUTE.npcs.find((npc) => npc.id === 'kestrelCordon');
+    expect(kestrel.absentWhen).toBe('mistvaultOpen');
+    expect(kestrel.leaveBy).toEqual({ direction: 'up', steps: 3 });
+    // Their way out is up through the opened cordon into the mouth.
+    const state = arrivedState();
+    state.flags.mistvaultOpen = true;
+    const map = builtRoute(state);
+    for (let step = 1; step <= kestrel.leaveBy.steps; step += 1) {
+      expect(map.isWalkable(kestrel.x, kestrel.y - step)).toBe(true);
+    }
+  });
+
+  it('says so, in person and on a sign — closed, then open', () => {
     expect(warden).toBeDefined();
-    const sign = ROUTE.interactables.find((e) => e.type === 'sign' && /MISTVAULT/.test(e.dialogue[0]));
-    expect(sign.dialogue.join(' ')).toMatch(/CLOSED/);
+    const sign = ROUTE.interactables.find((e) => e.type === 'sign' && e.x === 10 && e.y === 3);
+    const closed = resolveDialogue(sign.dialogue, getWorldConditions(arrivedState()));
+    expect(closed.pages.join(' ')).toMatch(/CLOSED/);
+    const state = arrivedState();
+    state.flags.mistvaultOpen = true;
+    expect(resolveDialogue(sign.dialogue, getWorldConditions(state)).pages.join(' ')).toMatch(/OPEN/);
+  });
+
+  it('fills the dry spring again once the siphon is stopped — with nobody left in it', () => {
+    const spring = ROUTE.barriers.find((b) => b.id === 'springWater');
+    const dry = builtRoute();
+    for (const [x, y] of spring.tiles) expect(dry.isWalkable(x, y)).toBe(true);
+    const state = arrivedState();
+    state.flags.mistvaultOpen = true;
+    state.flags.mistvaultSiphonStopped = true;
+    const full = builtRoute(state);
+    for (const [x, y] of spring.tiles) expect(full.isWalkable(x, y)).toBe(false);
+    // Filling the basin cuts nothing off.
+    const seen = reachable(full);
+    for (const entry of [...ROUTE.npcs, ...ROUTE.interactables]) {
+      expect(nextTo(seen, entry), `${entry.id || entry.item} is cut off`).toBe(true);
+    }
   });
 
   it('keeps every ground item flag unique across the whole game', () => {

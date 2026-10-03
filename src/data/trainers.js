@@ -36,6 +36,11 @@
  *                level, grown into whatever form the species data says (see
  *                src/systems/RivalSystem.js). Only in a rival's meetings.
  *
+ * FIELDS FOR FACTION TRAINERS (Phase 12) — optional
+ *   faction      a faction id from src/data/factions.js ('hollowVane')
+ *   rank         that faction's rank key ('surveyor', 'foreman'); the trainer's
+ *                `title` must be the rank's title
+ *
  * The lines an already-beaten trainer says afterwards live with the NPC in the
  * map file, because that is ordinary conditional dialogue —
  * `when: 'trainer:route1Scout'` — and needs no special machinery.
@@ -56,6 +61,7 @@
 import { CREATURES } from './creatures.js';
 import { BADGES } from './badges.js';
 import { RIVALS } from './rivals.js';
+import { FACTIONS } from './factions.js';
 import { PROGRESSION } from '../config/balance.js';
 
 export const TRAINERS = {
@@ -453,6 +459,126 @@ export const TRAINERS = {
       'Go and get patched up. The cordon is not going anywhere, and neither am I.',
     ],
   },
+
+  // -------------------------------------------------------------------------
+  // The Hollow Vane in Mistvault Cavern (Phase 12)
+  // -------------------------------------------------------------------------
+  // Ordinary trainers with a faction and a rank (src/data/factions.js). Their
+  // Aethers are the Vane's: Poison, Dark and Steel. Four Surveyors and the
+  // Draw Foreman, in the order the player meets them; Brede is off the way
+  // north and can be skipped.
+  //
+  // BALANCE: pitched from a real walk of Route 2 (tests/helpers/routeWalk.js)
+  // — see tests/mistvaultBalance.test.js.
+
+  vaneTallis: {
+    id: 'vaneTallis',
+    name: 'Tallis',
+    title: 'Vane Surveyor',
+    faction: 'hollowVane',
+    rank: 'surveyor',
+    rewardMoney: 640,
+    party: [
+      { species: 'umbrat', level: 16 },
+      { species: 'corrodit', level: 16 },
+    ],
+    intro: [
+      'Hold it. This passage is closed to the public — company survey.',
+      'The Wardens let a kid in? Then I will just have to send you back out.',
+    ],
+    outro: [
+      'Tch. Fine. Nobody said the Wardens were sending ones who could fight.',
+    ],
+  },
+
+  vaneBrede: {
+    id: 'vaneBrede',
+    name: 'Brede',
+    title: 'Vane Surveyor',
+    faction: 'hollowVane',
+    rank: 'surveyor',
+    rewardMoney: 680,
+    party: [
+      { species: 'carapex', level: 17 },
+      { species: 'gloamite', level: 17 },
+    ],
+    intro: [
+      'You worked the valve? Clever. The east wing is still company ground.',
+    ],
+    outro: [
+      'Go and read the board, then. It will not help you get past Quill.',
+    ],
+  },
+
+  vaneQuill: {
+    id: 'vaneQuill',
+    name: 'Quill',
+    title: 'Vane Surveyor',
+    faction: 'hollowVane',
+    rank: 'surveyor',
+    rewardMoney: 700,
+    party: [
+      { species: 'umbrat', level: 17 },
+      { species: 'corrodit', level: 17 },
+    ],
+    intro: [
+      'Somebody turned the valves. And the somebody is YOU.',
+      'The Draw Site is up that passage, and you are not going up it.',
+    ],
+    outro: [
+      'The bridge held for you and everything. Unbelievable.',
+    ],
+  },
+
+  vaneTechnician: {
+    id: 'vaneTechnician',
+    name: 'Seld',
+    title: 'Vane Surveyor',
+    faction: 'hollowVane',
+    rank: 'surveyor',
+    rewardMoney: 720,
+    party: [
+      { species: 'gloamite', level: 18 },
+      { species: 'corrodit', level: 18 },
+    ],
+    intro: [
+      'Careful — those are live cables. Not that you will be here long.',
+    ],
+    outro: [
+      'Right. I am going to finish splicing this, and you are going to be the Foreman\'s problem.',
+    ],
+  },
+
+  /**
+   * The first real Hollow Vane confrontation. The Foreman stands at the
+   * siphon's breaker; beating them is what lets the player reach it. Three
+   * Aethers, one of each Vane type, with a Steel ace.
+   */
+  vaneForeman: {
+    id: 'vaneForeman',
+    name: 'Vossler',
+    title: 'Draw Foreman',
+    faction: 'hollowVane',
+    rank: 'foreman',
+    rewardMoney: 960,
+    party: [
+      { species: 'umbrat', level: 18 },
+      { species: 'gloamite', level: 19 },
+      { species: 'corrodit', level: 20 },
+    ],
+    intro: [
+      'So you are the reason my crews are sitting on their hands.',
+      'The Hollow Vane holds a survey licence for this cavern. What the current is FOR is not your concern, Warden.',
+      'Step away from the rig.',
+    ],
+    outro: [
+      'Enough. Pull the breaker if it makes you feel better.',
+      'One rig. One survey. The Vane have the cells we came for — and this valley is very much bigger than one cave.',
+    ],
+    victoryLines: [
+      'Go home, Warden. The current has better uses than you.',
+    ],
+  },
 };
 
 /**
@@ -534,6 +660,19 @@ export function findTrainerProblems(trainer, id = 'trainer') {
         problems.push(`${where}: level must be between 1 and ${PROGRESSION.maxLevel}`);
       }
     });
+  }
+
+  if (trainer.faction !== undefined) {
+    const faction = Object.hasOwn(FACTIONS, trainer.faction) ? FACTIONS[trainer.faction] : null;
+    if (!faction) {
+      problems.push(`${id}: no such faction "${trainer.faction}"`);
+    } else if (!Object.hasOwn(faction.ranks, trainer.rank)) {
+      problems.push(`${id}: "${trainer.rank}" is not a rank of ${faction.name}`);
+    } else if (trainer.title !== faction.ranks[trainer.rank].title) {
+      problems.push(`${id}: a ${trainer.rank}'s title is "${faction.ranks[trainer.rank].title}"`);
+    }
+  } else if (trainer.rank !== undefined) {
+    problems.push(`${id}: a rank needs a faction`);
   }
 
   // Only a Leader carries a Sigil, and it has to be one that exists.

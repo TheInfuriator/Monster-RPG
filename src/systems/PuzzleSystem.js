@@ -39,6 +39,41 @@
  * as, and blocks like, that tile while it is closed. The tile UNDERNEATH it in
  * the map source must be walkable, because that is what the player walks
  * through once it retracts.
+ *
+ * LEVERS, CURRENTS AND SIGNALS (Phase 12)
+ * A second way to move barriers, for puzzles that are not "this switch swaps
+ * those two hedges". A LEVER is a solid object the player FACES and presses
+ * Confirm at (a valve, a tide wheel). It has exactly two positions and is
+ * stored as one boolean, like everything else in `gameState.puzzles`:
+ *
+ *   levers: [{ id, name, x, y, positions: ['west', 'east'], look: 'valve',
+ *              state?: 'tide',            // levers sharing a state move together
+ *              input?, outputs?: { west: 'westRun', east: 'eastRun' },  // a valve
+ *              says?: { west: 'The current swings west.', ... },
+ *              dry?: 'It turns, but no current reaches it.' }]
+ *
+ * Levers produce SIGNALS — plain names like `tide:high` (a lever state and its
+ * position) or `current:westRun` (a channel the aether current is flowing
+ * along). A valve passes current from its `input` channel to the output its
+ * position selects; `flow.sources` are always flowing. So a valve downstream of
+ * another does nothing unless the first sends it current — that is Mistvault's
+ * puzzle, and it is not a hedge swap.
+ *
+ *   flow: { sources: ['spring'], allPoweredWhen: 'mistvaultSiphonStopped' }
+ *
+ * A barrier can follow a signal instead of a switch:
+ *
+ *   openWhenSignal: 'current:westRun'   open only while it holds (a mist bridge)
+ *   closedWhenSignal: 'tide:high'       shut only while it holds (a flooded floor)
+ *
+ * and `glows: [{ signal, tile, tiles }]` draws tiles that light up while a
+ * signal holds — purely a picture, so the player can SEE where the current
+ * runs. A glow may follow a world condition instead (`when: 'someFlag'`), for
+ * channels the story lights for good. `closedWhen: '<world condition>'` is the mirror of `openWhen`: shut
+ * while the condition holds (Route 2's spring filling back up).
+ *
+ * WHAT DECIDES A BARRIER, in order:
+ *   openWhen (world)  ->  closedWhen (world)  ->  a signal  ->  a switch  ->  as declared
  */
 
 import { TILE_DEFINITIONS } from '../data/tiles.js';
@@ -103,6 +138,7 @@ export function createBarrierState(definition, { conditions = {}, state = gameSt
   if (barriers.length === 0) return {};
 
   const stored = getStoredState(definition.id, state);
+  const signals = getPuzzleSignals(definition, { state, conditions });
   const result = {};
 
   for (const barrier of barriers) {
@@ -110,6 +146,21 @@ export function createBarrierState(definition, { conditions = {}, state = gameSt
     // there, the barrier is open and stays open, whatever the switches did.
     if (barrier.openWhen && conditions[barrier.openWhen]) {
       result[barrier.id] = false;
+      continue;
+    }
+    // Its mirror: shut while a world condition holds.
+    if (barrier.closedWhen && conditions[barrier.closedWhen]) {
+      result[barrier.id] = true;
+      continue;
+    }
+    // Following a lever's signal: derived every time, never stored, so it can
+    // never disagree with the levers.
+    if (barrier.openWhenSignal) {
+      result[barrier.id] = !signals.has(barrier.openWhenSignal);
+      continue;
+    }
+    if (barrier.closedWhenSignal) {
+      result[barrier.id] = signals.has(barrier.closedWhenSignal);
       continue;
     }
 
@@ -191,9 +242,230 @@ export function resetPuzzle(definition, { state = gameState } = {}) {
   return barriers.length;
 }
 
-/** True if this map has anything that can open or close. */
+/** True if this map has anything the player can operate. */
 export function hasPuzzle(definition) {
-  return getSwitches(definition).length > 0;
+  return getSwitches(definition).length > 0 || getLevers(definition).length > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Levers, currents and signals (Phase 12)
+// ---------------------------------------------------------------------------
+
+/** Every lever a map declares. */
+export function getLevers(definition) {
+  return (definition && definition.levers) || [];
+}
+
+/** The lever on a tile, or null. Levers are FACED, like a sign. */
+export function getLeverAt(definition, x, y) {
+  return getLevers(definition).find((lever) => lever.x === x && lever.y === y) || null;
+}
+
+/** The stored state a lever moves — its own id unless it shares one. */
+export function leverStateId(lever) {
+  return lever.state || lever.id;
+}
+
+/** Every lever state id on a map: what `gameState.puzzles[mapId]` may hold for levers. */
+export function getLeverStateIds(definition) {
+  return new Set(getLevers(definition).map(leverStateId));
+}
+
+/**
+ * True if `key` is something this map really stores: a switch-moved barrier or
+ * a lever state. The save validator asks this, so nothing else gets in.
+ */
+export function isPuzzleStateKey(definition, key) {
+  return isSwitchDriven(definition, key) || getLeverStateIds(definition).has(key);
+}
+
+/** Read a map's stored puzzle record WITHOUT creating one. */
+function readStoredState(mapId, state) {
+  return (state && state.puzzles && state.puzzles[mapId]) || {};
+}
+
+/**
+ * Which position each lever state is in: { tide: 'low', diverterA: 'west' }.
+ * Nothing stored means the first position.
+ */
+export function getLeverPositions(definition, state = gameState) {
+  const stored = readStoredState(definition.id, state);
+  const positions = {};
+  for (const lever of getLevers(definition)) {
+    const id = leverStateId(lever);
+    if (Object.hasOwn(positions, id)) continue;
+    positions[id] = lever.positions[stored[id] === true ? 1 : 0];
+  }
+  return positions;
+}
+
+/** Every channel a map's current can flow along: the sources and every valve output. */
+export function getChannels(definition) {
+  const channels = new Set((definition.flow && definition.flow.sources) || []);
+  for (const lever of getLevers(definition)) {
+    for (const out of Object.values(lever.outputs || {})) channels.add(out);
+  }
+  return channels;
+}
+
+/**
+ * Which channels have current in them.
+ *
+ * Sources always do. A valve passes its input's current on to the output its
+ * position selects — and passes on nothing if its input is dry, which is the
+ * whole point of a valve downstream of another. `allPoweredWhen` floods every
+ * channel at once (the siphon is off; the current is back at full strength).
+ *
+ * @param {object} definition
+ * @param {Record<string, string>} positions from getLeverPositions()
+ * @param {Record<string, boolean>} [conditions]
+ * @returns {Set<string>}
+ */
+export function getPoweredChannels(definition, positions, conditions = {}) {
+  const flow = definition.flow;
+  if (!flow) return new Set();
+  if (flow.allPoweredWhen && conditions[flow.allPoweredWhen]) return getChannels(definition);
+
+  const powered = new Set(flow.sources || []);
+  // The valve network is small and acyclic (validated), so passing current on
+  // until nothing changes settles in a few rounds.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const lever of getLevers(definition)) {
+      if (!lever.input || !powered.has(lever.input)) continue;
+      const out = (lever.outputs || {})[positions[leverStateId(lever)]];
+      if (out && !powered.has(out)) {
+        powered.add(out);
+        changed = true;
+      }
+    }
+  }
+  return powered;
+}
+
+/**
+ * Every signal holding right now: `<leverState>:<position>` for each lever
+ * state and `current:<channel>` for each channel with current in it.
+ *
+ * @returns {Set<string>}
+ */
+export function getPuzzleSignals(definition, { state = gameState, conditions = {} } = {}) {
+  const signals = new Set();
+  if (getLevers(definition).length === 0 && !definition.flow) return signals;
+
+  const positions = getLeverPositions(definition, state);
+  for (const [id, position] of Object.entries(positions)) signals.add(`${id}:${position}`);
+  for (const channel of getPoweredChannels(definition, positions, conditions)) {
+    signals.add(`current:${channel}`);
+  }
+  return signals;
+}
+
+/** Every signal this map could EVER produce — what validation checks references against. */
+export function getPossibleSignals(definition) {
+  const possible = new Set();
+  for (const lever of getLevers(definition)) {
+    for (const position of lever.positions || []) possible.add(`${leverStateId(lever)}:${position}`);
+  }
+  for (const channel of getChannels(definition)) possible.add(`current:${channel}`);
+  return possible;
+}
+
+/**
+ * Pull a lever into its other position.
+ *
+ * Like a switch, it refuses — changing NOTHING — if that would close a barrier
+ * on top of somebody (a bridge vanishing under a person, a floor flooding over
+ * one). The maps are validated so no lever stands beside a barrier, which makes
+ * this a safety net rather than a rule anyone meets.
+ *
+ * @returns {{ changed: boolean, position: string|null, opened: string[],
+ *             closed: string[], dry: boolean, reason: string|null }}
+ *   `dry` is true for a valve that turned with no current reaching it.
+ */
+export function pressLever(definition, leverId, {
+  state = gameState, occupants = [], conditions = {},
+} = {}) {
+  const refuse = (reason) => ({
+    changed: false, position: null, opened: [], closed: [], dry: false, reason,
+  });
+
+  const lever = getLevers(definition).find((entry) => entry.id === leverId);
+  if (!lever) return refuse('unknownLever');
+
+  const id = leverStateId(lever);
+  const current = readStoredState(definition.id, state);
+  const next = !(current[id] === true);
+
+  const before = createBarrierState(definition, { conditions, state });
+  const trial = { puzzles: { ...(state.puzzles || {}), [definition.id]: { ...current, [id]: next } } };
+  const after = createBarrierState(definition, { conditions, state: trial });
+
+  const opened = Object.keys(after).filter((b) => before[b] && !after[b]);
+  const closed = Object.keys(after).filter((b) => !before[b] && after[b]);
+
+  const blocked = new Set(occupants.map((who) => `${who.x},${who.y}`));
+  const wouldTrap = closed.some((barrierId) => (getBarrier(definition, barrierId).tiles || [])
+    .some(([x, y]) => blocked.has(`${x},${y}`)));
+  if (wouldTrap) return refuse('occupied');
+
+  getStoredState(definition.id, state)[id] = next;
+
+  // A valve whose input channel is dark turns, but passes nothing on — worth
+  // saying, because it is exactly the clue the player needs.
+  const dry = Boolean(lever.input)
+    && !getPuzzleSignals(definition, { state, conditions }).has(`current:${lever.input}`);
+
+  return {
+    changed: true, position: lever.positions[next ? 1 : 0], opened, closed, dry, reason: null,
+  };
+}
+
+/**
+ * Explore every lever setting a player could actually reach on this map.
+ *
+ * The lever version of `explorePuzzleStates`: a situation is "which position
+ * every lever state is in", and from each one the player can pull any lever
+ * they can stand next to. Used by the tests to prove a dungeon or a Hall can
+ * always be finished and never traps anyone.
+ *
+ * @param {object} definition
+ * @param {{x: number, y: number}} start
+ * @param {object} [options]
+ * @param {Record<string, boolean>} [options.conditions] world conditions
+ * @returns {Array<{ stored: Record<string, boolean>, closed: Record<string, boolean>,
+ *                   reachable: Set<string> }>}
+ */
+export function exploreLeverStates(definition, start, { conditions = {} } = {}) {
+  const ids = [...getLeverStateIds(definition)].sort();
+  const key = (stored) => ids.map((id) => (stored[id] ? '1' : '0')).join('');
+  const initial = Object.fromEntries(ids.map((id) => [id, false]));
+
+  const seen = new Set([key(initial)]);
+  const queue = [initial];
+  const results = [];
+
+  while (queue.length > 0) {
+    const stored = queue.pop();
+    const fake = { puzzles: { [definition.id]: { ...stored } } };
+    const closed = createBarrierState(definition, { conditions, state: fake });
+    const reachable = floodFill(definition, start, closed);
+    results.push({ stored, closed, reachable });
+
+    for (const lever of getLevers(definition)) {
+      const nextTo = [[0, -1], [0, 1], [-1, 0], [1, 0]]
+        .some(([dx, dy]) => reachable.has(`${lever.x + dx},${lever.y + dy}`));
+      if (!nextTo) continue;
+
+      const next = { ...stored, [leverStateId(lever)]: !stored[leverStateId(lever)] };
+      const nextKey = key(next);
+      if (seen.has(nextKey)) continue;
+      seen.add(nextKey);
+      queue.push(next);
+    }
+  }
+  return results;
 }
 
 // ---------------------------------------------------------------------------
@@ -312,7 +584,10 @@ export function findPuzzleProblems(definition) {
   const problems = [];
   const barriers = getBarriers(definition);
   const switches = getSwitches(definition);
-  if (barriers.length === 0 && switches.length === 0) return problems;
+  const levers = getLevers(definition);
+  const glows = definition.glows || [];
+  if (barriers.length === 0 && switches.length === 0 && levers.length === 0
+    && glows.length === 0 && !definition.flow) return problems;
 
   const rows = definition.tiles;
   const height = rows.length;
@@ -406,6 +681,127 @@ export function findPuzzleProblems(definition) {
     }
     if (entry.retract && entry.retract === entry.extend) {
       problems.push(`${where}: retracts and extends the same barrier`);
+    }
+  }
+
+  problems.push(...findLeverProblems(definition, { barrierTiles, inBounds, sourceTile }));
+  return problems;
+}
+
+/**
+ * The Phase 12 half of validation: levers, the current, signal-driven
+ * barriers and glows. Every reference has to point at something real, and no
+ * lever may stand where using it could close a barrier under the player.
+ */
+function findLeverProblems(definition, { barrierTiles, inBounds, sourceTile }) {
+  const problems = [];
+  const levers = getLevers(definition);
+  const possible = getPossibleSignals(definition);
+  const channels = getChannels(definition);
+
+  const leverIds = new Set();
+  const positionsByState = new Map();
+  for (const lever of levers) {
+    const where = `${definition.id} lever "${lever.id}"`;
+    if (!lever.id) problems.push(`${definition.id}: a lever has no id`);
+    if (leverIds.has(lever.id)) problems.push(`${where}: duplicate id`);
+    leverIds.add(lever.id);
+    if (isSwitchDriven(definition, leverStateId(lever)) || getBarrier(definition, leverStateId(lever))) {
+      problems.push(`${where}: its state id "${leverStateId(lever)}" is also a barrier's id`);
+    }
+
+    const positions = lever.positions;
+    if (!Array.isArray(positions) || positions.length !== 2
+      || positions.some((p) => typeof p !== 'string' || !p) || positions[0] === positions[1]) {
+      problems.push(`${where}: needs exactly two different positions`);
+      continue;
+    }
+    const shared = positionsByState.get(leverStateId(lever));
+    if (shared && shared.join() !== positions.join()) {
+      problems.push(`${where}: shares state "${leverStateId(lever)}" but not its positions`);
+    }
+    positionsByState.set(leverStateId(lever), positions);
+
+    if (!inBounds(lever.x, lever.y)) {
+      problems.push(`${where}: is outside the map`);
+      continue;
+    }
+    // Faced like a sign, so it must be something you cannot walk onto.
+    if (!sourceTile(lever.x, lever.y) || !sourceTile(lever.x, lever.y).solid) {
+      problems.push(`${where}: stands on a walkable tile — a lever is faced, not stepped on`);
+    }
+    for (const [dx, dy] of [[0, 0], [0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      const owner = barrierTiles.get(`${lever.x + dx},${lever.y + dy}`);
+      if (owner) {
+        problems.push(`${where}: stands next to barrier "${owner}" — someone could be on it when it moves`);
+      }
+    }
+
+    if (lever.input !== undefined || lever.outputs !== undefined) {
+      if (typeof lever.input !== 'string' || !channels.has(lever.input)) {
+        problems.push(`${where}: takes current from an unknown channel "${lever.input}"`);
+      }
+      const outs = lever.outputs || {};
+      for (const [position, channel] of Object.entries(outs)) {
+        if (!positions.includes(position)) problems.push(`${where}: has an output for unknown position "${position}"`);
+        if (typeof channel !== 'string' || !channel) problems.push(`${where}: output "${position}" names no channel`);
+      }
+    }
+    if (lever.dry !== undefined && (typeof lever.dry !== 'string' || !lever.dry || !lever.input)) {
+      problems.push(`${where}: "dry" is text for a valve with an input`);
+    }
+    for (const position of Object.keys(lever.says || {})) {
+      if (!positions.includes(position)) problems.push(`${where}: says something for unknown position "${position}"`);
+    }
+  }
+
+  // The current only flows one way: a channel can never feed itself.
+  const feeds = new Map();
+  for (const lever of levers) {
+    if (!lever.input) continue;
+    for (const out of Object.values(lever.outputs || {})) {
+      if (!feeds.has(lever.input)) feeds.set(lever.input, new Set());
+      feeds.get(lever.input).add(out);
+    }
+  }
+  const visiting = new Set();
+  const done = new Set();
+  const cycles = (channel) => {
+    if (done.has(channel)) return false;
+    if (visiting.has(channel)) return true;
+    visiting.add(channel);
+    const loop = [...(feeds.get(channel) || [])].some(cycles);
+    visiting.delete(channel);
+    done.add(channel);
+    return loop;
+  };
+  if ([...feeds.keys()].some(cycles)) problems.push(`${definition.id}: the current runs in a circle`);
+
+  for (const barrier of getBarriers(definition)) {
+    const where = `${definition.id} barrier "${barrier.id}"`;
+    const signal = barrier.openWhenSignal || barrier.closedWhenSignal;
+    if (barrier.openWhenSignal && barrier.closedWhenSignal) {
+      problems.push(`${where}: follows two signals at once`);
+    }
+    if (signal && !possible.has(signal)) problems.push(`${where}: follows signal "${signal}", which nothing produces`);
+    if (signal && isSwitchDriven(definition, barrier.id)) {
+      problems.push(`${where}: is moved by a switch AND follows a signal`);
+    }
+  }
+
+  for (const [index, glow] of (definition.glows || []).entries()) {
+    const where = `${definition.id} glow ${index}`;
+    // Lit by a lever's signal OR by a world condition — exactly one of them.
+    if ((glow.signal === undefined) === (glow.when === undefined)) {
+      problems.push(`${where}: needs exactly one of "signal" or "when"`);
+    } else if (glow.signal !== undefined && !possible.has(glow.signal)) {
+      problems.push(`${where}: follows signal "${glow.signal}", which nothing produces`);
+    } else if (glow.when !== undefined && (typeof glow.when !== 'string' || !glow.when)) {
+      problems.push(`${where}: "when" must name a condition`);
+    }
+    if (!TILE_DEFINITIONS[glow.tile]) problems.push(`${where}: tile "${glow.tile}" is not a known map character`);
+    for (const pair of glow.tiles || []) {
+      if (!Array.isArray(pair) || !inBounds(pair[0], pair[1])) problems.push(`${where}: has a tile outside the map`);
     }
   }
 

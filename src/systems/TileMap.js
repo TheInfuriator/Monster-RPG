@@ -157,6 +157,11 @@ export class TileMap {
     return exits.find((exit) => exit.x === x && exit.y === y) || null;
   }
 
+  /** The lever (valve, tide wheel) on a tile, or null. Faced, like a sign. */
+  getLeverAt(x, y) {
+    return (this.definition.levers || []).find((lever) => lever.x === x && lever.y === y) || null;
+  }
+
   /**
    * The interactable object at a tile, or null. These are the signs, shelves and
    * ground items the player presses the confirm key at.
