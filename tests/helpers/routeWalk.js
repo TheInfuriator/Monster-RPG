@@ -78,20 +78,29 @@ function settle(team) {
   }
 }
 
-/** Beat a trainer, retrying from the same team after a loss. */
+/**
+ * Beat a trainer, retrying after a loss.
+ *
+ * A loss keeps whatever experience it earned, exactly as the game does: the
+ * battle runs on the live party, so a creature that knocked out two of the
+ * trainer's Aethers before the blackout keeps the levels — and the Mender
+ * heals it for the next try. (Until Phase 12 this helper threw a lost
+ * battle's experience away, which only ever made a retry harder than the
+ * game's. Phase 11's walks almost never lose, so their numbers stand.)
+ */
 export function beatTrainer(team, trainerId, state, seedBase) {
+  let current = team;
   for (let attempt = 0; attempt < MAX_TRIES; attempt += 1) {
-    const copy = structuredClone(team);
+    const copy = structuredClone(current);
     const outcome = runBattle(
       createTrainerBattleConfig(trainerId, copy, { state }), copy, seedBase + attempt
     );
-    if (outcome === BATTLE_RESULT.WIN) {
-      settle(copy);
-      heal(copy);
-      return { team: copy, tries: attempt + 1 };
-    }
+    settle(copy);
+    heal(copy);
+    if (outcome === BATTLE_RESULT.WIN) return { team: copy, tries: attempt + 1 };
+    current = copy;
   }
-  return { team, tries: Infinity };
+  return { team: current, tries: Infinity };
 }
 
 /** Walk through some wild encounters from a table, keeping what was won. */
@@ -207,4 +216,39 @@ export function walkMistvault(starter, {
   trainer('vaneForeman', 1500);
 
   return { team, tries, state };
+}
+
+/**
+ * Walk on from the breaker in Mistvault to the Tidal Sigil (Phase 12): a few
+ * wild Aethers in the Grotto's shallows on the way out, Kestrel beside the
+ * Hall road, the Deckhand and the Diver, and Leader Ondine.
+ *
+ * @param {string} starter
+ * @param {object} [options] as walkMistvault, plus:
+ * @param {number} [options.shallowsWild] wild battles in the Grotto
+ * @returns {{ team: object[], tries: Record<string, number>, state: object, before: object }}
+ *   `before` holds the team as it stood in front of each Tidewatch fight
+ */
+export function walkToTidalSigil(starter, { shallowsWild = 3, ...cave } = {}) {
+  const walked = walkMistvault(starter, cave);
+  let { team } = walked;
+  const { state } = walked;
+  const tries = { ...walked.tries };
+  const before = {};
+  const random = createSeededRandom(starter.length * 173 + shallowsWild);
+
+  const trainer = (id, seedBase) => {
+    before[id] = structuredClone(team);
+    const result = beatTrainer(team, id, state, seedBase);
+    tries[id] = result.tries;
+    team = result.team;
+  };
+
+  team = wildBattles(team, 'mistvaultShallows', shallowsWild, random, 1600);
+  trainer('kestrelTidewatch', 1700);
+  trainer('tidalDeckhand', 1800);
+  trainer('tidalDiver', 1900);
+  trainer('tidalLeaderOndine', 2000);
+
+  return { team, tries, state, before };
 }

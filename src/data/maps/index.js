@@ -27,6 +27,10 @@ import { verdantHall } from './verdantHall.js';
 import { mistvaultMouth } from './mistvaultMouth.js';
 import { mistvaultGalleries } from './mistvaultGalleries.js';
 import { mistvaultCore } from './mistvaultCore.js';
+import { tidewatch } from './tidewatch.js';
+import { tidewatchMendersHall } from './tidewatchMendersHall.js';
+import { tidewatchSupplyPost } from './tidewatchSupplyPost.js';
+import { tidalHall } from './tidalHall.js';
 
 export const MAPS = {
   emberhollow,
@@ -44,6 +48,10 @@ export const MAPS = {
   mistvaultMouth,
   mistvaultGalleries,
   mistvaultCore,
+  tidewatch,
+  tidewatchMendersHall,
+  tidewatchSupplyPost,
+  tidalHall,
 };
 
 /**

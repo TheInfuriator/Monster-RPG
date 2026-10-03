@@ -10,7 +10,7 @@
  *   the Draw Site     rows 9-21   the siphon rig, its storage cells, and Draw
  *                                 Foreman Vossler standing at its breaker
  *   the tideward way  rows 5-8    a passage choked with thick mist
- *   the Grotto        rows 0-4    shallows, and the way on to Tidewatch Harbor
+ *   the Grotto        rows 0-4    shallows, and the way out to Tidewatch Harbor
  *
  * THE OBJECTIVE
  * The breaker (15,12) can only be reached from the one tile in front of it,
@@ -69,7 +69,7 @@ export const mistvaultCore = {
   tiles: [
     // 0         1         2
     // 012345678901234567890123456789
-    'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY', //  0  north: sealed until Tidewatch Harbor is built (checkpoint 4)
+    'YYYYYYYYYYYYYYYYYYYYccYYYYYYYY', //  0  north exit to Tidewatch Harbor
     'YYcccccccccYYcNNNNNNNNcYccccYY', //  1  the Tideward Grotto: great orb at (26,1)
     'YYcNNNNNNNcYYcNNNNNNNNcYccccYY', //  2  shallows (wade through them: their own wild Aethers)
     'YYcNNNNNNNccccNNNNNNNNccNNNcYY', //  3
@@ -105,12 +105,17 @@ export const mistvaultCore = {
 
   spawnPoints: {
     fromGalleries: { x: 14, y: 30, facing: 'up' },
+    // Back down from Tidewatch: at the top of the Grotto.
+    fromTidewatch: { x: 20, y: 1, facing: 'down' },
     default: { x: 14, y: 30, facing: 'up' },
   },
 
   exits: [
     { x: 14, y: 31, to: 'mistvaultGalleries', spawn: 'fromCore' },
     { x: 15, y: 31, to: 'mistvaultGalleries', spawn: 'fromCore' },
+    // Through the Grotto and out: only reachable once the mist has cleared.
+    { x: 20, y: 0, to: 'tidewatch', spawn: 'fromMistvault' },
+    { x: 21, y: 0, to: 'tidewatch', spawn: 'fromMistvault' },
   ],
 
   npcs: [

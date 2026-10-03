@@ -77,6 +77,38 @@ export const SHOPS = {
       { item: 'greatOrb' },
     ],
   },
+
+  /**
+   * Tidewatch Harbor's Supply Post (Phase 12). The third town, after a
+   * dungeon: the player arrives with the cavern's prize money and a Water
+   * Hall ahead.
+   *
+   * What is new: the ULTRA ORB (x2, 1200) and the CLEAR TONIC (400, cures
+   * anything). Both were held back from Thistlewood on purpose; by now the
+   * player has paid for them in Vane prize money (see tests/economy.test.js's
+   * Phase 12 audit), the wild Aethers are evolving and harder to hold, and the
+   * Hall and the cave inflict poison, burns and paralysis from several sides.
+   *
+   * Still held back: nothing stronger exists yet.
+   */
+  tidewatchSupplyPost: {
+    id: 'tidewatchSupplyPost',
+    name: 'Supply Post',
+    keeper: 'Morwen',
+    greeting: 'Harbour prices, harbour quality. What do you need?',
+    stock: [
+      { item: 'potion' },
+      { item: 'superPotion' },
+      { item: 'antidote' },
+      { item: 'soothingBalm' },
+      { item: 'burnSalve' },
+      { item: 'rouser' },
+      { item: 'clearTonic' },
+      { item: 'basicOrb' },
+      { item: 'greatOrb' },
+      { item: 'ultraOrb' },
+    ],
+  },
 };
 
 /**

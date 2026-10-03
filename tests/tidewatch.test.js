@@ -1,0 +1,260 @@
+/**
+ * tidewatch.test.js
+ * ----------------------------------------------------------------------------
+ * Tidewatch Harbor (Phase 12): the town out of Mistvault, its services, its
+ * people, the rival beside the Hall road — and the honest end of Phase 12 at
+ * the Stormrise rockslide.
+ */
+
+import { describe, it, expect } from 'vitest';
+import { MAPS } from '../src/data/maps/index.js';
+import { TileMap } from '../src/systems/TileMap.js';
+import { createBarrierState } from '../src/systems/PuzzleSystem.js';
+import { getWorldConditions } from '../src/systems/ProgressionSystem.js';
+import { getSightTiles } from '../src/systems/SightSystem.js';
+import { resolveDialogue } from '../src/systems/DialogueResolver.js';
+import { isNpcPresent } from '../src/systems/NpcPresence.js';
+import { getShopStock, SHOPS } from '../src/data/shops.js';
+import { TRAINERS } from '../src/data/trainers.js';
+import { BADGES } from '../src/data/badges.js';
+import { createNewGameState } from '../src/core/GameState.js';
+import { recordTrainerVictory } from '../src/systems/TrainerSystem.js';
+import { awardBadge } from '../src/systems/BadgeSystem.js';
+
+const TOWN = MAPS.tidewatch;
+const key = (x, y) => `${x},${y}`;
+
+/** A player who has just come up out of Mistvault. */
+function arrivedState() {
+  const state = createNewGameState();
+  state.starter = 'drizzle';
+  awardBadge('verdantSigil', state);
+  for (const id of ['kestrelThornway', 'kestrelRoute2', 'vaneForeman']) recordTrainerVictory(id, state);
+  state.flags.mistvaultOpen = true;
+  state.flags.mistvaultSiphonStopped = true;
+  return state;
+}
+
+function built(state = arrivedState()) {
+  const map = new TileMap(TOWN);
+  map.setBarrierState(createBarrierState(TOWN, { conditions: getWorldConditions(state), state }));
+  return map;
+}
+
+function reachable(map, state, { without = [] } = {}) {
+  const conditions = getWorldConditions(state);
+  const blocked = new Set([
+    ...TOWN.npcs.filter((n) => isNpcPresent(n, conditions)).map((n) => key(n.x, n.y)),
+    ...TOWN.interactables.map((e) => key(e.x, e.y)),
+    ...without.map(([x, y]) => key(x, y)),
+  ]);
+  const start = TOWN.spawnPoints.fromMistvault;
+  const seen = new Set([key(start.x, start.y)]);
+  const queue = [start];
+  while (queue.length > 0) {
+    const { x, y } = queue.pop();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const id = key(x + dx, y + dy);
+      if (seen.has(id) || blocked.has(id) || !map.isWalkable(x + dx, y + dy)) continue;
+      seen.add(id);
+      queue.push({ x: x + dx, y: y + dy });
+    }
+  }
+  return seen;
+}
+const nextTo = (seen, { x, y }) =>
+  [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => seen.has(key(x + dx, y + dy)));
+const say = (npc, state) => resolveDialogue(npc.dialogue, getWorldConditions(state));
+const npc = (id) => TOWN.npcs.find((n) => n.id === id);
+
+describe('Tidewatch Harbor: the town', () => {
+  it('is reached only through Mistvault, and leads back into it', () => {
+    const into = Object.values(MAPS)
+      .filter((map) => !map.interior && map.exits.some((exit) => exit.to === 'tidewatch'))
+      .map((map) => map.id);
+    expect([...new Set(into)]).toEqual(['mistvaultCore']);
+    for (const exit of TOWN.exits) expect(MAPS[exit.to].spawnPoints[exit.spawn]).toBeDefined();
+  });
+
+  it('has a Mender, a Supply Post and the Tidal Hall, each with a way in and a way back', () => {
+    for (const id of ['tidewatchMendersHall', 'tidewatchSupplyPost', 'tidalHall']) {
+      expect(TOWN.exits.some((exit) => exit.to === id), id).toBe(true);
+      const back = MAPS[id].exits.filter((exit) => exit.to === 'tidewatch');
+      expect(back.length, id).toBeGreaterThan(0);
+      for (const exit of back) expect(TOWN.spawnPoints[exit.spawn]).toBeDefined();
+    }
+  });
+
+  it('lets a player reach every door, person, sign and item from the cave mouth', () => {
+    const state = arrivedState();
+    recordTrainerVictory('kestrelTidewatch', state);
+    const seen = reachable(built(state), state);
+    for (const exit of TOWN.exits) expect(seen.has(key(exit.x, exit.y)), `${exit.to}`).toBe(true);
+    const conditions = getWorldConditions(state);
+    for (const entry of [...TOWN.npcs.filter((n) => isNpcPresent(n, conditions)), ...TOWN.interactables]) {
+      expect(nextTo(seen, entry), entry.id || entry.item || `${entry.x},${entry.y}`).toBe(true);
+    }
+  });
+
+  it('makes healing here the third place a blackout can send you', () => {
+    const mender = MAPS.tidewatchMendersHall.npcs.find((n) => n.id === 'tidewatchMender');
+    expect(mender.dialogue[0].action).toBe('heal');
+    const healers = Object.values(MAPS).filter((map) => (map.npcs || [])
+      .some((n) => (n.dialogue || []).some?.((b) => b && b.action === 'heal')));
+    expect(healers.map((m) => m.id).sort()).toEqual(
+      ['mendersHall', 'thistlewoodMendersHall', 'tidewatchMendersHall'].sort()
+    );
+  });
+
+  it('has a landmark: the Tidewatch light', () => {
+    const tiles = TOWN.tiles.join('');
+    expect(tiles).toContain('Z');
+    expect(tiles).toContain('9');
+    const sign = TOWN.interactables.find((e) => e.x === 4 && e.y === 7);
+    expect(resolveDialogue(sign.dialogue, getWorldConditions(arrivedState())).pages.join(' '))
+      .toMatch(/Tidewatch light/);
+  });
+});
+
+describe('the Supply Post (economy audit)', () => {
+  const stock = (id) => getShopStock(id, {}).map((item) => item.id);
+
+  it('sells what Thistlewood sells, and adds the Clear Tonic and the Ultra Orb', () => {
+    const here = stock('tidewatchSupplyPost');
+    for (const item of stock('thistlewoodSupplyPost')) expect(here).toContain(item);
+    const added = here.filter((item) => !stock('thistlewoodSupplyPost').includes(item));
+    expect(added.sort()).toEqual(['clearTonic', 'ultraOrb']);
+  });
+
+  it('is the first shop to sell either', () => {
+    for (const shop of Object.keys(SHOPS).filter((id) => id !== 'tidewatchSupplyPost')) {
+      expect(stock(shop)).not.toContain('ultraOrb');
+      expect(stock(shop)).not.toContain('clearTonic');
+    }
+  });
+
+  it('is opened by the shopkeeper with the ordinary shop action', () => {
+    const keeper = MAPS.tidewatchSupplyPost.npcs.find((n) => n.id === 'tidewatchShopkeeper');
+    expect(keeper.dialogue[0].action).toBe('shop:tidewatchSupplyPost');
+  });
+
+  it('is affordable from what the cavern and the harbour pay out', () => {
+    // Prize money from Kestrel at the cordon to Ondine, every fight on the way.
+    const ids = ['kestrelRoute2', 'vaneTallis', 'vaneQuill', 'vaneTechnician', 'vaneForeman',
+      'kestrelTidewatch', 'tidalDeckhand', 'tidalDiver'];
+    const earned = ids.reduce((sum, id) => sum + TRAINERS[id].rewardMoney, 0);
+    // Enough for an Ultra Orb and a few Super Potions before the Leader —
+    // not enough to buy the shelf.
+    expect(earned).toBeGreaterThan(1200 + 3 * 550);
+    expect(earned).toBeLessThan(12 * 1200);
+  });
+});
+
+describe('Kestrel, the third time', () => {
+  const kestrel = npc('kestrelHarbor');
+
+  it('is the rival\'s third meeting, and needs the second', () => {
+    const trainer = TRAINERS.kestrelTidewatch;
+    expect(trainer.rival).toBe('kestrel');
+    expect(trainer.stage).toBe(3);
+    expect(trainer.requires).toBe('trainer:kestrelRoute2');
+    expect(kestrel.presentWhen).toBe(trainer.requires);
+  });
+
+  it('watches the only way to the Tidal Hall: the fenced Hall road', () => {
+    const lane = getSightTiles({ origin: kestrel, facing: kestrel.facing, range: kestrel.sightRange });
+    const state = arrivedState();
+    const map = built(state);
+    const hallDoors = TOWN.exits.filter((exit) => exit.to === 'tidalHall');
+    // Without the tiles Kestrel can see, the Hall cannot be reached at all.
+    const seen = reachable(map, state, { without: lane.map((t) => [t.x, t.y]) });
+    for (const door of hallDoors) expect(seen.has(key(door.x, door.y))).toBe(false);
+  });
+
+  it('walks back to their spot afterwards, out of the road, and stays', () => {
+    expect(kestrel.returnAfterDefeat).toBe(true);
+    const hallRoad = new Set(['23', '24']);
+    expect(hallRoad.has(String(kestrel.x))).toBe(false);
+  });
+
+  it('has something new to say after the fight, and after the Sigil', () => {
+    const state = arrivedState();
+    expect(say(kestrel, state).action).toBe('trainer:kestrelTidewatch');
+    recordTrainerVictory('kestrelTidewatch', state);
+    expect(say(kestrel, state).action).toBeNull();
+    expect(say(kestrel, state).pages.join(' ')).toMatch(/Three for three/);
+    awardBadge('tidalSigil', state);
+    expect(say(kestrel, state).pages.join(' ')).toMatch(/Stormrise/);
+  });
+});
+
+describe('the people of Tidewatch follow the story', () => {
+  it('react to the Tidal Sigil', () => {
+    const before = arrivedState();
+    const after = arrivedState();
+    awardBadge('tidalSigil', after);
+    for (const id of ['harbourmaster', 'lighthouseKeeper', 'pierFisher', 'beachChild', 'stormriseWarden']) {
+      const a = say(npc(id), before).pages.join(' ');
+      const b = say(npc(id), after).pages.join(' ');
+      expect(b, id).not.toBe(a);
+    }
+  });
+
+  it('keeps the Hollow Vane in town — surveying — until the Sigil, then gone up the coast', () => {
+    const vane = npc('vaneHarbourSurveyor');
+    expect(vane.sprite).toBe('vane');
+    expect(isNpcPresent(vane, getWorldConditions(arrivedState()))).toBe(true);
+    const after = arrivedState();
+    awardBadge('tidalSigil', after);
+    expect(isNpcPresent(vane, getWorldConditions(after))).toBe(false);
+    expect(say(npc('harbourmaster'), after).pages.join(' ')).toMatch(/grey coats/);
+  });
+});
+
+describe('where Phase 12 ends: the Stormrise rockslide', () => {
+  const slide = TOWN.barriers.find((b) => b.id === 'stormriseRockslide');
+
+  it('stays down whatever the player has done', () => {
+    const state = arrivedState();
+    for (const id of Object.keys(TRAINERS)) recordTrainerVictory(id, state);
+    awardBadge('tidalSigil', state);
+    const map = built(state);
+    for (const [x, y] of slide.tiles) expect(map.isWalkable(x, y)).toBe(false);
+  });
+
+  it('is opened by a flag nothing in the game sets', () => {
+    expect(slide.openWhen).toBe('stormriseOpen');
+    const setters = [];
+    for (const map of Object.values(MAPS)) {
+      for (const entry of [...(map.npcs || []), ...(map.interactables || [])]) {
+        for (const branch of Array.isArray(entry.dialogue) ? entry.dialogue : []) {
+          if (branch && (branch.setFlags || []).includes('stormriseOpen')) setters.push(entry.id);
+        }
+      }
+    }
+    for (const trainer of Object.values(TRAINERS)) {
+      if ((trainer.setFlags || []).includes('stormriseOpen')) setters.push(trainer.id);
+    }
+    expect(setters).toEqual([]);
+  });
+
+  it('has nothing behind it: no exit, no stranded road', () => {
+    expect(TOWN.exits.some((exit) => exit.y <= slide.tiles[0][1])).toBe(false);
+    const map = new TileMap(TOWN);
+    for (let x = 0; x < map.width; x += 1) expect(map.isWalkable(x, 0)).toBe(false);
+  });
+
+  it('says so, in person and on a sign — before and after the Sigil', () => {
+    const sign = TOWN.interactables.find((e) => e.x === 16 && e.y === 9);
+    expect(sign.dialogue.join(' ')).toMatch(/CLOSED: rockslide/);
+    const warden = npc('stormriseWarden');
+    const after = arrivedState();
+    awardBadge('tidalSigil', after);
+    expect(say(warden, arrivedState()).pages.join(' ')).toMatch(/rockslide/);
+    expect(say(warden, after).pages.join(' ')).toMatch(/Stormrise road will open/);
+  });
+
+  it('leaves the third Sigil honestly unbuilt', () => {
+    expect(BADGES.stormSigil.leaderTrainerId).toBeNull();
+  });
+});

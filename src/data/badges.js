@@ -43,24 +43,25 @@ export const BADGES = {
     color: 0x6fbf73,
   },
 
-  /**
-   * Tidewatch Harbor's Hall. Not built — `leaderTrainerId` is null, which is
-   * how the data says "planned, not yet real" without a placeholder trainer
-   * that could accidentally be fought.
-   */
+  /** Tidewatch Harbor's Hall — built in Phase 12. */
   tidalSigil: {
     id: 'tidalSigil',
     name: 'Tidal Sigil',
     order: 2,
     hall: 'The Tidal Hall',
     town: 'Tidewatch Harbor',
-    leader: null,
-    leaderTrainerId: null,
+    leader: 'Ondine',
+    leaderTrainerId: 'tidalLeaderOndine',
     description: 'Cut from a shell that only opens at the turn of the tide.',
     icon: 'wave',
     color: 0x4a86c4,
   },
 
+  /**
+   * Voltspire City's Hall. Not built — `leaderTrainerId` is null, which is
+   * how the data says "planned, not yet real" without a placeholder trainer
+   * that could accidentally be fought.
+   */
   stormSigil: {
     id: 'stormSigil',
     name: 'Storm Sigil',

@@ -460,6 +460,162 @@ export const TRAINERS = {
     ],
   },
 
+  /**
+   * Kestrel's third meeting: in Tidewatch Harbor, beside the road up to the
+   * Tidal Hall (GAME_DESIGN.md section 8: "3+ — later routes, Phase 12
+   * onwards"). The same three as on Route 2, a few levels on — and Grubbit
+   * one level short of evolving.
+   *
+   * No flags: like the second meeting it gates nothing; the Hall road is
+   * fenced so the fight happens on the way, and Kestrel stays put afterwards.
+   *
+   * BALANCE — MEASURED against teams walked here through Mistvault (see
+   * tests/tidewatchBalance.test.js). The first draft — Gustwing 19, a Carapex
+   * at 20 and the starter at 22 — won 87% of the time for the Fire player's
+   * walked team and every time for the Grass player's: a wall, because a
+   * Carapex resists Grass AND shrugs off Ground, and a starter six levels up
+   * on a type advantage is not a rival, it is a gate. At Gustwing 18, Grubbit
+   * 19 and the starter at 19 (Route 2's 16, plus three), the walked teams win
+   * about 80% (Fire), 95% (Water) and 75% (Grass) of the time.
+   */
+  kestrelTidewatch: {
+    id: 'kestrelTidewatch',
+    name: 'Kestrel',
+    title: 'Rival',
+    rival: 'kestrel',
+    stage: 3,
+    requires: 'trainer:kestrelRoute2',
+    rewardMoney: 1000,
+    party: [
+      { species: 'gustwing', level: 18 },
+      { species: 'grubbit', level: 19 },
+      { rivalStarter: true, level: 19 },
+    ],
+    intro: [
+      {
+        when: 'starter:pyrret',
+        pages: [
+          'THERE you are. I got lost in those galleries for an hour — and you went and shut the whole thing down.',
+          'Fine. You saved the harbour. I am still going to beat you before you get to Ondine — and my Grubbit is one good fight from evolving.',
+          'My Puddlurk has been swimming in the Grotto all night. It has never been happier.',
+        ],
+      },
+      {
+        when: 'starter:drizzle',
+        pages: [
+          'THERE you are. I got lost in those galleries for an hour — and you went and shut the whole thing down.',
+          'Fine. You saved the harbour. I am still going to beat you before you get to Ondine — and my Grubbit is one good fight from evolving.',
+          'My Bramblit has been chewing on cave moss all the way here. Watch out.',
+        ],
+      },
+      {
+        when: 'starter:sproutle',
+        pages: [
+          'THERE you are. I got lost in those galleries for an hour — and you went and shut the whole thing down.',
+          'Fine. You saved the harbour. I am still going to beat you before you get to Ondine — and my Grubbit is one good fight from evolving.',
+          'My Cindraw has been itching for this since the cordon. Grass still burns.',
+        ],
+      },
+      {
+        pages: [
+          'THERE you are. I got lost in those galleries for an hour — and you went and shut the whole thing down.',
+          'Fine. You saved the harbour. I am still going to beat you before you get to Ondine — and my Grubbit is one good fight from evolving.',
+        ],
+      },
+    ],
+    outro: [
+      'Three for three?! How?',
+      'Go on, then. The Hall is all yours. I will be right here, thinking about what I did wrong.',
+    ],
+    victoryLines: [
+      'Ha! Finally!',
+      'Go and get patched up at the Mender. I will be here — and Ondine is not going anywhere either.',
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // The Tidal Hall, Tidewatch Harbor (Phase 12)
+  // -------------------------------------------------------------------------
+  // Water through and through, with the harbour's own Aethers: Minnet,
+  // Barnaclaw, Marlance. Each Gym trainer stands on a step beside a walk, so
+  // the tide puzzle and the fights are one climb.
+  //
+  // BALANCE: measured — see tests/tidewatchBalance.test.js.
+
+  tidalDeckhand: {
+    id: 'tidalDeckhand',
+    name: 'Corwen',
+    title: 'Deckhand',
+    rewardMoney: 580,
+    party: [
+      { species: 'barnaclaw', level: 18 },
+      { species: 'minnet', level: 18 },
+    ],
+    intro: [
+      'Mind your footing — the lower walk is wet at every tide.',
+      'And mind ME. Nobody gets to the pontoons past me without a soaking.',
+    ],
+    outro: [
+      'Soaked, myself. The pontoons are west along the walk — they float at HIGH tide.',
+    ],
+  },
+
+  tidalDiver: {
+    id: 'tidalDiver',
+    name: 'Nerys',
+    title: 'Diver',
+    rewardMoney: 620,
+    party: [
+      { species: 'minnet', level: 19 },
+      { species: 'brookel', level: 19 },
+    ],
+    intro: [
+      'I have been diving this Hall since I could swim. I know every tide in it.',
+      'You are on the upper walk, so you got the pontoons right. Now get past me.',
+    ],
+    outro: [
+      'Hm. The causeway to the dais surfaces at LOW tide. Ondine is waiting.',
+    ],
+  },
+
+  /**
+   * LEADER ONDINE. Three Aethers with an ace, stronger than Fern by every
+   * measure: eight levels higher, an evolved Water line, and Marlance — the
+   * harbour's Water/Steel lance-fish — as the ace, two levels above the
+   * others as Fern's Ivorn is. Water, as the Hall's name promised.
+   *
+   * BALANCE — MEASURED (tests/tidewatchBalance.test.js). Like Fern, the Hall
+   * is hard for exactly one starter: here the Fire player, whose walked team
+   * wins about 28% of tries and takes two in the walk. The Water and Grass
+   * players' walked teams win every time — as the Fire and Grass players do
+   * against Fern. The first draft (20 / 20 / 22) walled the Fire player
+   * outright: 13%, and twenty tries without a win.
+   *
+   * Beating Ondine awards the Tidal Sigil, once, through the same `badge`
+   * field Fern uses — no code names either Leader.
+   */
+  tidalLeaderOndine: {
+    id: 'tidalLeaderOndine',
+    name: 'Ondine',
+    title: 'Leader',
+    rewardMoney: 1600,
+    badge: 'tidalSigil',
+    party: [
+      { species: 'barnaclaw', level: 19 },
+      { species: 'brookel', level: 19 },
+      { species: 'marlance', level: 21 },
+    ],
+    intro: [
+      'High, then low, then high, then low. You found the rhythm. Most challengers drown in it.',
+      'I am Ondine. I keep the Tidal Hall, and the tide keeps me.',
+      'Let us see if you can keep your footing when the water is mine.',
+    ],
+    outro: [
+      'The tide has turned, then.',
+      'You read the Hall, and you read my Marlance. Take the Tidal Sigil — you have earned it twice over.',
+    ],
+  },
+
   // -------------------------------------------------------------------------
   // The Hollow Vane in Mistvault Cavern (Phase 12)
   // -------------------------------------------------------------------------
