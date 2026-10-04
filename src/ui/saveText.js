@@ -50,7 +50,8 @@ export function describeSlotLines(summary) {
     const lead = meta.lead ? `${meta.lead.name} Lv ${meta.lead.level}` : 'No partner yet';
     const sigils = meta.badgeCount === 1 ? '1 Sigil' : `${meta.badgeCount} Sigils`;
     return [
-      `${meta.locationName}`,
+      // A finished story says so (Phase 14).
+      meta.champion === true ? `${meta.locationName}   ·   Champion` : `${meta.locationName}`,
       `${lead}   ${sigils}   ${meta.caughtCount} caught   Time ${formatPlayTime(meta.playTimeMs)}`,
       `Saved ${formatSavedAt(meta.savedAt)}`,
     ];

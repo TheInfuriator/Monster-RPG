@@ -29,6 +29,9 @@ export const SCENES = {
   STARTER_SELECT: 'StarterSelectScene',
   BATTLE: 'BattleScene',
   MENU: 'MenuScene',
+  // Phase 14: the end of the main story.
+  ENDING: 'EndingScene',
+  CREDITS: 'CreditsScene',
 };
 
 /**

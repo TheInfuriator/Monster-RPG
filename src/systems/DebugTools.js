@@ -167,7 +167,8 @@ export function installDebugTools(game) {
           '  debug.sigils()                  every Sigil and whether it is earned',
           '  debug.sigil(id, earned=true)    award or remove a Sigil',
           '  debug.teleport(mapId, spawn)    change map',
-          '  debug.stage(name)               jump the story to a Phase 12-13 milestone (no name: list them)',
+          '  debug.stage(name)               jump the story to a Phase 12-14 milestone (no name: list them)',
+          '  debug.ending()                  beat the Champion on the spot and play the ending and credits',
           '  debug.weather()                 the sky on this map, and its choices',
           '  debug.terminal()                open a storage terminal from here',
           '  debug.saves()                   both save slots: status and summary',
@@ -716,7 +717,24 @@ export function installDebugTools(game) {
     },
 
     /**
-     * Put the STORY at a Phase 12 or 13 milestone and go there: the flags, beaten
+     * Play the ending now (Phase 14): record the Champion as beaten, exactly as
+     * the win does, and let the world run the ending, the credits and the
+     * post-story arrival. Refuses once the story is already complete.
+     */
+    ending() {
+      const scene = world(game);
+      if (!scene) return null;
+      if (gameState.flags.storyComplete) {
+        console.warn('[debug] the story is already complete; the ending only plays once.');
+        return false;
+      }
+      recordTrainerVictory('circleChampion');
+      scene.startEnding();
+      return true;
+    },
+
+    /**
+     * Put the STORY at a Phase 12, 13 or 14 milestone and go there: the flags, beaten
      * trainers and Sigils a player would have by then, recorded exactly the
      * way real play records them. The party is left alone — bring your own
      * (debug.give) — so a stage never hides a balance problem.
@@ -737,6 +755,31 @@ export function installDebugTools(game) {
         stormHall: { map: 'stormHall', spawn: 'default', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch', 'tidalLeaderOndine', 'vaneOverseer', 'kestrelStormrise'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped', 'stormriseOpen', 'stormriseRelayStopped'], sigils: ['tidalSigil'] },
         stormSigil: { map: 'voltspire', spawn: 'fromStormHall', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch', 'tidalLeaderOndine', 'vaneOverseer', 'kestrelStormrise', 'stormLeaderHalcyon'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped', 'stormriseOpen', 'stormriseRelayStopped'], sigils: ['tidalSigil', 'stormSigil'] },
       };
+      // Phase 14 — the Aerie, the Hollow, the Trial and the ending. Each
+      // stage is the one before it plus what that step records.
+      const after = (base, more) => ({
+        ...base,
+        ...more,
+        trainers: [...base.trainers, ...(more.trainers || [])],
+        flags: [...(base.flags || []), ...(more.flags || [])],
+        sigils: base.sigils,
+      });
+      stages.aerieRoad = after(stages.stormSigil, { map: 'aerieRoad', spawn: 'fromVoltspire', flags: ['aerieOpen'] });
+      stages.aerie = after(stages.aerieRoad, { map: 'aerie', spawn: 'fromAerieRoad', trainers: ['aerieAce', 'aerieGuide', 'aerieHopeful'] });
+      stages.hollow = after(stages.aerie, { map: 'hollowWorks', spawn: 'fromAerie' });
+      // The core: the three banks vented and their keepers beaten, so the
+      // core door is open behind you — a debug jump must never strand anyone.
+      stages.core = after(stages.hollow, {
+        map: 'convergenceCore', spawn: 'fromWorks',
+        trainers: ['vaneOdile', 'vaneVosslerHollow', 'vaneBrack', 'vaneCraleHollow', 'vaneRusk'],
+        puzzles: { hollowWorks: { earthBank: true, seaBank: true, stormBank: true } },
+      });
+      stages.kestrelFinal = after(stages.core, { map: 'aerie', spawn: 'fromLodge', trainers: ['vaneDirector'], flags: ['convergenceStopped'] });
+      stages.circleHall = after(stages.kestrelFinal, { map: 'circleHall', spawn: 'default', trainers: ['kestrelAerie'] });
+      stages.champion = after(stages.circleHall, { trainers: ['circleAshby', 'circleMerrow', 'circleHale'] });
+      stages.postStory = after(stages.champion, {
+        map: 'aerie', spawn: 'afterCredits', trainers: ['circleChampion'], flags: ['championshipWon', 'storyComplete'],
+      });
       if (!name || !stages[name]) {
         console.info(`[debug] stages: ${Object.keys(stages).join(', ')}`);
         return Object.keys(stages);
@@ -748,6 +791,9 @@ export function installDebugTools(game) {
       for (const id of stage.trainers) recordTrainerVictory(id);
       for (const flag of stage.flags || []) setFlag(flag);
       for (const id of stage.sigils || []) awardBadge(id, gameState);
+      for (const [mapId, levers] of Object.entries(stage.puzzles || {})) {
+        gameState.puzzles[mapId] = { ...(gameState.puzzles[mapId] || {}), ...levers };
+      }
       debug.teleport(stage.map, stage.spawn);
       console.info(`[debug] story at "${name}": ${stage.map}`);
       return name;

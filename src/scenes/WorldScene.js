@@ -47,7 +47,7 @@ import { ASSET_KEYS } from '../config/assets.js';
 import { Player } from '../entities/Player.js';
 import { DebugOverlay } from '../ui/DebugOverlay.js';
 import { DialogueBox } from '../ui/DialogueBox.js';
-import { getSpecies } from '../data/creatures.js';
+import { getSpecies, STARTER_MET_AT } from '../data/creatures.js';
 import { getScriptedBattle } from '../data/battles.js';
 import { getShop } from '../data/shops.js';
 import { getTrainer, getTrainerDisplayName } from '../data/trainers.js';
@@ -73,6 +73,9 @@ import { healParty } from '../systems/HealingSystem.js';
 import { resolveBlackout, getRecoveryMessages } from '../systems/BlackoutSystem.js';
 import { BATTLE_RESULT } from '../systems/battle/BattleEngine.js';
 import { saveToSlot } from '../save/SaveManager.js';
+import {
+  shouldPlayEnding, beginEnding, buildEndingPages, buildCredits, POST_STORY_DESTINATION,
+} from '../systems/EndingSystem.js';
 import { isSafeStandingTile } from '../save/RestorePosition.js';
 import { fadeIn } from '../utils/transitions.js';
 
@@ -142,6 +145,8 @@ export class WorldScene extends Phaser.Scene {
     this.autosaveNote = null;
     /** Where a blackout is taking the player, while its message is read. */
     this.blackoutRecovery = null;
+    /** True from the moment the ending begins until the credits are over. */
+    this.endingRunning = false;
   }
 
   create() {
@@ -182,7 +187,14 @@ export class WorldScene extends Phaser.Scene {
     // been LOADED is already saved, and a brand new game has done nothing
     // worth replacing the previous game's autosave with yet.
     if (this.startData.mapId && this.startData.arrival !== 'continue') {
-      this.requestAutosave(this.startData.arrival === 'blackout' ? 'blackout' : 'arrival');
+      const reasons = { blackout: 'blackout', postStory: 'story' };
+      this.requestAutosave(reasons[this.startData.arrival] || 'arrival');
+    }
+
+    // An ending that is owed (Phase 14): the Champion is beaten but the
+    // credits never finished — the game was closed during them. Play it now.
+    if (shouldPlayEnding(gameState)) {
+      this.time.delayedCall(FADE_DURATION + 100, () => this.startEnding());
     }
   }
 
@@ -854,14 +866,14 @@ export class WorldScene extends Phaser.Scene {
     if (home) {
       npc.walkLine(home.direction, home.steps, () => {
         npc.setFacing(npc.definition.facing);
-        this.awardTrainerBadge(trainer);
+        this.concludeTrainerWin(trainer);
       });
       return;
     }
 
     const exit = npc?.definition.exitAfterDefeat;
     if (!npc || !exit) {
-      this.awardTrainerBadge(trainer);
+      this.concludeTrainerWin(trainer);
       return;
     }
 
@@ -874,10 +886,22 @@ export class WorldScene extends Phaser.Scene {
         duration: 220,
         onComplete: () => {
           this.npcManager.remove(npc);
-          this.awardTrainerBadge(trainer);
+          this.concludeTrainerWin(trainer);
         },
       });
     });
+  }
+
+  /**
+   * The very last step of a win: a Sigil, if the trainer carries one — or,
+   * once the Champion is beaten (Phase 14), the ending.
+   */
+  concludeTrainerWin(trainer) {
+    if (shouldPlayEnding(gameState)) {
+      this.startEnding();
+      return;
+    }
+    this.awardTrainerBadge(trainer);
   }
 
   /**
@@ -1285,7 +1309,7 @@ export class WorldScene extends Phaser.Scene {
   isSafeToSave() {
     if (this.isTransitioning || this.isEnteringBattle) return false;
     if (this.trainerChallenge || this.trainerAlert) return false;
-    if (this.badgePanel || this.blackoutRecovery) return false;
+    if (this.badgePanel || this.blackoutRecovery || this.endingRunning) return false;
     if (!this.dialogueBox || this.dialogueBox.isOpen) return false;
     if (this.scene.isActive(SCENES.BATTLE) || this.scene.isActive(SCENES.STARTER_SELECT)) return false;
     return true;
@@ -1321,7 +1345,11 @@ export class WorldScene extends Phaser.Scene {
 
     const reason = this.autosavePending;
     this.autosavePending = null;
+    this.writeAutosave(reason);
+  }
 
+  /** Write the autosave slot now, and say so — or say why not. */
+  writeAutosave(reason) {
     const result = saveToSlot('autosave', gameState);
 
     // Read-only, for the console and the browser test suite.
@@ -1565,6 +1593,67 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.releasePlayer();
+  }
+
+  // -------------------------------------------------------------------------
+  // The ending (Phase 14)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Play the ending, then the credits, then set the player down on the Aerie.
+   *
+   * Runs once: EndingSystem refuses to begin it a second time, and
+   * `endingRunning` stops a doubled call. The autosave written FIRST, while
+   * the ending is still owed, is the resume point — close the game during
+   * the credits and Continue comes straight back here and plays them again.
+   * Nothing else saves until the player is standing on the Aerie, where
+   * arriving writes the post-story autosave.
+   */
+  startEnding() {
+    if (this.endingRunning || !shouldPlayEnding(gameState)) return;
+    this.endingRunning = true;
+
+    this.player.inputLocked = true;
+    this.player.stopMovement();
+    this.npcManager.setAllBusy(true);
+
+    this.autosavePending = null;
+    this.writeAutosave('ending');
+
+    const pages = buildEndingPages(gameState);
+    const credits = buildCredits(gameState);
+    const partner = gameState.party.find((c) => c.metAt === STARTER_MET_AT) || gameState.party[0] || null;
+    beginEnding(gameState);
+    console.info('[Story] The Champion is beaten: the ending begins.');
+
+    this.scene.pause();
+    this.scene.launch(SCENES.ENDING, {
+      pages,
+      partnerSpecies: partner ? partner.speciesId : null,
+      onFinished: () => {
+        this.scene.launch(SCENES.CREDITS, {
+          credits,
+          onFinished: () => {
+            this.scene.resume();
+            this.travelAfterCredits();
+          },
+        });
+      },
+    });
+  }
+
+  /** Carry the player out onto the Aerie once the credits are over. */
+  travelAfterCredits() {
+    const { mapId, spawn } = POST_STORY_DESTINATION;
+    this.isTransitioning = true;
+
+    const point = new TileMap(getMapDefinition(mapId)).getSpawnPoint(spawn);
+    setLocation(mapId, point.x, point.y, point.facing);
+
+    this.cameras.main.fadeOut(FADE_DURATION, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.restart({ mapId, spawn, arrival: 'postStory' });
+    });
   }
 
   /**

@@ -667,6 +667,7 @@ function validateMetadata(raw, state, report, { expectMetadata = true } = {}) {
     && isFiniteNumber(raw.partySize)
     && isFiniteNumber(raw.caughtCount)
     && isFiniteNumber(raw.playTimeMs)
+    && (raw.champion === undefined || typeof raw.champion === 'boolean')
     && leadOk;
 
   if (sound) return { ...raw, lead: lead ? { ...lead } : null };

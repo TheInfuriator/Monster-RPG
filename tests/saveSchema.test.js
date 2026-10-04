@@ -193,7 +193,17 @@ describe('save metadata', () => {
       caughtCount: Object.keys(state.creatureIndex.caught).length,
       playTimeMs: state.playTimeMs,
       lead: { speciesId: 'cindraw', name: 'Cindraw', level: state.party[0].level },
+      champion: false,
     });
+  });
+
+  it('says when the main story is complete (Phase 14)', () => {
+    const state = buildRichState();
+    expect(buildSaveMetadata(state).champion).toBe(false);
+    state.flags.championshipWon = true;
+    expect(buildSaveMetadata(state).champion).toBe(false);
+    state.flags.storyComplete = true;
+    expect(buildSaveMetadata(state).champion).toBe(true);
   });
 
   it('uses a nickname for the lead when there is one', () => {

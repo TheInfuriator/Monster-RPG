@@ -208,6 +208,9 @@ export function buildSaveMetadata(state, { source = 'manual', savedAt = Date.now
     lead: lead && Object.hasOwn(CREATURES, lead.speciesId)
       ? { speciesId: lead.speciesId, name: getDisplayName(lead), level: lead.level }
       : null,
+    // Phase 14: the main story is complete. Optional — a summary written
+    // before Phase 14 simply has no such field, and reads as not yet.
+    champion: state.flags?.storyComplete === true,
   };
 }
 
