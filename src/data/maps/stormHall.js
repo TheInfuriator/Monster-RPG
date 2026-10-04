@@ -236,11 +236,13 @@ export const stormHall = {
       ],
     },
     {
-      // THE LEADER. An ordinary trainer with a badge, like Fern and Ondine.
+      // THE LEADER. An ordinary trainer with a badge, like Fern and Ondine —
+      // and like them, no sight line: you go up and speak to a Leader. (With
+      // one, Halcyon and Ines both watched the tile before the dais, and the
+      // Leader got there first.)
       id: 'stormLeaderHalcyon',
       name: 'Halcyon',
       trainer: 'stormLeaderHalcyon',
-      sightRange: 1,
       x: 10,
       y: 3,
       facing: 'down',

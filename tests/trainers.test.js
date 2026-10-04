@@ -869,3 +869,28 @@ describe('prize money', () => {
     expect(total).toBeLessThanOrEqual(ITEMS.superPotion.price * 6);
   });
 });
+
+describe('no two trainers watch the same tile', () => {
+  // Found in the browser (Phase 13): Halcyon and a Stormwright both watched
+  // the tile in front of the dais, and the Leader's check ran first, so the
+  // Stormwright could never be met there. Whoever is checked first must not
+  // be a matter of luck: a tile is watched by one trainer at most. Walls stop
+  // a view, as they do in the game.
+  for (const map of Object.values(MAPS)) {
+    it(`${map.id}: every watched tile has one watcher`, () => {
+      const tiles = new TileMap(map);
+      const watched = new Map();
+      for (const npc of (map.npcs || []).filter((n) => n.trainer && n.sightRange)) {
+        const lane = getSightTiles({
+          origin: npc, facing: npc.facing, range: npc.sightRange, isBlocked: (x, y) => !tiles.isWalkable(x, y),
+        });
+        for (const { x, y } of lane) {
+          if (!tiles.isWalkable(x, y)) continue;
+          const key = `${x},${y}`;
+          expect(watched.get(key), `${npc.id} and ${watched.get(key)} both watch ${key}`).toBeUndefined();
+          watched.set(key, npc.id);
+        }
+      }
+    });
+  }
+});
