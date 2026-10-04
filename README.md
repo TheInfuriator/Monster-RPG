@@ -6,22 +6,20 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 13 (the Stormrise Climb, Voltspire City and the third
-> Sigil) complete — the game now runs to the third and last Beacon Hall.**
-> Take a starter, earn the **Verdant Sigil** from Leader Fern, climb the
-> Thornway, steer the current through **Mistvault Cavern**, stop the **Hollow
-> Vane**'s siphon and win the **Tidal Sigil** from Leader Ondine. Then Warden
-> Hale lifts the rockslide: the **Stormrise Climb** is three maps of mountain
-> — terraces with one-way ledges, wind, snow and drifting mist, its own wild
-> Aethers on heath, frost scree and stormgrass, and a rare one where the
-> lightning comes down. On the Frost Shelf the Vane have built a lightning
-> relay that has stolen the storm for a month; beat their Relay Overseer and
-> ground it. Kestrel waits at the top. Over the pass lies **Voltspire City** —
-> a fourth Mender, a storage terminal, the best shop yet — and the **Storm
-> Hall**, three chambers of wired coils, where Leader **Halcyon** holds the
-> **Storm Sigil**: three of three. Save anywhere; **Continue** exactly where
-> you were — Phase 12 saves carry straight over. The Aerie Gate, at the top
-> of the city, is next — see [TODO.md](TODO.md).
+> **Status: the main story is complete (Phase 14).** Take a starter, earn
+> three Sigils — the **Verdant**, the **Tidal** and the **Storm** — from
+> Leaders Fern, Ondine and Halcyon, and stop the **Hollow Vane** three times
+> on the way: in **Mistvault Cavern**, at **Tidewatch** and on the **Stormrise
+> Climb**. Then the **Warden Circle** opens the **Aerie Gate**. Climb the
+> **Aerie Road** to the top of the valley, where the three currents rise
+> together at the **Wellspring** — and find it failing. Under it, in the
+> **Hollow**, the Vane have built the **Convergence**: vent its three banks
+> of stolen current and face their **Director**. Then Kestrel, one last time,
+> with a full team of six; then the **Circle's Trial** — three Wardens of the
+> Circle and **Champion Seren**. Win, and the ending and the credits roll;
+> afterwards the valley is yours to wander. Save anywhere; **Continue**
+> exactly where you were — saves from every earlier phase carry straight
+> over. What could come next is in [TODO.md](TODO.md).
 
 ---
 
@@ -123,6 +121,8 @@ src/
     BattleScene.js     The battle screen — presentation only
     MenuScene.js       The pause menu, the Save screen, the shop counter and
                        the storage terminal
+    EndingScene.js     The ending: a few illustrated pages (Phase 14)
+    CreditsScene.js    The credits roll and the end card (Phase 14)
   systems/             Reusable logic
     TileMap.js         Parses map data, answers "can I walk here?"
     MapRenderer.js     Draws a TileMap
@@ -148,6 +148,10 @@ src/
                        atomic, lossless (Phase 13)
     WeatherRenderer.js Wind, rain, snow and mist a map declares — a fixed,
                        recycled particle pool (Phase 13)
+    EndingSystem.js    When the ending plays, what it says, the credits, and
+                       the one change it makes to the save (Phase 14)
+    SoundEffects.js    Every sound, synthesised in code into Phaser's master
+                       volume chain — no audio files (Phase 14)
     BadgeSystem.js     Earning and reading Sigils
     ProgressionSystem.js  Flags, beaten trainers and Sigils as one set of conditions
     WildBattle.js      Turning an encounter into a battle, and taking delivery
@@ -179,9 +183,10 @@ src/
     transitions.js     Shared fade-between-scenes helper
 tests/                 Vitest tests for logic and data integrity
   helpers/             Shared test builders: a rich save state, the battle
-                       driver, simulated walks from Route 2 to the Storm Sigil,
-                       and the lever-puzzle proof (every setting x every place
-                       to stand)
+                       driver (and its optional switching player), simulated
+                       walks from Route 2 to the Champion, and the
+                       lever-puzzle proof (every setting x every place to
+                       stand)
   fixtures/            Save files written by earlier builds of the game
 ```
 
@@ -847,8 +852,10 @@ debug.gates()                 // barriers and switches on this map
 debug.toggle('rootWest')      // press a root switch from anywhere
 debug.levers()                // levers here (valves, tide wheels), positions, live signals
 debug.lever('springValve', 'west')  // set a lever from anywhere (or 'tide', 'high')
-debug.stage('tidewatch')      // jump the STORY to a Phase 12-13 milestone (no name: list):
-                              //   ... tidalSigil, stormrise, frostShelf, summit, voltspire, stormHall, stormSigil
+debug.stage('tidewatch')      // jump the STORY to a Phase 12-14 milestone (no name: list):
+                              //   ... tidalSigil, stormrise, frostShelf, summit, voltspire, stormHall, stormSigil,
+                              //   aerieRoad, aerie, hollow, core, kestrelFinal, circleHall, champion, postStory
+debug.ending()                // beat the Champion on the spot: the ending, the credits, the Aerie
 debug.weather()               // the sky on this map: what is drawn, and its declared choices
 debug.terminal()              // open a storage terminal from anywhere
 debug.resetPuzzle()           // put this map's hedges back how you found them
@@ -1238,6 +1245,41 @@ and are unit tested there; the screen in MenuScene only draws and asks.
 
 ---
 
+### A gate that opens when someone is beaten (Phase 14)
+
+A barrier's `openWhen` can name any world condition — a story flag, a Sigil,
+or `trainer:<id>` for a beaten trainer. The Circle Hall's chamber gates and the
+gate on the Circle's Walk are exactly that, and every trainer win re-syncs the
+map's barriers, so the gate opens the moment the battle is won. No code.
+
+### The ending (Phase 14)
+
+`src/systems/EndingSystem.js` decides it; the scenes only draw it. The
+Champion's trainer entry sets `championshipWon`; the world sees an ending is
+owed (`championshipWon` without `storyComplete`), writes a resume autosave,
+sets `storyComplete` once, plays `EndingScene` and `CreditsScene`, and sets
+the player down on the Aerie (`POST_STORY_DESTINATION`). A game closed during
+the credits Continues back into them. NPCs react to the finished story with
+an ordinary `when: 'storyComplete'` branch. Try it: `debug.stage('champion')`,
+or `debug.ending()` anywhere.
+
+### Sound (Phase 14)
+
+`src/systems/SoundEffects.js` holds every sound as plain note data and
+synthesises it with Web Audio into Phaser's own master mute and master volume,
+so the Volume setting governs everything (at 0 nothing is even built).
+`playSfx(scene, 'name')` plays one; `attachMenuSounds(scene, KEY_BINDINGS)`
+gives a scene menu blips. No audio files; a browser without sound simply hears
+nothing.
+
+### Measuring a fight (Phase 14)
+
+`tests/helpers/battleSim.js` plays battles through the real engine.
+`winRate(trainerId, team, { switching: true })` uses a conservative switching
+player instead of the default never-switching one;
+`tests/helpers/routeWalk.js` walks the whole game from Route 2 to the Champion
+(`walkToChampion`) and reports how many tries every fight took.
+
 ## Artwork
 
 There are **no image files in this repository**. Every sprite and tile is drawn
@@ -1248,6 +1290,10 @@ This keeps the project free of licensing concerns and makes the game look
 cohesive. To swap in real artwork later, load images under the existing keys in
 `src/config/assets.js` and delete the matching generator — nothing else changes.
 
+There are **no audio files** either: the game's few sounds — menu blips, hits,
+level-ups, the Sigil and ending fanfares — are synthesised in the browser by
+`src/systems/SoundEffects.js`, under the master volume.
+
 ---
 
 ## Testing
@@ -1256,7 +1302,7 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-4091 tests covering map parsing, collision, spawn fallbacks, map validation, game
+4557 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, inventory operations,
 interaction targeting, type effectiveness, the move and creature databases, stat
 and experience maths, the creature factory, the party, the starter-selection
@@ -1306,8 +1352,18 @@ solved from where it starts; the rockslide, the relay and who alone may set
 each flag; the Climb's three habitats and its rare find; storage moves under
 hundreds of random deposits, withdrawals and swaps that never lose, duplicate
 or change an Aether, and a save round trip; Voltspire's services and the Aerie
-Gate that nothing opens; and simulated walks from the Tidal Sigil up the Climb
-to the Storm Sigil for every starter.
+Gate that nothing opened then; and simulated walks from the Tidal Sigil up the
+Climb to the Storm Sigil for every starter — and Phase 14: a real Phase 13 save
+loading at the shut Aerie Gate; the Circle's envoy as the only thing that opens
+it; the Aerie Road, the Aerie and its Lodge; the Hollow's core-door circuit
+over every valve setting and the lever proof over every setting times every
+place to stand; the final Vane and the Director as the only setter of
+`convergenceStopped`; Kestrel's last team resolving to a final-form starter for
+every starter; the Trial's gate order and rules; the Champion as the only
+setter of `championshipWon`; an ending that is owed once and begun once; honest
+credits; story-order guards; persistence at every milestone; the sound layer
+under the master volume; and simulated walks from the Storm Sigil to the
+Champion for every starter, with the never-switching and switching players.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -1454,8 +1510,30 @@ Everything below works end to end, on the keyboard, from a new game:
     neighbours flip too — past Stormwrights Ada, Fenn and Ines to **Leader
     Halcyon**
 32. Win the **Storm Sigil**: three of three. A Vane Surveyor is watching the
-    Aerie road, and the Warden Circle has been sent for — the end of the road,
-    for now
+    Aerie road, and the Warden Circle has been sent for
+
+## The Aerie, the Hollow and the championship (Phase 14)
+
+33. **Warden Ashby** comes down from the Circle: three Sigils are the whole
+    test, and the **Aerie Gate** swings open
+34. **The Aerie Road**: snow, stormgrass and scree with the valley's strongest
+    wild Aethers, an overturned Vane cart, Ace Warden Corin, Summit Guide Orla
+    and Circle Hopeful Mabry
+35. **The Aerie**: the **Wellspring**, low and dark; the Circle Hall, barred;
+    the **Aerie Lodge** — a Mender, a shop and a terminal, the last rest
+36. **The Hollow**: Kestrel got there first. Three banks of stolen current —
+    the earth's, the sea's, the storm's — each held by a Vane boss. Vent the
+    earth bank and the mist bridge holds; the sea bank, and the pontoons
+    float; the storm bank, and the shutter lifts — and with all three vented,
+    the Vane's own interlock opens the core door
+37. **The Convergence**: **Director Thale**, who means to keep the valley's
+    lights on forever, at a price. Beat them, and the engine goes cold
+38. Back on the Aerie the Wellspring runs bright — and **Kestrel** waits on
+    the Circle's Walk with a full team of six, for the last time
+39. **The Circle's Trial**: Earth Warden Ashby, Sea Warden Isla, Sky Warden
+    Hale — and **Champion Seren**
+40. The **ending** and the **credits**; then the Aerie is yours, and the
+    valley has noticed
 
 ---
 

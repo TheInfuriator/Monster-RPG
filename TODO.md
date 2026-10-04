@@ -2,19 +2,22 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 13 — the Stormrise Climb + Voltspire City + the third
-Sigil** ✅ complete
-Next phase: **Phase 14 — the Aerie** (recommended; see below)
+Current phase: **Phase 14 — the Aerie, the Hollow, the Circle's Trial and the
+ending** ✅ complete. **The main story is complete.**
+Next: nothing is required. Optional post-release ideas are listed at the end.
 
-**Playable end to end, to the third Sigil:** New Game → starter → Route 1 →
-the Verdant Sigil → Kestrel at the Thornway gate → Route 2 → Kestrel again →
+**Playable end to end, New Game to the credits:** New Game → starter → Route 1
+→ the Verdant Sigil → Kestrel at the Thornway gate → Route 2 → Kestrel again →
 the cordon → Mistvault Cavern → the Hollow Vane's Draw Foreman → Tidewatch
-Harbor → Kestrel a third time → the Tidal Hall → the Tidal Sigil → **Warden
-Hale lifts the rockslide → the Stormrise Climb (the Terraces, the Frost
-Shelf, the Saddle) → the Vane's lightning relay grounded → Kestrel a fourth
-time → Voltspire City → the Storm Hall's coils → Leader Halcyon → the Storm
-Sigil, three of three → the Aerie Gate, shut.** It survives closing the tab —
-and Phase 12 saves carry straight over.
+Harbor → Kestrel a third time → the Tidal Hall → the Tidal Sigil → Warden Hale
+lifts the rockslide → the Stormrise Climb → the Vane's lightning relay grounded
+→ Kestrel a fourth time → Voltspire City → the Storm Hall → the Storm Sigil →
+**Warden Ashby opens the Aerie Gate → the Aerie Road → the Aerie and its Lodge
+→ the Hollow: three banks vented, the Vane's keepers beaten, Director Thale →
+the Convergence stopped → Kestrel, the fifth and last time → the Circle's
+Trial: three Wardens and Champion Seren → the ending and the credits → free
+roam.** It survives closing the tab — even during the credits — and saves
+from every earlier phase carry straight over.
 
 ---
 
@@ -485,25 +488,76 @@ and Phase 12 saves carry straight over.
   Rimelet and the Grass starter the Pebblit the Mountaineer points at. A
   switching driver would likely show both as easier.
 
-## Phase 14 — the Aerie (recommended next)
-- [ ] Open the Aerie Gate (`aerieOpen` — the Warden Circle convenes for a
-      holder of three Sigils) and build the road up to the Aerie
-- [ ] The Convergence: what the Hollow Vane are doing with three bottled
-      currents, their leadership, and the final confrontation
-- [ ] Kestrel's last meetings (a full team of six)
-- [ ] The Champion gauntlet, and an ending
-- [ ] Balance it from the Storm Sigil with `walkToStormSigil`'s team
+## Phase 14 — the Aerie, the Hollow, the Circle's Trial and the ending ✅
+- [x] **The Circle opens the Aerie Gate:** Warden Ashby in Voltspire's gate
+      square for a holder of three Sigils — nothing else asked; animated,
+      autosaved; the gate becomes a real exit. Phase 13's boundary tests
+      rewritten, deliberately, to test the opening
+- [x] **A real Phase 13 save** (written by the released `d56ca8c` build beside
+      the shut gate) kept as a fixture: loads exactly, gate shut, Ashby ready
+- [x] **The Aerie Road** (snow, stormgrass, scree, ledges, a lost Vane cart,
+      three trainers, three items, one wild table)
+- [x] **The Aerie** (the Wellspring landmark — dim, then bright; the Circle
+      Hall at the top of a guarded walk; weather that follows the story) and
+      **the Aerie Lodge** (Mender, shop, terminal: the pre-Trial rest)
+- [x] **The Convergence** defined and told: an engine that would become the
+      valley's meeting of currents and sell them back; **Director Thale**, a
+      motive that is a trade, not a cackle (GAME_DESIGN.md section 25)
+- [x] **The Hollow's Works:** three banks, each a valve held by a Vane boss;
+      venting them reuses Mistvault's bridge, the Tidal Hall's floating floor
+      and the Storm Hall's wired gate, and the core door is a circuit — no new
+      puzzle code; the lever proof over every setting and place to stand
+- [x] **The final Vane** (two Surveyors, Vossler and Crale back, a new
+      Foreman, the Director — a new rank): ordinary battles, no boosts, no new
+      species; `convergenceStopped` once; the engine cold, the Aerie changed
+- [x] **Kestrel's last meeting:** a full six on the Circle's Walk, a
+      final-form starter for every starter, and the payoff
+- [x] **The Circle's Trial:** three Wardens of the Circle and **Champion
+      Seren** (a full six), in order, with documented rules (no Mender inside,
+      the Bag allowed, the doors never lock, beaten stays beaten, ordinary
+      blackout) and no attempt state to corrupt
+- [x] **The ending:** `championshipWon` → resume autosave → `storyComplete`
+      once → seven illustrated pages → **credits** (honest attribution,
+      skippable, never a trap, a held key cannot skip twice) → the Aerie →
+      post-story autosave; resumes if the game is closed mid-credits; never
+      plays twice
+- [x] **World reactions** after the story (Kestrel, Wick, Mum, the Leaders,
+      the Aerie's Wardens, Voltspire and more); "Champion" on the save slot
+- [x] **Balance measured** from the Storm Sigil to the Champion for every
+      starter; an optional **switching policy** in the battle sim, compared
+      with the never-switching player; a pre-Trial Lodge stop in the walk;
+      Fern, Ondine, Halcyon and Kestrel 1-4 re-checked unchanged
+- [x] **Sound:** procedural blips and fanfares under the master volume — no
+      files, silent when sound is unavailable
+- [x] **UI audit** with a late-game save; the Summary's accuracy and layout,
+      the Wellspring and engine tiles, and gates that follow a beaten trainer
+      fixed
+- [x] **Save version 3, unchanged** (one optional summary field, `champion`)
+- [x] `debug.stage()` for every Phase 14 milestone; `debug.ending()`
+- [x] Browser-verified: New Game to the credits by keyboard, with deliberate
+      losses to the Director, Kestrel and the Champion; the real Phase 13
+      upgrade; reloads after the credits — see CHANGELOG.md
 
-## Later — Expansion
-- [ ] Postgame, rematches, challenge modes (all out of scope until the
-      story is finished)
-- [ ] A full storage box system, if it is ever needed
+### Phase 14 deferrals
+- **The never-switching player cannot reliably beat the Champion.** The
+  finale is pitched at a player who switches (section 25 of GAME_DESIGN.md
+  has the comparison). That is a choice, recorded, not an accident.
+- **The Trial does not reset on a loss.** A beaten Warden stays beaten, so
+  the Champion can be retried alone. A stricter, Elite-Four-style reset would
+  need attempt state, deliberately avoided.
+- **NPCs are still not ADDED mid-visit:** the Circle's Wardens appear in the
+  Hollow on the next visit after the Director is beaten.
+- **Sound is a handful of effects, not music.**
 
-## Later — Polish
-- [ ] Audio system with silent fallbacks (the volume setting is already wired)
+## Post-release (optional — none of this is required)
+- [ ] A postgame: Kestrel's "thirteen more surveys" are a ready-made thread
+- [ ] Rematches with the Leaders and the Trial
+- [ ] A full storage box system, if storage ever grows past a few dozen
+- [ ] Music (the sound layer and the master volume are ready for it)
 - [ ] Battle animations and transitions
-- [ ] Debug tools panel (teleport, give, heal, badges, reset)
+- [ ] Weather that matters in battle
 - [ ] A Trainer card screen in the menu
+- [ ] More ledge directions (the engine supports all four)
 
 ---
 
@@ -637,8 +691,8 @@ Hall asks for a team rather than a grind.
   level-up flow, which belongs with battles in Phase 4.
 
 **Still outstanding:**
-- Audio is not yet implemented. The master volume setting already drives
-  Phaser's sound manager, so sounds added later start at the player's volume.
+- Sound (Phase 14) is procedural and governed by the master volume; there is
+  no music.
 - Placeholder art is procedurally generated. Real sprites can be dropped in later by
   changing only `src/systems/TextureFactory.js` + the asset keys in `src/config/assets.js`.
 - ~~Saving is Phase 10, so progress is lost on reload.~~ — done in Phase 10. ✅

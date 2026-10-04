@@ -4,6 +4,170 @@ Meaningful development milestones, newest first.
 
 ---
 
+## Phase 14 — the Aerie, the Hollow, the Circle's Trial and the ending
+
+**The main story is complete.** Holding three Sigils, the Warden Circle's
+envoy opens the **Aerie Gate**. The **Aerie Road** climbs to the top of the
+valley, where the three currents rise together at the **Wellspring** — and the
+Wellspring is failing. Under it, in the **Hollow**, the Hollow Vane have built
+the **Convergence**: vent its three banks of stolen current, beat their
+keepers and **Director Thale**, and the engine goes cold. Then Kestrel, a fifth
+and last time, with a full team of six; then the **Circle's Trial** — three
+Wardens of the Circle and **Champion Seren**. Win, and the ending and the
+credits roll; afterwards the valley is open to wander. No postgame.
+
+### Added
+
+**The Circle opens the gate.** Warden Ashby waits in Voltspire's gate square
+once the Storm Sigil is won; talking to them sets `aerieOpen` — three Sigils
+are the whole test, nothing else is asked. The gate swings open, Ashby and the
+Vane watcher leave, one `story` autosave; the road behind the gate is a real
+exit now. Phase 13's boundary tests were rewritten, deliberately, to test the
+opening.
+
+**Six maps:** the **Aerie Road** (30x40: snow, stormgrass and scree on one
+wild table, ledges back down, a lost Vane cart, three trainers, three items),
+**the Aerie** (36x30: the Wellspring landmark, dim then bright; the Circle
+Hall at the top of a guarded walk; mist that turns to snow), **the Aerie
+Lodge** (Mender, shop, terminal — the sixth recovery point), **the Hollow's
+Works** (36x28), **the Convergence** (24x16) and **the Circle Hall**.
+
+**The Convergence**, defined (GAME_DESIGN.md section 25): an engine that,
+primed with all three bottled currents, would become the place the valley's
+currents meet, drawing every one of them to the Vane's lines to be metered and
+sold, and leaving the Wellspring, the springs and storms it feeds and the wild
+Aethers born of them to fade. **Director Thale** (a fourth Vane rank) runs it
+for a reason, not a cackle: an engineer from Voltspire who would trade thirty
+dark nights for a thousand years of steady light.
+
+**The Works — the game's puzzles, once each, with no new puzzle code.** Three
+banks (earth, sea, storm), each a valve held by a Vane boss. Venting the earth
+bank holds a mist bridge (Mistvault), the sea bank floats a cistern's
+pontoons (the Tidal Hall), the storm bank lifts a wired shutter (the Storm
+Hall), and the core door is a circuit over all three. Proved trap-free with
+the lever proof over every setting times every place to stand.
+
+**The final Vane:** Surveyors Odile and Rusk, Foremen Vossler (back) and Brack
+(new), Overseer Crale (back), and the Director — ordinary trainers, no boosts,
+no new species. Beating Thale sets `convergenceStopped` once: the engine goes
+cold, Thale walks off, the Works' barriers stand open, the Aerie clears and
+the Wellspring runs bright, Kestrel moves to the Walk, the Circle comes in.
+
+**Kestrel's last meeting** on the Circle's Walk: a full six (Gustwing,
+Carapex, Voltmane, Cragmaw, Brambelle and the starter at 34 — its final form
+for every starter), and the payoff of their arc.
+
+**The Circle's Trial:** Earth Warden Ashby, Sea Warden Isla, Sky Warden Hale
+and **Champion Seren** (a full six, Thundrel 38 at its head), each in their
+own chamber, in order — each gate opens on the win before it. Rules, said by
+the Steward and recorded: no Mender inside, the Bag allowed, the doors never
+lock, a beaten Warden stays beaten, an ordinary blackout on a loss. No attempt
+state at all.
+
+**The ending** (`EndingSystem`, `EndingScene`, `CreditsScene`): the Champion's
+win sets `championshipWon`; a resume autosave; `storyComplete` once; seven
+illustrated pages; **the credits** — honest attribution only, skippable,
+never a trap, a held key cannot skip twice; the player is set down outside the
+Circle Hall and the post-story autosave is written. Closed mid-credits, the
+game Continues back into them; once begun, the ending never plays again.
+
+**After the story:** Kestrel, Professor Wick (come up from Emberhollow), Mum,
+all three Leaders, the Aerie's Wardens, Voltspire's people and others react;
+the save slot says **Champion**.
+
+**Sound** (`SoundEffects`): the game's first sounds, procedural — menu blips,
+hits, faints, catches, level-ups, evolution, the trainer "!", healing, the
+Sigil and ending fanfares — synthesised into Phaser's master mute and volume,
+so the Volume setting governs them all. No files.
+
+**Balance tooling:** an optional **switching player** in the battle sim (test
+helper only), `walkToChampion`, and a pre-Trial Lodge stop in the walk.
+
+**Debug:** `debug.stage()` for every Phase 14 milestone; `debug.ending()`.
+
+### Changed
+
+- **Voltspire:** the gate's row is a road off the map; Sorrel, the sign, the
+  keeper and the child have new lines; the Vane watcher leaves when the gate
+  opens. **Hale** leaves the Frost Shelf once the Circle convenes.
+- **Crale's** Phase 13 line no longer says the cells went "down" to the
+  Convergence — it is above Voltspire.
+- **The Summary screen:** accuracy is shown as stored (it read "Acc 10000"),
+  and each move's description has a line of its own instead of running into
+  the numbers.
+- **Every trainer win re-syncs the map's barriers**, animating only those that
+  changed — a gate that follows a beaten trainer opens at once.
+- **The save summary** gains an optional `champion` field.
+- Tests that counted the game's Mender's Halls (four) count five.
+
+### Balance — measured, not guessed
+
+Walking on from the Storm Sigil through the real engine (`walkToChampion`),
+every starter, 40 seeds per fight; the full table is in GAME_DESIGN.md
+section 25.
+
+- **What the walk showed first:** every team arrives at the Aerie leaning on
+  one Aether (28-34, with a Route 1 catch still at 14). Against six-strong
+  teams no level setting made that fair. The measured player now stops at the
+  **Lodge** (leaves anything ten levels behind in storage, fills to six from
+  the Aerie Road, trains together) — and Old Warden Abner says so in the game.
+- **Two players.** A test-only **switching policy** (trade a badly matched
+  Aether for a clearly better one, at most once per foe) is compared with the
+  never-switching player of every earlier phase. The Aerie Road is no wall for
+  either. From the Lodge on, the switcher never needs more than three tries:
+  **Director Thale** 75% / 100% / 100% (Fire / Water / Grass), **Kestrel 5**
+  53% / 70% / 60%, **Champion Seren** 73% / 50% / 100% — the hardest fight of
+  the Trial for every starter. The never-switcher beats Thale and Kestrel with
+  tries but not reliably the Champion: the finale asks for switching, as the
+  valley's people have advised since Mistvault.
+- **Measured fixes:** the Summit Guide's Cragmaw walled the Fire walk (now
+  Brawnhare and Rimelet); Sea Warden Isla, water-heavy, was harder than the
+  Champion for Fire over 40 seeds (55% against 63%) — one level lower; the
+  Director, Brack and the Hopeful's prize money were cut to stay under the
+  reward ceiling.
+- **Levels:** the switcher's best Aether meets the Champion at 37-41; the
+  Champion's own six are 35-38.
+- **Fern, Ondine, Halcyon and Kestrel 1-4:** their guard rails pass
+  unchanged; nothing before the Aerie Gate was rebalanced.
+
+### Saves
+
+**Save version 3, unchanged.** Phase 14's progress is four flags
+(`aerieOpen`, `convergenceStopped`, `championshipWon`, `storyComplete`),
+beaten trainers and three valve booleans in the existing `puzzles` record.
+The save summary gained one optional field, `champion`; a summary without it
+reads as "not yet". A real save written by the released Phase 13 build
+(commit `d56ca8c`) beside the shut gate, Continued by the Phase 14 build at
+the same address, loads exactly and plays on through the gate.
+
+### Fixed during verification
+
+- **Old Warden Abner stood on the only tile in front of the Lodge's shop
+  counter** (found planning the journey): the shop could not be reached. He
+  sits by the fire now, and a new test proves every Mender, shopkeeper and
+  terminal on the new maps can be spoken to from a reachable tile — which
+  also caught a sign behind the mending array, now removed.
+- **A gate that follows a beaten trainer stayed drawn shut until the map was
+  reloaded** — the Circle Hall's chamber gates and the Circle's Walk: only
+  flag-setting wins re-synced barriers. Every win now does, animating only what changed.
+- **The Wellspring and the Convergence engine drew as grids of framed tiles**
+  (visual pass) — drawn as one seamless landmark each now.
+- **The ending's hills ran down into its text panel** (visual pass) — the
+  picture is clipped to its frame.
+- **The ending's words and picture could name different partners** (code
+  review): the words found a starter in storage, the picture looked only in
+  the party. Both ask one function now, and only the starter is said to have
+  walked out of the Warden's Lodge with the player.
+- **Harness, not game:** the journey's walk past Voltspire's Sorrel stalled
+  behind them (the greedy walker); the audio suite imported a dev-server path
+  that a production build does not serve; and tests compared
+  `defeatedTrainers` as a list when it is a map. Each was fixed in the test,
+  not the game.
+
+<!-- VERIFICATION -->
+
+---
+
 ## Phase 13 — the Stormrise Climb, Voltspire City and the third Sigil
 
 The game now runs to the third and last Beacon Hall. Holding the Tidal Sigil,
