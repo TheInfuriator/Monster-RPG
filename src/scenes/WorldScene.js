@@ -48,7 +48,7 @@ import { ASSET_KEYS } from '../config/assets.js';
 import { Player } from '../entities/Player.js';
 import { DebugOverlay } from '../ui/DebugOverlay.js';
 import { DialogueBox } from '../ui/DialogueBox.js';
-import { getSpecies, STARTER_MET_AT } from '../data/creatures.js';
+import { getSpecies } from '../data/creatures.js';
 import { getScriptedBattle } from '../data/battles.js';
 import { getShop } from '../data/shops.js';
 import { getTrainer, getTrainerDisplayName } from '../data/trainers.js';
@@ -75,7 +75,7 @@ import { resolveBlackout, getRecoveryMessages } from '../systems/BlackoutSystem.
 import { BATTLE_RESULT } from '../systems/battle/BattleEngine.js';
 import { saveToSlot } from '../save/SaveManager.js';
 import {
-  shouldPlayEnding, beginEnding, buildEndingPages, buildCredits, POST_STORY_DESTINATION,
+  shouldPlayEnding, beginEnding, buildEndingPages, buildCredits, findPartner, POST_STORY_DESTINATION,
 } from '../systems/EndingSystem.js';
 import { isSafeStandingTile } from '../save/RestorePosition.js';
 import { fadeIn } from '../utils/transitions.js';
@@ -195,6 +195,9 @@ export class WorldScene extends Phaser.Scene {
     // An ending that is owed (Phase 14): the Champion is beaten but the
     // credits never finished — the game was closed during them. Play it now.
     if (shouldPlayEnding(gameState)) {
+      // Frozen from the first frame, so nothing can be done in the moment
+      // before it starts.
+      this.player.inputLocked = true;
       this.time.delayedCall(FADE_DURATION + 100, () => this.startEnding());
     }
   }
@@ -1642,7 +1645,7 @@ export class WorldScene extends Phaser.Scene {
 
     const pages = buildEndingPages(gameState);
     const credits = buildCredits(gameState);
-    const partner = gameState.party.find((c) => c.metAt === STARTER_MET_AT) || gameState.party[0] || null;
+    const partner = findPartner(gameState);
     beginEnding(gameState);
     console.info('[Story] The Champion is beaten: the ending begins.');
 

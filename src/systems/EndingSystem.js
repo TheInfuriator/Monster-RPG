@@ -67,9 +67,10 @@ export function beginEnding(state) {
 
 /**
  * The player's partner for the ending: the starter if it is still with them
- * (party or storage), otherwise whoever leads the party.
+ * (party or storage), otherwise whoever leads the party. The words and the
+ * picture both ask this, so they always show the same Aether.
  */
-function findPartner(state) {
+export function findPartner(state) {
   const all = [...(state.party || []), ...(state.storage || [])];
   const starter = all.find((creature) => creature && creature.metAt === STARTER_MET_AT);
   return starter || (state.party || [])[0] || null;
@@ -86,6 +87,11 @@ function findPartner(state) {
 export function buildEndingPages(state) {
   const partner = findPartner(state);
   const partnerName = partner ? getDisplayName(partner) : 'your Aethers';
+  // Only the starter walked out of the Lodge with you; anyone standing in for
+  // it (a save with no starter on record) is not given its history.
+  const history = partner && partner.metAt === STARTER_MET_AT
+    ? 'who had walked out of the Warden\'s Lodge with you a lifetime ago'
+    : 'who had come every step of the way up the valley with you';
 
   return [
     {
@@ -110,7 +116,7 @@ export function buildEndingPages(state) {
     },
     {
       scene: 'partner',
-      text: `And ${partnerName}, who had walked out of the Warden's Lodge with you a lifetime ago, stood beside the new Champion of the Warden Circle.`,
+      text: `And ${partnerName}, ${history}, stood beside the new Champion of the Warden Circle.`,
     },
     {
       scene: 'aerie',

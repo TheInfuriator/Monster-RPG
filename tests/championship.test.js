@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { MAPS } from '../src/data/maps/index.js';
 import { TRAINERS } from '../src/data/trainers.js';
-import { STARTER_IDS, CREATURES } from '../src/data/creatures.js';
+import { STARTER_IDS, CREATURES, STARTER_MET_AT } from '../src/data/creatures.js';
 import { TileMap } from '../src/systems/TileMap.js';
 import { createBarrierState } from '../src/systems/PuzzleSystem.js';
 import { getWorldConditions } from '../src/systems/ProgressionSystem.js';
@@ -23,7 +23,7 @@ import { awardBadge } from '../src/systems/BadgeSystem.js';
 import { getRivalStarterBase, speciesAtLevel } from '../src/systems/RivalSystem.js';
 import { createCreature, clearReservedInstanceIds } from '../src/systems/CreatureFactory.js';
 import {
-  shouldPlayEnding, beginEnding, isStoryComplete, buildEndingPages, buildCredits,
+  shouldPlayEnding, beginEnding, isStoryComplete, buildEndingPages, buildCredits, findPartner,
   POST_STORY_DESTINATION, CHAMPIONSHIP_FLAG, STORY_COMPLETE_FLAG,
 } from '../src/systems/EndingSystem.js';
 import { createSaveFile, buildSaveMetadata } from '../src/save/SaveSchema.js';
@@ -275,8 +275,24 @@ describe('the ending', () => {
     const pages = buildEndingPages(storyAt('champion'));
     expect(pages.length).toBeGreaterThanOrEqual(5);
     expect(pages.length).toBeLessThanOrEqual(10);
-    expect(pages.map((p) => p.text).join(' ')).toMatch(/Thornmane/);
+    expect(pages.map((p) => p.text).join(' ')).toMatch(/Thornmane, who had walked out of the Warden's Lodge/);
     for (const page of pages) expect(['aerie', 'valley', 'wellspring', 'partner']).toContain(page.scene);
+  });
+
+  it('names and draws the same partner — the starter, even from storage, else the party\'s lead', () => {
+    const state = storyAt('champion');
+    const starter = findPartner(state);
+    expect(starter.metAt).toBe(STARTER_MET_AT);
+    // Deposited: the starter is still the partner, not whoever leads now.
+    state.party = state.party.filter((c) => c !== starter);
+    state.storage = [...(state.storage || []), starter];
+    expect(findPartner(state)).toBe(starter);
+    // Released for good: the party's lead stands in, in words and picture alike.
+    state.storage = state.storage.filter((c) => c !== starter);
+    expect(findPartner(state)).toBe(state.party[0]);
+    const words = buildEndingPages(state).map((p) => p.text).join(' ');
+    expect(words).toContain(state.party[0].nickname || CREATURES[state.party[0].speciesId].name);
+    expect(words).not.toMatch(/walked out of the Warden's Lodge/);
   });
 
   it('sets the player down outside the Circle Hall, on open ground, free to go anywhere', () => {
