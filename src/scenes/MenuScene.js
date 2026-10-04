@@ -90,6 +90,9 @@ const TERMINAL_ROWS = 6;
 const TERMINAL_PITCH = 28;
 const TERMINAL_COLUMNS = { party: 18, storage: 242 };
 const TERMINAL_COLUMN_WIDTH = 214;
+/** Where the column headings and the first row sit — clear of the title. */
+const TERMINAL_HEADING_Y = 38;
+const TERMINAL_FIRST_ROW_Y = 54;
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -1300,7 +1303,7 @@ export class MenuScene extends Phaser.Scene {
 
     // The highlighted Aether in full, so a choice is never made blind.
     const creature = this.terminalSelected();
-    const detailY = 44 + TERMINAL_ROWS * TERMINAL_PITCH + 14;
+    const detailY = TERMINAL_FIRST_ROW_Y + TERMINAL_ROWS * TERMINAL_PITCH + 6;
     if (creature) {
       const species = getCreatureSpecies(creature);
       const status = getStatus(creature.status);
@@ -1321,16 +1324,16 @@ export class MenuScene extends Phaser.Scene {
   drawTerminalColumn(side, heading, list, offset) {
     const x = TERMINAL_COLUMNS[side];
     const active = this.termSide === side;
-    this.text(x, 30, heading, { fontSize: '10px', color: active ? CSS_COLORS.accent : CSS_COLORS.parchmentDim });
+    this.text(x, TERMINAL_HEADING_Y, heading, { fontSize: '10px', color: active ? CSS_COLORS.accent : CSS_COLORS.parchmentDim });
 
     if (list.length === 0) {
-      this.text(x, 50, side === 'party' ? 'Nobody with you.' : 'Nobody in storage.', { color: CSS_COLORS.parchmentDim });
+      this.text(x, TERMINAL_FIRST_ROW_Y + 4, side === 'party' ? 'Nobody with you.' : 'Nobody in storage.', { color: CSS_COLORS.parchmentDim });
       return;
     }
 
     list.slice(offset, offset + TERMINAL_ROWS).forEach((creature, row) => {
       const i = offset + row;
-      const y = 46 + row * TERMINAL_PITCH;
+      const y = TERMINAL_FIRST_ROW_Y + row * TERMINAL_PITCH;
       const selected = active && i === this.termIndex[side];
       const swapping = (side === 'party' && i === this.termSwapFrom)
         || (side === 'storage' && i === this.termSwapInto);
@@ -1354,9 +1357,9 @@ export class MenuScene extends Phaser.Scene {
     });
 
     if (side === 'storage') {
-      if (offset > 0) this.text(x + TERMINAL_COLUMN_WIDTH - 16, 30, '▲', { color: CSS_COLORS.parchmentDim });
+      if (offset > 0) this.text(x + TERMINAL_COLUMN_WIDTH - 16, TERMINAL_HEADING_Y, '▲', { color: CSS_COLORS.parchmentDim });
       if (offset + TERMINAL_ROWS < list.length) {
-        this.text(x + TERMINAL_COLUMN_WIDTH - 16, 46 + TERMINAL_ROWS * TERMINAL_PITCH - 12, '▼', { color: CSS_COLORS.parchmentDim });
+        this.text(x + TERMINAL_COLUMN_WIDTH - 16, TERMINAL_FIRST_ROW_Y + TERMINAL_ROWS * TERMINAL_PITCH - 12, '▼', { color: CSS_COLORS.parchmentDim });
       }
     }
   }
