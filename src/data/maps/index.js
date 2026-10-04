@@ -38,6 +38,12 @@ import { voltspire } from './voltspire.js';
 import { voltspireMendersHall } from './voltspireMendersHall.js';
 import { voltspireSupplyPost } from './voltspireSupplyPost.js';
 import { stormHall } from './stormHall.js';
+import { aerieRoad } from './aerieRoad.js';
+import { aerie } from './aerie.js';
+import { aerieLodge } from './aerieLodge.js';
+import { hollowWorks } from './hollowWorks.js';
+import { convergenceCore } from './convergenceCore.js';
+import { circleHall } from './circleHall.js';
 
 export const MAPS = {
   emberhollow,
@@ -66,6 +72,12 @@ export const MAPS = {
   voltspireMendersHall,
   voltspireSupplyPost,
   stormHall,
+  aerieRoad,
+  aerie,
+  aerieLodge,
+  hollowWorks,
+  convergenceCore,
+  circleHall,
 };
 
 /**

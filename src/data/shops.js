@@ -140,6 +140,30 @@ export const SHOPS = {
       { item: 'ultraOrb' },
     ],
   },
+
+  /**
+   * The Aerie Lodge (Phase 14): the last counter before the Circle's Trial.
+   * Voltspire's shelf exactly — nothing new to buy at the top of the valley,
+   * only the chance to stock up one last time. The Potion and the Basic Orb
+   * are left behind on the road up: nobody carries those to the Aerie.
+   */
+  aerieLodge: {
+    id: 'aerieLodge',
+    name: 'Aerie Lodge',
+    keeper: 'Quill',
+    greeting: 'Carried up on my own back. Priced accordingly.',
+    stock: [
+      { item: 'superPotion' },
+      { item: 'mendersDraught' },
+      { item: 'antidote' },
+      { item: 'soothingBalm' },
+      { item: 'burnSalve' },
+      { item: 'rouser' },
+      { item: 'clearTonic' },
+      { item: 'greatOrb' },
+      { item: 'ultraOrb' },
+    ],
+  },
 };
 
 /**

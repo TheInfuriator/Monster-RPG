@@ -18,14 +18,17 @@
  * road goes round it), across the high street and into the gate square. West:
  * the Mender's Hall (the fourth place a blackout can send you) and the Supply
  * Post. East: the Storm Hall, the biggest roof in the city. North: the Aerie
- * Gate, shut.
+ * Gate.
  *
- * WHERE PHASE 13 ENDS
- * The Aerie road climbs from the gate square to the championship. The Aerie
- * Gate is a barrier with `openWhen: 'aerieOpen'` — a flag NOTHING sets in
- * Phase 13, exactly the honest seam the rockslide was in Phase 12. A Warden
- * and a sign say why; behind the gate the road runs into the rock with no
- * exit, so there is no empty map waiting there either.
+ * THE AERIE GATE
+ * The Aerie Road climbs from the gate square to the Aerie. The gate is a
+ * barrier with `openWhen: 'aerieOpen'`. Phase 13 ended here, with nothing to
+ * set the flag. In Phase 14, once the third Sigil is won, the Warden Circle
+ * sends Warden Ashby down to the gate square: talking to them sets
+ * `aerieOpen` — no level, no coins, no catch asked for; three Sigils are the
+ * whole of the test — the gate swings open while the player watches, the
+ * Vane watcher slips away, and the game autosaves. The road behind the gate
+ * leads off the top of the map to the Aerie Road.
  *
  * WEATHER: a light rain — the storm is back over the city.
  */
@@ -36,7 +39,7 @@ export const voltspire = {
   music: 'town',
   weather: { kind: 'rain', amount: 1 },
 
-  /** The gate up to the Aerie. Phase 14 opens it; nothing does yet. */
+  /** The gate up to the Aerie: opened by the Circle once three Sigils are held. */
   barriers: [
     {
       id: 'aerieGate',
@@ -51,10 +54,10 @@ export const voltspire = {
   tiles: [
     // 0         1         2         3
     // 012345678901234567890123456789012345
-    '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%', //  0  the mountain: the Aerie road ends in rock (no exit — the Phase 14 boundary)
-    '%%%%%%%%%%%%%%%%%88%%%%%%%%%%%%%%%%%', //  1  the first yards of the Aerie road, behind the gate
-    '%%%%%%%%%%%%%%%%%88%%%%%%%%%%%%%%%%%', //  2  THE AERIE GATE (17,2),(18,2): a barrier nothing opens yet
-    '%%............88S88888000000000000%%', //  3  the gate sign (16,3); Warden Sorrel at (19,3) keeps the gate
+    '%%%%%%%%%%%%%%%%%88%%%%%%%%%%%%%%%%%', //  0  north exit up the Aerie Road (17,0),(18,0)
+    '%%%%%%%%%%%%%%%%%88%%%%%%%%%%%%%%%%%', //  1  the first yards of the Aerie Road, behind the gate
+    '%%%%%%%%%%%%%%%%%88%%%%%%%%%%%%%%%%%', //  2  THE AERIE GATE (17,2),(18,2): opens on `aerieOpen`
+    '%%............88S88888000000000000%%', //  3  the gate sign (16,3); Warden Sorrel (19,3); Warden Ashby (20,3) once three Sigils are held
     '%%............88888888000000000000%%', //  4
     '%%............88888888000000000000%%', //  5
     '%%.aaaaaaa....88888888000000000000%%', //  6  the Mender's Hall (3..9); the Storm Hall (22..33), the biggest roof in the city
@@ -90,6 +93,7 @@ export const voltspire = {
     fromMendersHall: { x: 6, y: 10, facing: 'down' },
     fromSupplyPost: { x: 6, y: 17, facing: 'down' },
     fromStormHall: { x: 27, y: 10, facing: 'down' },
+    fromAerieRoad: { x: 17, y: 1, facing: 'down' },
   },
 
   exits: [
@@ -99,11 +103,13 @@ export const voltspire = {
     { x: 6, y: 16, to: 'voltspireSupplyPost', spawn: 'default' },
     { x: 27, y: 9, to: 'stormHall', spawn: 'default' },
     { x: 28, y: 9, to: 'stormHall', spawn: 'default' },
+    { x: 17, y: 0, to: 'aerieRoad', spawn: 'fromVoltspire' },
+    { x: 18, y: 0, to: 'aerieRoad', spawn: 'fromVoltspire' },
   ],
 
   npcs: [
     {
-      // The honest end of Phase 13: a Warden at the Aerie Gate.
+      // The Warden who keeps the Aerie Gate.
       id: 'aerieWarden',
       name: 'Warden Sorrel',
       x: 19,
@@ -113,17 +119,55 @@ export const voltspire = {
       movement: 'static',
       dialogue: [
         {
+          when: 'storyComplete',
+          pages: [
+            'The Champion, through my gate. I will be telling that one for years.',
+          ],
+        },
+        {
+          when: 'aerieOpen',
+          pages: [
+            'The gate is open — for you. The road climbs to the Aerie; there is a Lodge at the top with a Mender in it.',
+            'Mind the snow. And mind the Vane. Their carts went up this road before I shut it, and never came down.',
+          ],
+        },
+        {
           when: 'badge:stormSigil',
           pages: [
-            'Three Sigils. Then you have earned the right to walk this road — but not yet the leave.',
-            'The Aerie opens when the Warden Circle convenes, and not a day before. Word has gone out; they are coming.',
-            'And I have orders to tell you this, and only this: nobody, not even the Vane, gets past this gate before they do.',
+            'Three Sigils. Then you have earned the right to walk this road — and the Circle has come down to say so.',
+            'That is Warden Ashby, beside me. The Circle sent them down this morning. Speak to them.',
           ],
         },
         {
           pages: [
             'The Aerie Gate. The road beyond climbs to the Aerie, where the Champion waits.',
             'It opens for Wardens who hold all three Sigils — and only when the Circle says so. You have some way to go yet.',
+          ],
+        },
+      ],
+    },
+    {
+      // THE CIRCLE'S RECOGNITION (Phase 14). Once the third Sigil is won, the
+      // Circle's envoy waits beside the gate; talking to them opens it. No
+      // level, coins or catch is asked for — three Sigils are the test.
+      id: 'circleEnvoy',
+      name: 'Warden Ashby',
+      x: 20,
+      y: 3,
+      facing: 'down',
+      sprite: 'warden',
+      movement: 'static',
+      presentWhen: 'badge:stormSigil',
+      absentWhen: 'aerieOpen',
+      dialogue: [
+        {
+          setFlags: ['aerieOpen'],
+          pages: [
+            'Warden Ashby, of the Circle. We met in Mistvault — you shut the siphon off while I was still reading the Vane\'s board.',
+            'The Circle has convened. The siphon, the harbour, the relay — three Sigils, and three of the Vane\'s operations stopped. Every Warden on the Aerie has heard.',
+            'So: the Circle recognises you as a Warden of Aetheria, and the Aerie is open to you. Sorrel — the gate.',
+            'One more thing. The Vane\'s carts went up this road a month ago, before the gate was shut. They never came down.',
+            'Whatever the Convergence is, it is up there, under the Aerie. The Circle will not hold the Trial while it runs. Go carefully — I will see you at the top.',
           ],
         },
       ],
@@ -137,6 +181,13 @@ export const voltspire = {
       sprite: 'elder',
       movement: 'static',
       dialogue: [
+        {
+          when: 'storyComplete',
+          pages: [
+            'The spire sang all night when the Wellspring came back. Every lamp in the city burned blue for an hour.',
+            'I have added you to its story. Right at the end — for now.',
+          ],
+        },
         {
           when: 'badge:stormSigil',
           pages: ['Halcyon gave you a Sigil? Then the spire has a new story to tell. I will add you to it.'],
@@ -181,6 +232,10 @@ export const voltspire = {
       movement: 'lookAround',
       dialogue: [
         {
+          when: 'storyComplete',
+          pages: ['You are the CHAMPION! I knew it. I said so. Nobody listens to me.'],
+        },
+        {
           when: 'badge:stormSigil',
           pages: ['THREE Sigils?! Can I hold them? Just one? Just the storm one?'],
         },
@@ -213,7 +268,8 @@ export const voltspire = {
     {
       // THE POST-SIGIL HOOK. Only once the third Sigil is won: a Vane
       // Surveyor at the edge of the gate square, watching the Aerie road. Not
-      // a battle, and not an answer — the confrontation is Phase 14's.
+      // a battle, and not an answer — the confrontation is up in the Hollow.
+      // Slips away the moment the Circle opens the gate.
       id: 'vaneGateWatcher',
       name: 'Vane Surveyor',
       x: 14,
@@ -222,6 +278,7 @@ export const voltspire = {
       sprite: 'vane',
       movement: 'static',
       presentWhen: 'badge:stormSigil',
+      absentWhen: 'aerieOpen',
       dialogue: [
         {
           pages: [
@@ -258,8 +315,19 @@ export const voltspire = {
       y: 3,
       type: 'sign',
       dialogue: [
-        'THE AERIE GATE.  Beyond: the Aerie, and the Champion.',
-        'CLOSED by order of the Warden Circle. Holders of three Sigils will be sent for.',
+        {
+          when: 'aerieOpen',
+          pages: [
+            'THE AERIE GATE.  Beyond: the Aerie, and the Champion.',
+            'OPEN to holders of three Sigils, by order of the Warden Circle.',
+          ],
+        },
+        {
+          pages: [
+            'THE AERIE GATE.  Beyond: the Aerie, and the Champion.',
+            'CLOSED by order of the Warden Circle. Holders of three Sigils will be sent for.',
+          ],
+        },
       ],
     },
     {

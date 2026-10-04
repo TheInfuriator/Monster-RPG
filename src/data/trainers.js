@@ -963,7 +963,7 @@ export const TRAINERS = {
     ],
     outro: [
       'Ground the relay, then. Go on — the console behind me.',
-      'The cells are already on their way down to the Convergence, with the earth\'s current and the sea\'s. You are too late to matter.',
+      'The cells are already on their way to the Convergence, with the earth\'s current and the sea\'s. You are too late to matter.',
     ],
     victoryLines: [
       'Go home, Warden. The sky belongs to whoever can hold it.',
@@ -1036,6 +1036,393 @@ export const TRAINERS = {
     victoryLines: [
       'Finally! ...It does not feel like I thought it would.',
       'Go and get patched up. Voltspire has a Mender — it is just over the pass.',
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // The Aerie Road (Phase 14)
+  // -------------------------------------------------------------------------
+  // Wardens on their way up to the Trial, turned back by the Circle while the
+  // Vane are dug in under the Aerie.
+  //
+  // PHASE 14 BALANCE (tests/aerieBalance.test.js, through the real engine).
+  // Every walk before this one leans on whatever leads, and reaches the Aerie
+  // with ONE strong Aether (27-33) and the rest far behind. So the road is
+  // pitched at 24-27 — fought before the Lodge, with that lopsided team, and
+  // no wall even for the never-switching player. At the Lodge the measured
+  // player rounds the team out to six from the Aerie Road and trains it up
+  // together (routeWalk.js, walkToChampion), and from the Hollow on they
+  // switch like a player at the end of a game does (battleSim.js,
+  // `switching`). Measured that way the Hollow is 27-32, Kestrel's six top
+  // out at the starter's 34 — its final form for every starter — the Trial's
+  // Wardens are 33-35 and the Champion's six 35-38: nothing takes more than
+  // three tries, the Director is a real fight below the climax, and the
+  // Champion is the hardest fight of the Trial for every starter.
+
+  aerieAce: {
+    id: 'aerieAce',
+    name: 'Corin',
+    title: 'Ace Warden',
+    rewardMoney: 1400,
+    party: [
+      { species: 'voltmane', level: 26 },
+      { species: 'brawnhare', level: 27 },
+    ],
+    intro: [
+      'Three Sigils and nowhere to spend them. The Circle has shut the Trial — something about the Vane.',
+      'So I have been waiting on this road for a week, and you are the first Warden who looks worth the wait!',
+    ],
+    outro: [
+      'Ha! You will do. Whatever the Circle is waiting for, I think it is you.',
+    ],
+  },
+
+  aerieGuide: {
+    id: 'aerieGuide',
+    name: 'Ysolde',
+    title: 'Summit Guide',
+    rewardMoney: 1420,
+    party: [
+      { species: 'brawnhare', level: 26 },
+      { species: 'rimelet', level: 27 },
+    ],
+    intro: [
+      'I have walked Wardens up this road for twenty years. Every one of them had to get past me first.',
+    ],
+    outro: [
+      'Past me, then. The road switches back to the west — keep to it in the snow.',
+    ],
+  },
+
+  aerieHopeful: {
+    id: 'aerieHopeful',
+    name: 'Mabry',
+    title: 'Circle Hopeful',
+    rewardMoney: 1350,
+    party: [
+      { species: 'brambelle', level: 24 },
+      { species: 'marlance', level: 25 },
+      { species: 'voltmane', level: 25 },
+    ],
+    intro: [
+      'This is it — the top of the valley! One day I am going to walk into that Hall and come out Champion.',
+      'Today I am going to practise on you.',
+    ],
+    outro: [
+      'Practice over. ...I am going to need a lot more practice.',
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // The Hollow — the Vane's Works and the Convergence (Phase 14)
+  // -------------------------------------------------------------------------
+  // The Vane's last stand: a Surveyor in the hall, the three bank bosses —
+  // Vossler and Crale back again, and a new Foreman for the sea — a Surveyor
+  // at the core door, and the Director. Each stronger than the last Vane the
+  // player met; the Director stronger again, and still below the Trial.
+
+  vaneOdile: {
+    id: 'vaneOdile',
+    name: 'Odile',
+    title: 'Vane Surveyor',
+    faction: 'hollowVane',
+    rank: 'surveyor',
+    rewardMoney: 1300,
+    party: [
+      { species: 'umbrat', level: 27 },
+      { species: 'corrodit', level: 27 },
+    ],
+    intro: [
+      'A Warden, in the Works? The Circle sent four this morning. You will go out the same way they did.',
+    ],
+    outro: [
+      'Fine. The banks are in the wings. Good luck getting past the Foremen.',
+    ],
+  },
+
+  vaneVosslerHollow: {
+    id: 'vaneVosslerHollow',
+    name: 'Vossler',
+    title: 'Draw Foreman',
+    faction: 'hollowVane',
+    rank: 'foreman',
+    rewardMoney: 1550,
+    party: [
+      { species: 'gloamite', level: 28 },
+      { species: 'cragmaw', level: 28 },
+      { species: 'ironvole', level: 29 },
+    ],
+    intro: [
+      'You. Mistvault was MY survey. Forty cells of the earth\'s current, and every one of them is in this bank.',
+      'You are not touching that valve.',
+    ],
+    outro: [
+      'Go on, then. Vent it. Forty cells, poured back into the ground like dishwater.',
+      'The Director will not care. The Director never cares about one bank.',
+    ],
+    victoryLines: [
+      'Twice is not a habit, Warden. Go home.',
+    ],
+  },
+
+  vaneBrack: {
+    id: 'vaneBrack',
+    name: 'Brack',
+    title: 'Draw Foreman',
+    faction: 'hollowVane',
+    rank: 'foreman',
+    rewardMoney: 1590,
+    party: [
+      { species: 'barnaclaw', level: 28 },
+      { species: 'corrodit', level: 29 },
+      { species: 'marlance', level: 29 },
+    ],
+    intro: [
+      'Survey 15 was mine — the harbour. Took me a month to bottle a tide. You will not undo it in a minute.',
+    ],
+    outro: [
+      'All right! All right. The valve is yours. Mind the cistern — it fills faster than you think.',
+    ],
+    victoryLines: [
+      'The tide goes out, Warden. Go with it.',
+    ],
+  },
+
+  vaneCraleHollow: {
+    id: 'vaneCraleHollow',
+    name: 'Crale',
+    title: 'Relay Overseer',
+    faction: 'hollowVane',
+    rank: 'overseer',
+    rewardMoney: 1650,
+    party: [
+      { species: 'umbrat', level: 29 },
+      { species: 'stormcrest', level: 29 },
+      { species: 'corrodit', level: 30 },
+    ],
+    intro: [
+      'You grounded my relay, and now you have come for the storm I DID get away with.',
+      'Forty cells of lightning. Do you know how long it took to catch them?',
+    ],
+    outro: [
+      'Vent it, then. Let the sky have it back. ...It was always going to win in the end, I suppose.',
+      'The Director is behind the core door. Do not expect them to be impressed.',
+    ],
+    victoryLines: [
+      'Go home, Warden. The storm is spoken for.',
+    ],
+  },
+
+  vaneRusk: {
+    id: 'vaneRusk',
+    name: 'Rusk',
+    title: 'Vane Surveyor',
+    faction: 'hollowVane',
+    rank: 'surveyor',
+    rewardMoney: 1450,
+    party: [
+      { species: 'gloamite', level: 28 },
+      { species: 'ironvole', level: 28 },
+    ],
+    intro: [
+      'Nobody goes into the core. Director\'s orders. Especially not you.',
+    ],
+    outro: [
+      'The door is wired to the banks. If they are vented, it opens. I just stand here.',
+    ],
+  },
+
+  vaneDirector: {
+    id: 'vaneDirector',
+    name: 'Thale',
+    title: 'Vane Director',
+    faction: 'hollowVane',
+    rank: 'director',
+    rewardMoney: 1750,
+    setFlags: ['convergenceStopped'],
+    party: [
+      { species: 'gloamite', level: 29 },
+      { species: 'ivorn', level: 30 },
+      { species: 'corrodit', level: 30 },
+      { species: 'ironvole', level: 31 },
+      { species: 'marlance', level: 32 },
+    ],
+    intro: [
+      'So you are the one who keeps turning my lights off. Thale — I run the Hollow Vane.',
+      'I grew up under the Voltspire. Every winter the storm wandered off and the city went dark, and every winter we waited for the sky to remember us.',
+      'The Convergence ends that. Every current in the valley, meeting here, going out through our lines — steady, measured, paid for. Nobody waits in the dark again.',
+      'You have vented my banks. Fine: there is enough in the lines to start it. Step aside, Warden, or be stepped over.',
+    ],
+    outro: [
+      'Enough. ...Enough. I will not run it on what is left in the lines. Half a prime would crack the Wellspring in two, and I am not a vandal.',
+      'There. The engine is down. Sixteen surveys and four years, gone in an afternoon.',
+      'You think the valley is better off with storms that come and go as they please. Perhaps. I hope you are right — you are the ones who will be living in it.',
+    ],
+    victoryLines: [
+      'Go back down the mountain, Warden. When the lights stay on this winter, you will know who to thank.',
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // Kestrel, fifth and last meeting: the Aerie (Phase 14)
+  // -------------------------------------------------------------------------
+  // On the Circle's Walk, once the Convergence is stopped — the last thing
+  // between the player and the Trial. A full team of six: every Aether
+  // Kestrel has fought with since the Thornway, all grown up, two new ones
+  // caught on the way up, and the starter in its final form.
+  kestrelAerie: {
+    id: 'kestrelAerie',
+    name: 'Kestrel',
+    title: 'Rival',
+    rival: 'kestrel',
+    stage: 5,
+    requires: 'convergenceStopped',
+    rewardMoney: 1800,
+    party: [
+      { species: 'gustwing', level: 29 },
+      { species: 'carapex', level: 29 },
+      { species: 'voltmane', level: 29 },
+      { species: 'cragmaw', level: 30 },
+      { species: 'brambelle', level: 30 },
+      { rivalStarter: true, level: 34 },
+    ],
+    intro: [
+      {
+        when: 'starter:pyrret',
+        pages: [
+          'You did it. I watched the Vane walk out of the Hollow one by one. The Wellspring is running — you can hear it from here.',
+          'Before the Circle sees you, I want one more. Not for a Sigil. Not for the Circle. Just to know.',
+          'Six of us, all grown up. My Torrentine has been waiting since the Thornway for this.',
+        ],
+      },
+      {
+        when: 'starter:drizzle',
+        pages: [
+          'You did it. I watched the Vane walk out of the Hollow one by one. The Wellspring is running — you can hear it from here.',
+          'Before the Circle sees you, I want one more. Not for a Sigil. Not for the Circle. Just to know.',
+          'Six of us, all grown up. My Thornmane has been waiting since the Thornway for this.',
+        ],
+      },
+      {
+        when: 'starter:sproutle',
+        pages: [
+          'You did it. I watched the Vane walk out of the Hollow one by one. The Wellspring is running — you can hear it from here.',
+          'Before the Circle sees you, I want one more. Not for a Sigil. Not for the Circle. Just to know.',
+          'Six of us, all grown up. My Emberax has been waiting since the Thornway for this.',
+        ],
+      },
+      {
+        pages: [
+          'You did it. I watched the Vane walk out of the Hollow one by one. The Wellspring is running — you can hear it from here.',
+          'Before the Circle sees you, I want one more. Not for a Sigil. Not for the Circle. Just to know.',
+        ],
+      },
+    ],
+    outro: [
+      'Five times. ...Do you know, I think I stopped minding somewhere on the mountain.',
+      'I came up here to beat you to the Champion. I think I really came up here because you were the only one who ever kept up.',
+      'Go on. The Circle is waiting. I will be in the gallery — loudly.',
+    ],
+    victoryLines: [
+      'Ha! ...One. Out of five. I will take it.',
+      'Go and rest at the Lodge, and come back. I am not letting you face the Circle tired.',
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // The Circle's Trial (Phase 14)
+  // -------------------------------------------------------------------------
+  // Three Wardens of the Circle, one for each current, and the Champion.
+  // Ordinary trainers: spoken to, like the Leaders, and a gate behind each
+  // opens once they are beaten (src/data/maps/circleHall.js). The Champion
+  // carries the story's last flag; the world plays the ending from it.
+
+  circleAshby: {
+    id: 'circleAshby',
+    name: 'Ashby',
+    title: 'Earth Warden',
+    rewardMoney: 1800,
+    party: [
+      { species: 'gloamite', level: 33 },
+      { species: 'brawnhare', level: 33 },
+      { species: 'cragmaw', level: 34 },
+      { species: 'ironvole', level: 34 },
+    ],
+    intro: [
+      'Ashby again — Earth Warden of the Circle. You thought I only read boards?',
+      'The earth\'s current runs under everything: slow, deep, and very hard to move. Let us see if you can.',
+    ],
+    outro: [
+      'Moved. Well done. The gate is open — Merrow is next.',
+    ],
+  },
+
+  circleMerrow: {
+    id: 'circleMerrow',
+    name: 'Merrow',
+    title: 'Sea Warden',
+    rewardMoney: 1850,
+    party: [
+      { species: 'barnaclaw', level: 33 },
+      { species: 'rimelet', level: 34 },
+      { species: 'brookel', level: 34 },
+      { species: 'marlance', level: 35 },
+    ],
+    intro: [
+      'Merrow, Sea Warden of the Circle. I kept the harbour\'s current for thirty years, until the Vane bottled it.',
+      'You poured it back. So I will not go easy on you — that would be an insult.',
+    ],
+    outro: [
+      'Like the tide: you were always going to come in. Hale is next.',
+    ],
+  },
+
+  circleHale: {
+    id: 'circleHale',
+    name: 'Hale',
+    title: 'Sky Warden',
+    rewardMoney: 1900,
+    party: [
+      { species: 'gustwing', level: 34 },
+      { species: 'voltmane', level: 34 },
+      { species: 'stormcrest', level: 35 },
+      { species: 'thundrel', level: 35 },
+    ],
+    intro: [
+      'Surprised? The Circle sent me to hold your rockslide and your relay because the sky is mine to keep.',
+      'You have earned this chamber twice over. Now earn the gate.',
+    ],
+    outro: [
+      'Blown clean through. The Champion is waiting — and the Champion has been waiting a long time for someone like you.',
+    ],
+  },
+
+  circleChampion: {
+    id: 'circleChampion',
+    name: 'Seren',
+    title: 'Champion',
+    rewardMoney: 2000,
+    setFlags: ['championshipWon'],
+    party: [
+      { species: 'stormcrest', level: 35 },
+      { species: 'rimelet', level: 35 },
+      { species: 'cragmaw', level: 35 },
+      { species: 'gustwing', level: 36 },
+      { species: 'brawnhare', level: 36 },
+      { species: 'thundrel', level: 38 },
+    ],
+    intro: [
+      'Seren, Champion of the Warden Circle. I have held this chamber for eleven years.',
+      'I watched the Wellspring rise this morning. I know whose doing it was, and I am grateful — truly.',
+      'But that is not what this chamber is for. This chamber asks one question: are you and your Aethers the strongest team in Aetheria?',
+      'Show me.',
+    ],
+    outro: [
+      'There it is. The answer.',
+      'Champion of the Warden Circle — it is yours. Come, the Circle will want to see you.',
+    ],
+    victoryLines: [
+      'Not today. Rest at the Lodge, and come back up — the chamber will be here.',
     ],
   },
 };

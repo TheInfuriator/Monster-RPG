@@ -195,6 +195,9 @@ export const stormriseHigh = {
       sprite: 'warden',
       movement: 'static',
       presentWhen: 'stormriseRelayStopped',
+      // Gone up to the Aerie once the Circle convenes (Phase 14): Hale is
+      // the Circle's Sky Warden, and waits in the Trial.
+      absentWhen: 'aerieOpen',
       dialogue: [
         {
           when: 'badge:stormSigil',

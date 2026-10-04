@@ -88,12 +88,12 @@ function settle(team) {
  * battle's experience away, which only ever made a retry harder than the
  * game's. Phase 11's walks almost never lose, so their numbers stand.)
  */
-export function beatTrainer(team, trainerId, state, seedBase) {
+export function beatTrainer(team, trainerId, state, seedBase, { switching = false } = {}) {
   let current = team;
   for (let attempt = 0; attempt < MAX_TRIES; attempt += 1) {
     const copy = structuredClone(current);
     const outcome = runBattle(
-      createTrainerBattleConfig(trainerId, copy, { state }), copy, seedBase + attempt
+      createTrainerBattleConfig(trainerId, copy, { state }), copy, seedBase + attempt, { switching }
     );
     settle(copy);
     heal(copy);
@@ -103,14 +103,21 @@ export function beatTrainer(team, trainerId, state, seedBase) {
   return { team: current, tries: Infinity };
 }
 
-/** Walk through some wild encounters from a table, keeping what was won. */
-function wildBattles(team, tableId, count, random, seedBase) {
+/**
+ * Walk through some wild encounters from a table, keeping what was won.
+ *
+ * `training` (Phase 14) leads each wild battle with the team's LOWEST-level
+ * creature — what a player does to bring a team up together rather than
+ * leaning on one — and puts the team back in its own order afterwards.
+ */
+function wildBattles(team, tableId, count, random, seedBase, { switching = false, training = false } = {}) {
   let current = team;
   for (let i = 0; i < count; i += 1) {
     const row = pickWeighted(ENCOUNTER_TABLES[tableId], random);
     const encounter = { species: row.species, level: randomInt(row.minLevel, row.maxLevel, random) };
     const copy = structuredClone(current);
-    const outcome = runBattle(createWildBattleConfig(encounter, copy), copy, seedBase + i, { potions: 1 });
+    const order = training ? [...copy].sort((a, b) => a.level - b.level) : copy;
+    const outcome = runBattle(createWildBattleConfig(encounter, order), order, seedBase + i, { potions: 1, switching });
     if (outcome === BATTLE_RESULT.WIN) {
       settle(copy);
       heal(copy);
@@ -133,7 +140,7 @@ function wildBattles(team, tableId, count, random, seedBase) {
  * @returns {{ team: object[], tries: Record<string, number>, state: object }}
  */
 export function walkRoute2(starter, {
-  catchAnswer = true, wild = 6, fork = 'west', answer = ROUTE_2_ANSWER[starter],
+  catchAnswer = true, wild = 6, fork = 'west', answer = ROUTE_2_ANSWER[starter], switching = false, training = false,
 } = {}) {
   const state = { ...createNewGameState(), starter };
   const random = createSeededRandom(starter.length * 97 + wild);
@@ -141,7 +148,7 @@ export function walkRoute2(starter, {
   let team = [createCreature(starter, 14), createCreature('flittle', 13)];
 
   const trainer = (id, seedBase) => {
-    const result = beatTrainer(team, id, state, seedBase);
+    const result = beatTrainer(team, id, state, seedBase, { switching });
     tries[id] = result.tries;
     team = result.team;
   };
@@ -153,11 +160,11 @@ export function walkRoute2(starter, {
 
   trainer('kestrelThornway', 100);
   maybeCatch('route2Thicket');
-  team = wildBattles(team, 'route2Thicket', wild, random, 200);
+  team = wildBattles(team, 'route2Thicket', wild, random, 200, { switching, training });
   trainer('route2Cutter', 300);
   trainer(fork === 'west' ? 'route2Forager' : 'route2Lookout', 400);
   maybeCatch('route2Scree');
-  team = wildBattles(team, 'route2Scree', Math.ceil(wild / 2), random, 500);
+  team = wildBattles(team, 'route2Scree', Math.ceil(wild / 2), random, 500, { switching, training });
   trainer('route2ScreeWalker', 600);
 
   return { team, tries, state };
@@ -189,16 +196,16 @@ export const MISTVAULT_ANSWER = {
  * @returns {{ team: object[], tries: Record<string, number>, state: object }}
  */
 export function walkMistvault(starter, {
-  optional = true, caveWild = 4, caveAnswer = true, ...route
+  optional = true, caveWild = 4, caveAnswer = true, switching = false, training = false, ...route
 } = {}) {
-  const walked = walkRoute2(starter, route);
+  const walked = walkRoute2(starter, { ...route, switching, training });
   let { team } = walked;
   const { state } = walked;
   const tries = { ...walked.tries };
   const random = createSeededRandom(starter.length * 131 + caveWild);
 
   const trainer = (id, seedBase) => {
-    const result = beatTrainer(team, id, state, seedBase);
+    const result = beatTrainer(team, id, state, seedBase, { switching });
     tries[id] = result.tries;
     team = result.team;
   };
@@ -206,12 +213,12 @@ export function walkMistvault(starter, {
   trainer('kestrelRoute2', 700);
   const answer = MISTVAULT_ANSWER[starter];
   if (caveAnswer && answer) team.push(createCreature(answer.species, answer.level));
-  team = wildBattles(team, 'mistvaultCave', caveWild, random, 800);
+  team = wildBattles(team, 'mistvaultCave', caveWild, random, 800, { switching, training });
   trainer('vaneTallis', 900);
-  team = wildBattles(team, 'mistvaultGalleries', caveWild, random, 1000);
+  team = wildBattles(team, 'mistvaultGalleries', caveWild, random, 1000, { switching, training });
   if (optional) trainer('vaneBrede', 1100);
   trainer('vaneQuill', 1200);
-  team = wildBattles(team, 'mistvaultGalleries', Math.ceil(caveWild / 2), random, 1300);
+  team = wildBattles(team, 'mistvaultGalleries', Math.ceil(caveWild / 2), random, 1300, { switching, training });
   trainer('vaneTechnician', 1400);
   trainer('vaneForeman', 1500);
 
@@ -229,8 +236,10 @@ export function walkMistvault(starter, {
  * @returns {{ team: object[], tries: Record<string, number>, state: object, before: object }}
  *   `before` holds the team as it stood in front of each Tidewatch fight
  */
-export function walkToTidalSigil(starter, { shallowsWild = 3, ...cave } = {}) {
-  const walked = walkMistvault(starter, cave);
+export function walkToTidalSigil(starter, {
+  shallowsWild = 3, switching = false, training = false, ...cave
+} = {}) {
+  const walked = walkMistvault(starter, { ...cave, switching, training });
   let { team } = walked;
   const { state } = walked;
   const tries = { ...walked.tries };
@@ -239,12 +248,12 @@ export function walkToTidalSigil(starter, { shallowsWild = 3, ...cave } = {}) {
 
   const trainer = (id, seedBase) => {
     before[id] = structuredClone(team);
-    const result = beatTrainer(team, id, state, seedBase);
+    const result = beatTrainer(team, id, state, seedBase, { switching });
     tries[id] = result.tries;
     team = result.team;
   };
 
-  team = wildBattles(team, 'mistvaultShallows', shallowsWild, random, 1600);
+  team = wildBattles(team, 'mistvaultShallows', shallowsWild, random, 1600, { switching, training });
   trainer('kestrelTidewatch', 1700);
   trainer('tidalDeckhand', 1800);
   trainer('tidalDiver', 1900);
@@ -284,9 +293,9 @@ export const STORMRISE_ANSWER = {
  * @returns {{ team: object[], tries: Record<string, number>, state: object, before: object }}
  */
 export function walkStormrise(starter, {
-  climbWild = 3, climbOptional = true, climbCatch = STORMRISE_ANSWER[starter] || null, ...below
+  climbWild = 3, climbOptional = true, climbCatch = STORMRISE_ANSWER[starter] || null, switching = false, training = false, ...below
 } = {}) {
-  const walked = walkToTidalSigil(starter, below);
+  const walked = walkToTidalSigil(starter, { ...below, switching, training });
   let { team } = walked;
   const { state } = walked;
   const tries = { ...walked.tries };
@@ -295,7 +304,7 @@ export function walkStormrise(starter, {
 
   const trainer = (id, seedBase) => {
     before[id] = structuredClone(team);
-    const result = beatTrainer(team, id, state, seedBase);
+    const result = beatTrainer(team, id, state, seedBase, { switching });
     tries[id] = result.tries;
     team = result.team;
   };
@@ -306,16 +315,16 @@ export function walkStormrise(starter, {
   };
 
   maybeCatch('stormriseHeath');
-  team = wildBattles(team, 'stormriseHeath', climbWild, random, 2100);
+  team = wildBattles(team, 'stormriseHeath', climbWild, random, 2100, { switching, training });
   trainer('stormriseHerder', 2200);
   trainer('stormriseClimber', 2300);
   maybeCatch('stormriseScree');
-  team = wildBattles(team, 'stormriseScree', climbWild, random, 2400);
+  team = wildBattles(team, 'stormriseScree', climbWild, random, 2400, { switching, training });
   trainer('stormriseMountaineer', 2500);
   trainer('vaneMarl', 2600);
   trainer('vaneOverseer', 2700);
   maybeCatch('stormriseSummit');
-  team = wildBattles(team, 'stormriseSummit', climbWild, random, 2800);
+  team = wildBattles(team, 'stormriseSummit', climbWild, random, 2800, { switching, training });
   trainer('stormriseSkyherd', 2900);
   if (climbOptional) trainer('stormriseStormchaser', 3000);
   trainer('kestrelStormrise', 3100);
@@ -328,6 +337,7 @@ export function walkStormrise(starter, {
  * Stormwrights, then Leader Halcyon.
  */
 export function walkToStormSigil(starter, options = {}) {
+  const { switching = false } = options;
   const walked = walkStormrise(starter, options);
   let { team } = walked;
   const { state } = walked;
@@ -336,7 +346,7 @@ export function walkToStormSigil(starter, options = {}) {
 
   const trainer = (id, seedBase) => {
     before[id] = structuredClone(team);
-    const result = beatTrainer(team, id, state, seedBase);
+    const result = beatTrainer(team, id, state, seedBase, { switching });
     tries[id] = result.tries;
     team = result.team;
   };
@@ -344,6 +354,98 @@ export function walkToStormSigil(starter, options = {}) {
   trainer('stormHallFenn', 3300);
   trainer('stormHallInes', 3400);
   trainer('stormLeaderHalcyon', 3500);
+
+  return { team, tries, state, before };
+}
+
+/**
+ * The Aerie Road Aethers a player at the Aerie Lodge brings into the team
+ * (Phase 14), in order, until it is six strong: first an answer to each of
+ * the Trial's Wardens the team has none for — the earth (water and grass hit
+ * it), the sea (electric and grass), the sky (rock and ice) — then whatever
+ * else the road offers. Old Warden Pell in the Lodge says as much in the
+ * game.
+ */
+export const AERIE_CATCHES = {
+  pyrret: ['brambelle', 'rimelet', 'marlance', 'cragmaw', 'gustwing'],
+  drizzle: ['voltmane', 'cragmaw', 'brambelle', 'rimelet', 'ironvole'],
+  sproutle: ['voltmane', 'rimelet', 'marlance', 'ironvole', 'gustwing'],
+};
+
+/**
+ * Walk on from the Storm Sigil to the top of the valley (Phase 14): a few
+ * wild Aethers on the Aerie Road and its three trainers; a stop at the Aerie
+ * Lodge; the Hollow — the Surveyor in the hall, the three bank bosses, the
+ * Surveyor at the core door and the Director; Kestrel on the Circle's Walk;
+ * and the Circle's Trial — three Wardens and the Champion, resting at the
+ * Lodge between battles (the doors never lock), as a sensible player does.
+ *
+ * THE LODGE (`camp`). Every walk before this one leans on whatever leads the
+ * team, and arrives at the Aerie with one strong Aether and three far behind
+ * it (a Route 1 Flittle still at 14). Nobody takes that into a Trial of four
+ * full teams. At the Lodge the simulated player does what a player does
+ * before a championship: leaves anything ten levels behind the team's best in
+ * storage, fills the team to six from the Aerie Road (AERIE_CATCHES), brings
+ * the team up together with `campTraining` wild battles, each led by whoever
+ * is lowest — and then puts the strongest in front.
+ *
+ * @param {string} starter
+ * @param {object} [options] as walkToStormSigil, plus:
+ * @param {number} [options.roadWild] wild battles on the Aerie Road
+ * @param {boolean} [options.camp] stop at the Lodge (above)
+ * @param {number} [options.campTraining] wild battles at the Lodge
+ * @returns {{ team: object[], tries: Record<string, number>, state: object, before: object }}
+ */
+export function walkToChampion(starter, {
+  roadWild = 4, switching = false, training = false, camp = true, campTraining = 10, ...below
+} = {}) {
+  const walked = walkToStormSigil(starter, { ...below, switching, training });
+  let { team } = walked;
+  const { state } = walked;
+  const tries = { ...walked.tries };
+  const before = { ...walked.before };
+  const random = createSeededRandom(starter.length * 257 + roadWild);
+
+  const trainer = (id, seedBase) => {
+    before[id] = structuredClone(team);
+    const result = beatTrainer(team, id, state, seedBase, { switching });
+    tries[id] = result.tries;
+    team = result.team;
+  };
+
+  team = wildBattles(team, 'aerieRoad', Math.ceil(roadWild / 2), random, 3600, { switching, training });
+  trainer('aerieAce', 3700);
+  trainer('aerieGuide', 3800);
+  team = wildBattles(team, 'aerieRoad', Math.floor(roadWild / 2), random, 3900, { switching, training });
+  trainer('aerieHopeful', 4000);
+  before.atTheAerie = structuredClone(team);
+
+  if (camp) {
+    const best = Math.max(...team.map((c) => c.level));
+    team = team.filter((c) => c.level >= best - 10);
+    // Caught at 26, the middle of what the Aerie Road's table turns up.
+    for (const species of AERIE_CATCHES[starter] || []) {
+      if (team.length < 6) team.push(createCreature(species, 26));
+    }
+    team = wildBattles(team, 'aerieRoad', campTraining, random, 4050, { switching, training: true });
+    // And into the Hollow with the strongest in front.
+    team.sort((a, b) => b.level - a.level);
+  }
+  before.afterLodge = structuredClone(team);
+
+  trainer('vaneOdile', 4100);
+  trainer('vaneVosslerHollow', 4200);
+  trainer('vaneBrack', 4300);
+  trainer('vaneCraleHollow', 4400);
+  trainer('vaneRusk', 4500);
+  trainer('vaneDirector', 4600);
+  state.flags.convergenceStopped = true;
+
+  trainer('kestrelAerie', 4700);
+  trainer('circleAshby', 4800);
+  trainer('circleMerrow', 4900);
+  trainer('circleHale', 5000);
+  trainer('circleChampion', 5100);
 
   return { team, tries, state, before };
 }

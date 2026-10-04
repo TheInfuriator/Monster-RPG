@@ -35,12 +35,14 @@ export const FACTIONS = {
     /** GAME_DESIGN.md section 9: "Grunts use Poison, Dark, and Steel Aethers." */
     types: ['poison', 'dark', 'steel'],
     /** Map looks (CHARACTER_PALETTES) a member of this faction may wear. */
-    sprites: ['vane', 'vaneForeman'],
+    sprites: ['vane', 'vaneForeman', 'vaneDirector'],
     ranks: {
       surveyor: { title: 'Vane Surveyor' },
       foreman: { title: 'Draw Foreman' },
       // Phase 13: the one running the Stormrise relay.
       overseer: { title: 'Relay Overseer' },
+      // Phase 14: the one running all of it.
+      director: { title: 'Vane Director' },
     },
   },
 };

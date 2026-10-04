@@ -3,7 +3,8 @@
  * ----------------------------------------------------------------------------
  * Voltspire City (Phase 13): the last town before the championship — its
  * Mender's Hall, Supply Post and landmark, its people, the Storm Hall's door,
- * the post-Sigil Vane hook, and the honest end of Phase 13 at the Aerie Gate.
+ * the post-Sigil Vane hook, and the Aerie Gate — shut at the end of Phase 13,
+ * opened by the Warden Circle in Phase 14.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -61,11 +62,11 @@ function reachable(state) {
 const nextTo = (seen, { x, y }) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => seen.has(key(x + dx, y + dy)));
 
 describe('Voltspire City', () => {
-  it('is reached only over the Stormrise Climb', () => {
+  it('is reached only over the Stormrise Climb — and, once the gate is open, down the Aerie Road', () => {
     const into = Object.values(MAPS)
       .filter((map) => !map.interior && map.exits.some((exit) => exit.to === 'voltspire'))
       .map((map) => map.id);
-    expect([...new Set(into)]).toEqual(['stormriseSummit']);
+    expect([...new Set(into)].sort()).toEqual(['aerieRoad', 'stormriseSummit']);
   });
 
   it('has a Mender, a Supply Post and the Storm Hall, each with a way in and a way back', () => {
@@ -75,10 +76,10 @@ describe('Voltspire City', () => {
     }
   });
 
-  it('lets a player reach every door, person and sign from the pass', () => {
+  it('lets a player reach every door, person and sign from the pass — all but the Aerie Road', () => {
     const state = arrivedState();
     const seen = reachable(state);
-    for (const exit of CITY.exits) expect(seen.has(key(exit.x, exit.y)), exit.to).toBe(true);
+    for (const exit of CITY.exits) expect(seen.has(key(exit.x, exit.y)), exit.to).toBe(exit.to !== 'aerieRoad');
     const conditions = getWorldConditions(state);
     for (const entry of [...CITY.npcs.filter((n) => isNpcPresent(n, conditions)), ...CITY.interactables]) {
       expect(nextTo(seen, entry), entry.id || `${entry.x},${entry.y}`).toBe(true);
@@ -149,50 +150,84 @@ describe('the Supply Post (economy audit)', () => {
   });
 });
 
-describe('where Phase 13 ends: the Aerie Gate', () => {
+describe('the Aerie Gate (Phase 14: the Circle opens it)', () => {
   const gate = CITY.barriers.find((b) => b.id === 'aerieGate');
-
-  it('stays shut whatever the player has done — even with all three Sigils', () => {
+  const envoy = npc('circleEnvoy');
+  const threeSigils = () => {
     const state = arrivedState();
-    for (const id of Object.keys(TRAINERS)) recordTrainerVictory(id, state);
     awardBadge('stormSigil', state);
+    return state;
+  };
+
+  it('stays shut whatever else the player has done, until the flag is set — even with all three Sigils', () => {
+    const state = threeSigils();
+    for (const id of Object.keys(TRAINERS)) recordTrainerVictory(id, state);
     const map = new TileMap(CITY);
     map.setBarrierState(createBarrierState(CITY, { conditions: getWorldConditions(state), state }));
     for (const [x, y] of gate.tiles) expect(map.isWalkable(x, y)).toBe(false);
+    state.flags.aerieOpen = true;
+    map.setBarrierState(createBarrierState(CITY, { conditions: getWorldConditions(state), state }));
+    for (const [x, y] of gate.tiles) expect(map.isWalkable(x, y)).toBe(true);
   });
 
-  it('is opened by a flag nothing in the game sets', () => {
+  it('is opened by exactly one thing: the Circle\'s envoy, who only comes once the third Sigil is won', () => {
     expect(gate.openWhen).toBe('aerieOpen');
     const setters = [];
     for (const map of Object.values(MAPS)) {
       for (const entry of [...(map.npcs || []), ...(map.interactables || [])]) {
         for (const branch of Array.isArray(entry.dialogue) ? entry.dialogue : []) {
-          if (branch && (branch.setFlags || []).includes('aerieOpen')) setters.push(entry.id);
+          if (branch && (branch.setFlags || []).includes('aerieOpen')) setters.push(`${map.id}:${entry.id}`);
         }
       }
     }
     for (const trainer of Object.values(TRAINERS)) {
       if ((trainer.setFlags || []).includes('aerieOpen')) setters.push(trainer.id);
     }
-    expect(setters).toEqual([]);
+    expect(setters).toEqual(['voltspire:circleEnvoy']);
+    expect(isNpcPresent(envoy, getWorldConditions(arrivedState()))).toBe(false);
+    expect(isNpcPresent(envoy, getWorldConditions(threeSigils()))).toBe(true);
   });
 
-  it('has nothing behind it: no exit, and the road ends in rock', () => {
-    expect(CITY.exits.some((exit) => exit.y <= gate.tiles[0][1])).toBe(false);
-    expect(CITY.tiles[0]).toMatch(/^%+$/);
-    expect(Object.keys(MAPS)).not.toContain('aerie');
+  it('asks for three Sigils and nothing else — no level, no coins, no catch', () => {
+    const state = threeSigils();
+    state.party = [];
+    state.money = 0;
+    const said = say(envoy, state);
+    expect(said.setFlags).toEqual(['aerieOpen']);
+    expect(said.pages.join(' ')).toMatch(/Circle recognises you/);
   });
 
-  it('says so, in person and on a sign — before and after the third Sigil', () => {
+  it('sends the envoy and the Vane watcher away once it is open, and only opens once', () => {
+    const state = threeSigils();
+    state.flags.aerieOpen = true;
+    const conditions = getWorldConditions(state);
+    expect(isNpcPresent(envoy, conditions)).toBe(false);
+    expect(isNpcPresent(npc('vaneGateWatcher'), conditions)).toBe(false);
+  });
+
+  it('leads up the Aerie Road through a real exit behind it', () => {
+    const exits = CITY.exits.filter((exit) => exit.to === 'aerieRoad');
+    expect(exits.map((e) => [e.x, e.y])).toEqual([[17, 0], [18, 0]]);
+    expect(MAPS.aerieRoad.spawnPoints[exits[0].spawn]).toBeDefined();
+    expect(CITY.spawnPoints.fromAerieRoad).toEqual({ x: 17, y: 1, facing: 'down' });
+    const state = threeSigils();
+    state.flags.aerieOpen = true;
+    const seen = reachable(state);
+    for (const exit of exits) expect(seen.has(key(exit.x, exit.y))).toBe(true);
+  });
+
+  it('says so, in person and on a sign — before the Sigil, after it, and once it is open', () => {
     const sign = CITY.interactables.find((e) => e.x === 16 && e.y === 3);
-    expect(sign.dialogue.join(' ')).toMatch(/CLOSED/);
     const warden = npc('aerieWarden');
     const before = arrivedState();
-    const after = arrivedState();
-    awardBadge('stormSigil', after);
+    const after = threeSigils();
+    const open = threeSigils();
+    open.flags.aerieOpen = true;
+    expect(say(sign, before).pages.join(' ')).toMatch(/CLOSED/);
+    expect(say(sign, open).pages.join(' ')).toMatch(/OPEN/);
     expect(say(warden, before).pages.join(' ')).toMatch(/three Sigils/);
-    expect(say(warden, after).pages.join(' ')).toMatch(/Circle/);
-    expect(say(warden, after).pages.join(' ')).not.toBe(say(warden, before).pages.join(' '));
+    expect(say(warden, after).pages.join(' ')).toMatch(/Ashby/);
+    expect(say(warden, open).pages.join(' ')).toMatch(/open/);
   });
 });
 

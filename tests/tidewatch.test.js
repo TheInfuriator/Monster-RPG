@@ -103,8 +103,9 @@ describe('Tidewatch Harbor: the town', () => {
     expect(mender.dialogue[0].action).toBe('heal');
     const healers = Object.values(MAPS).filter((map) => (map.npcs || [])
       .some((n) => (n.dialogue || []).some?.((b) => b && b.action === 'heal')));
+    // ...of five, once Voltspire (Phase 13) and the Aerie Lodge (Phase 14) are built.
     expect(healers.map((m) => m.id).sort()).toEqual(
-      ['mendersHall', 'thistlewoodMendersHall', 'tidewatchMendersHall', 'voltspireMendersHall'].sort()
+      ['aerieLodge', 'mendersHall', 'thistlewoodMendersHall', 'tidewatchMendersHall', 'voltspireMendersHall'].sort()
     );
   });
 

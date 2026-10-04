@@ -188,7 +188,8 @@ describe('every Mender\'s Hall has a terminal', () => {
     .some((npc) => (npc.dialogue || []).some?.((b) => b && b.action === 'heal')));
 
   it('one per Hall, on a terminal tile, opened with the storage action', () => {
-    expect(halls.length).toBe(4);
+    // Four Mender's Halls, and the Aerie Lodge's Mender (Phase 14).
+    expect(halls.length).toBe(5);
     for (const map of halls) {
       const terminals = (map.interactables || []).filter((e) => (e.dialogue || []).some?.((b) => b && b.action === 'storage'));
       expect(terminals.length, map.id).toBe(1);

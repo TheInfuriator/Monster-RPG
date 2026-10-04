@@ -211,6 +211,25 @@ export const ENCOUNTER_TABLES = {
     { species: 'thundrel', minLevel: 23, maxLevel: 24, weight: 4 },
   ],
 
+  /**
+   * The Aerie Road — stormgrass and frost scree, one table. Phase 14.
+   *
+   * The strongest wild Aethers in the valley: the Climb's faces, several
+   * grown up, at the levels a player brings to the top of the valley. Two
+   * things stay where Phase 13 put them: Thundrel is the summit's own rare
+   * find, and Stormcrest is only ever met grown, never wild.
+   */
+  aerieRoad: [
+    { species: 'cirrup', minLevel: 25, maxLevel: 27, weight: 24 },
+    { species: 'gustwing', minLevel: 25, maxLevel: 27, weight: 18 },
+    { species: 'rimelet', minLevel: 25, maxLevel: 27, weight: 16 },
+    { species: 'cragmaw', minLevel: 26, maxLevel: 27, weight: 12 },
+    { species: 'voltmane', minLevel: 26, maxLevel: 27, weight: 10 },
+    { species: 'brambelle', minLevel: 26, maxLevel: 27, weight: 10 },
+    { species: 'ironvole', minLevel: 26, maxLevel: 27, weight: 6 },
+    { species: 'marlance', minLevel: 27, maxLevel: 28, weight: 4 },
+  ],
+
   /** The patch on Emberhollow's northern edge — a safe taste of the mechanic. */
   emberhollowEdge: [
     { species: 'nibbit', minLevel: 2, maxLevel: 3, weight: 60 },

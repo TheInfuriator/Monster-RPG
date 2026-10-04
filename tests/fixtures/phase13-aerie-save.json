@@ -1,0 +1,344 @@
+{
+ "_about": [
+  "A Manual Save written by the REAL released Phase 13 build (commit d56ca8c, SAVE_VERSION 3),",
+  "in a browser, through the in-game Save menu: a Grass player holding all three Sigils, standing",
+  "beside the shut Aerie Gate in Voltspire, with a full party, three in storage, nicknames, a burn,",
+  "a spent move and a bag. Not written by hand. tests/aerie.test.js checks it loads unchanged in",
+  "Phase 14, that the gate starts shut, and that the Circle's envoy opens it."
+ ],
+ "save": {
+  "game": "aetheria-chronicles",
+  "version": 3,
+  "metadata": {
+   "source": "manual",
+   "savedAt": 1791135588743,
+   "playerName": "Warden",
+   "mapId": "voltspire",
+   "locationName": "Voltspire City",
+   "badgeCount": 3,
+   "partySize": 6,
+   "caughtCount": 9,
+   "playTimeMs": 15714.369999999988,
+   "lead": {
+    "speciesId": "thornmane",
+    "name": "Bramble",
+    "level": 30
+   }
+  },
+  "gameState": {
+   "playerName": "Warden",
+   "starter": "sproutle",
+   "location": {
+    "mapId": "voltspire",
+    "x": 18,
+    "y": 3,
+    "facing": "right"
+   },
+   "respawn": {
+    "mapId": "mendersHall",
+    "spawn": "default"
+   },
+   "money": 8200,
+   "party": [
+    {
+     "instanceId": "cmuu3vif91v2ctqx",
+     "speciesId": "thornmane",
+     "nickname": "Bramble",
+     "level": 30,
+     "experience": 27000,
+     "currentHp": 89,
+     "moves": [
+      {
+       "id": "leafDart",
+       "pp": 30
+      },
+      {
+       "id": "sapDrain",
+       "pp": 20
+      },
+      {
+       "id": "closeJab",
+       "pp": 20
+      },
+      {
+       "id": "toxicSpore",
+       "pp": 15
+      }
+     ],
+     "status": null,
+     "metAt": null
+    },
+    {
+     "instanceId": "cmuu3vifa2bacftb",
+     "speciesId": "cirrup",
+     "nickname": null,
+     "level": 26,
+     "experience": 17576,
+     "currentHp": 57,
+     "moves": [
+      {
+       "id": "spark",
+       "pp": 1
+      },
+      {
+       "id": "gust",
+       "pp": 30
+      },
+      {
+       "id": "windrush",
+       "pp": 25
+      },
+      {
+       "id": "shockJolt",
+       "pp": 20
+      }
+     ],
+     "status": null,
+     "metAt": null
+    },
+    {
+     "instanceId": "cmuu3vifa3j4bdxu",
+     "speciesId": "zaplet",
+     "nickname": null,
+     "level": 25,
+     "experience": 12500,
+     "currentHp": 54,
+     "moves": [
+      {
+       "id": "spark",
+       "pp": 30
+      },
+      {
+       "id": "staticWeb",
+       "pp": 20
+      },
+      {
+       "id": "quickJab",
+       "pp": 30
+      },
+      {
+       "id": "shockJolt",
+       "pp": 20
+      }
+     ],
+     "status": null,
+     "metAt": null
+    },
+    {
+     "instanceId": "cmuu3vifa4j6f3vp",
+     "speciesId": "rimelet",
+     "nickname": null,
+     "level": 26,
+     "experience": 17576,
+     "currentHp": 63,
+     "moves": [
+      {
+       "id": "cowerCry",
+       "pp": 20
+      },
+      {
+       "id": "rimeShard",
+       "pp": 20
+      },
+      {
+       "id": "gnaw",
+       "pp": 25
+      },
+      {
+       "id": "sharpenClaws",
+       "pp": 25
+      }
+     ],
+     "status": "burn",
+     "metAt": null
+    },
+    {
+     "instanceId": "cmuu3vifa5218xgx",
+     "speciesId": "marlance",
+     "nickname": null,
+     "level": 25,
+     "experience": 15625,
+     "currentHp": 67,
+     "moves": [
+      {
+       "id": "waterJet",
+       "pp": 30
+      },
+      {
+       "id": "quickJab",
+       "pp": 30
+      },
+      {
+       "id": "riptide",
+       "pp": 15
+      }
+     ],
+     "status": null,
+     "metAt": null
+    },
+    {
+     "instanceId": "cmuu3vifa60isqzd",
+     "speciesId": "gloamite",
+     "nickname": null,
+     "level": 24,
+     "experience": 13824,
+     "currentHp": 58,
+     "moves": [
+      {
+       "id": "screech",
+       "pp": 20
+      },
+      {
+       "id": "pebbleVolley",
+       "pp": 20
+      },
+      {
+       "id": "nightRend",
+       "pp": 20
+      },
+      {
+       "id": "hardenShell",
+       "pp": 25
+      }
+     ],
+     "status": null,
+     "metAt": null
+    }
+   ],
+   "storage": [
+    {
+     "instanceId": "cmuu3vifa7boikr5",
+     "speciesId": "brookel",
+     "nickname": null,
+     "level": 22,
+     "experience": 10648,
+     "currentHp": 61,
+     "moves": [
+      {
+       "id": "waterJet",
+       "pp": 30
+      },
+      {
+       "id": "bubbleVeil",
+       "pp": 25
+      },
+      {
+       "id": "mistGuard",
+       "pp": 20
+      }
+     ],
+     "status": null,
+     "metAt": null
+    },
+    {
+     "instanceId": "cmuu3vifa8oueaxv",
+     "speciesId": "ironvole",
+     "nickname": null,
+     "level": 23,
+     "experience": 12167,
+     "currentHp": 65,
+     "moves": [
+      {
+       "id": "mudSlap",
+       "pp": 20
+      },
+      {
+       "id": "rockToss",
+       "pp": 20
+      },
+      {
+       "id": "burrowStrike",
+       "pp": 20
+      }
+     ],
+     "status": null,
+     "metAt": null
+    },
+    {
+     "instanceId": "cmuu3vifa964uwla",
+     "speciesId": "stormcrest",
+     "nickname": "Spark",
+     "level": 25,
+     "experience": 15625,
+     "currentHp": 68,
+     "moves": [
+      {
+       "id": "peck",
+       "pp": 35
+      },
+      {
+       "id": "spark",
+       "pp": 30
+      },
+      {
+       "id": "gust",
+       "pp": 30
+      },
+      {
+       "id": "shockJolt",
+       "pp": 20
+      }
+     ],
+     "status": null,
+     "metAt": null
+    }
+   ],
+   "inventory": {
+    "mendersDraught": 3,
+    "ultraOrb": 2
+   },
+   "badges": [
+    "verdantSigil",
+    "tidalSigil",
+    "stormSigil"
+   ],
+   "flags": {
+    "gotStarter": true,
+    "mistvaultOpen": true,
+    "mistvaultSiphonStopped": true,
+    "stormriseOpen": true,
+    "stormriseRelayStopped": true,
+    "thornwayOpen": true
+   },
+   "defeatedTrainers": {
+    "kestrelRoute2": true,
+    "kestrelStormrise": true,
+    "kestrelThornway": true,
+    "kestrelTidewatch": true,
+    "stormLeaderHalcyon": true,
+    "tidalLeaderOndine": true,
+    "vaneForeman": true,
+    "vaneOverseer": true
+   },
+   "puzzles": {
+    "voltspire": {}
+   },
+   "creatureIndex": {
+    "seen": {
+     "brookel": true,
+     "cirrup": true,
+     "gloamite": true,
+     "ironvole": true,
+     "marlance": true,
+     "rimelet": true,
+     "stormcrest": true,
+     "thornmane": true,
+     "zaplet": true
+    },
+    "caught": {
+     "brookel": true,
+     "cirrup": true,
+     "gloamite": true,
+     "ironvole": true,
+     "marlance": true,
+     "rimelet": true,
+     "stormcrest": true,
+     "thornmane": true,
+     "zaplet": true
+    }
+   },
+   "playTimeMs": 15714.369999999988,
+   "createdAt": 1791135572375
+  }
+ }
+}

@@ -165,6 +165,31 @@ export const CHARACTER_PALETTES = {
     boots: 0x2a241c,
     accent: 0xd8b84a,
   },
+  // The Vane's Director (Phase 14): the survey coat again, but in pale
+  // engineer's canvas, with a black collar and the ring in steel.
+  vaneDirector: {
+    hair: 0x2b2622,
+    skin: 0xc58f68,
+    skinShade: 0xa3714e,
+    tunic: 0xcfc8b6,
+    tunicShade: 0xa9a291,
+    trousers: 0x2a2b30,
+    boots: 0x151518,
+    accent: 0x1c1d21,
+    emblem: 0x5c636d,
+  },
+  // The Champion of the Warden Circle (Phase 14): the Circle's olive cloak
+  // dyed the deep blue of the Aerie sky, with a silver clasp.
+  champion: {
+    hair: 0xe6e1d6,
+    skin: 0xd9a57e,
+    skinShade: 0xb6825b,
+    tunic: 0x2c4f8f,
+    tunicShade: 0x1f3a6b,
+    trousers: 0x2a2d3a,
+    boots: 0x1b1d26,
+    accent: 0xdfe5ea,
+  },
 };
 
 /**

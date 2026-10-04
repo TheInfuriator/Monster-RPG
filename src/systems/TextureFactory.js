@@ -142,6 +142,45 @@ function drawTideWheel(high) {
   return canvas;
 }
 
+/** The Wellspring, low and dim or running high and bright (Phase 14). */
+function drawWellspring(bright) {
+  const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+  rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xc9c4b8);               // the stone rim
+  rect(ctx, 2, 2, 28, 28, bright ? 0x3f8fb0 : 0x24323d);
+  speckle(ctx, bright ? 0x9fe3f0 : 0x34505e, bright ? 12 : 6, 14051, 3);
+  // The three currents, rising: amber, blue and white.
+  const colours = bright ? [0xf2b64a, 0x7fd8ff, 0xffffff] : [0x5e4a2a, 0x2f4d5e, 0x5a6470];
+  colours.forEach((colour, i) => {
+    rect(ctx, 7 + i * 7, bright ? 6 : 16, 3, bright ? 20 : 8, colour);
+  });
+  if (bright) {
+    rect(ctx, 5, 4, 22, 2, 0xd9fffb);
+    rect(ctx, 5, 26, 22, 2, 0xd9fffb);
+  }
+  return canvas;
+}
+
+/** The Convergence engine's housing, its core lit or cold (Phase 14). */
+function drawEngine(lit) {
+  const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
+  rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x3e434b);
+  rect(ctx, 2, 2, 28, 28, 0x5c636d);
+  rect(ctx, 2, 2, 28, 2, 0x8a919b);
+  for (const [x, y] of [[4, 4], [26, 4], [4, 26], [26, 26]]) rect(ctx, x, y, 2, 2, 0x2e3138);
+  rect(ctx, 8, 8, 16, 16, lit ? 0x1f2a33 : 0x22252b);
+  if (lit) {
+    // Three currents wound together, and the glow they throw.
+    rect(ctx, 10, 10, 12, 12, 0x6fd3c8);
+    rect(ctx, 11, 11, 3, 10, 0xf2b64a);
+    rect(ctx, 15, 11, 2, 10, 0xffffff);
+    rect(ctx, 18, 11, 3, 10, 0x7fd8ff);
+  } else {
+    rect(ctx, 10, 10, 12, 12, 0x2b2f36);
+    rect(ctx, 11, 11, 4, 1, 0x4b5059);
+  }
+  return canvas;
+}
+
 // ---------------------------------------------------------------------------
 // Tile generators. Each returns a finished 32x32 canvas.
 // ---------------------------------------------------------------------------
@@ -1254,6 +1293,18 @@ const TILE_GENERATORS = {
 
   // A deliberately hideous magenta/black check, so an unknown map character is
   // impossible to miss on screen.
+  // --- The Aerie and the Hollow (Phase 14) -----------------------------------
+  // The Wellspring: a pool in a ring of pale stone. Low and still while the
+  // Vane draw on it — three faint colours under dark water...
+  'tile-wellspring': () => drawWellspring(false),
+  // ...and running high once the Convergence is stopped: the earth's amber,
+  // the sea's blue and the storm's white all rising together.
+  'tile-wellspring-bright': () => drawWellspring(true),
+  // The Convergence engine: a steel housing round a core. Lit, it shows the
+  // three currents wound together; cold, the core is dark glass.
+  'tile-convergence-engine': () => drawEngine(true),
+  'tile-convergence-engine-cold': () => drawEngine(false),
+
   'tile-void': () => {
     const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
     rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xff00ff);

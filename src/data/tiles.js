@@ -179,6 +179,18 @@ export const TILE_DEFINITIONS = {
   // A wire run across the floor: dark, and the lit version a glow draws.
   'd': { id: 'wire', solid: false, texture: 'tile-wire' },
   '<': { id: 'wire_lit', solid: false, texture: 'tile-wire-lit' },
+
+  // --- The Aerie and the Hollow (Phase 14) -----------------------------------
+  //
+  // The Wellspring, where the valley's three currents rise together — low
+  // and dim while the Hollow Vane draw on it; a glow draws the bright version
+  // over it once the Convergence is stopped.
+  '4': { id: 'wellspring', solid: true, texture: 'tile-wellspring' },
+  '}': { id: 'wellspring_bright', solid: true, texture: 'tile-wellspring-bright' },
+  // The Convergence engine in the Hollow: lit while it runs, and the cold
+  // version a glow draws over it once it is shut down.
+  '`': { id: 'convergence_engine', solid: true, texture: 'tile-convergence-engine' },
+  '/': { id: 'convergence_engine_cold', solid: true, texture: 'tile-convergence-engine-cold' },
 };
 
 /** The tile used when a map contains a character this file does not define. */
