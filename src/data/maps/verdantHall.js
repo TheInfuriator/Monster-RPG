@@ -237,6 +237,12 @@ export const verdantHall = {
           // Gated on the DEFEAT record, not on the Sigil. Beating her is what
           // must stop her offering another fight; the Sigil is the reward for
           // it, and a reward should never be what closes a rematch.
+          when: 'storyComplete',
+          pages: [
+            'Champion? Of course you are. My hedges have never been so thoroughly embarrassed.',
+          ],
+        },
+        {
           when: 'trainer:verdantLeaderFern',
           pages: [
             'The Sigil suits you. Do not let it make you lazy.',

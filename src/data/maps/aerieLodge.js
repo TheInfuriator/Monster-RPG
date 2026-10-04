@@ -3,9 +3,9 @@
  * ----------------------------------------------------------------------------
  * The last place to rest before the Circle's Trial (Phase 14): a Mender's
  * Hall and a Supply Post under one copper roof, with a storage terminal in
- * the corner. No new code — Mender Brann heals with the same `action: 'heal'`
+ * the corner. No new code — Mender Tove heals with the same `action: 'heal'`
  * (so a loss anywhere on the Aerie, in the Hollow or in the Trial wakes you
- * here), Quill opens `shop:aerieLodge`, and the terminal is every Mender's
+ * here), Hettie opens `shop:aerieLodge`, and the terminal is every Mender's
  * Hall's terminal.
  */
 
@@ -22,7 +22,7 @@ export const aerieLodge = {
     '_I__________I_', // 1
     '||||||||||||||', // 2
     '_OHHOOO?OVVVO_', // 3  the mending array; the storage terminal (7,3); the shop's shelves
-    '_OOOOOOOOOOOO_', // 4  Mender Brann (2,4); Quill (10,4)
+    '_OOOOOOOOOOOO_', // 4  Mender Tove (2,4); Hettie (10,4)
     '_CCCCOOOOCCCC_', // 5  two counters
     '_OOOOOOOOOOAP_', // 6  a bench by the fire
     '_OOOOOOMOOOOO_', // 7  door mat at x7
@@ -38,7 +38,7 @@ export const aerieLodge = {
   npcs: [
     {
       id: 'aerieMender',
-      name: 'Mender Brann',
+      name: 'Mender Tove',
       x: 2,
       y: 4,
       facing: 'down',
@@ -56,7 +56,7 @@ export const aerieLodge = {
     },
     {
       id: 'aerieShopkeeper',
-      name: 'Quill',
+      name: 'Hettie',
       x: 10,
       y: 4,
       facing: 'down',
@@ -73,7 +73,7 @@ export const aerieLodge = {
     },
     {
       id: 'aerieLodgeGuest',
-      name: 'Old Warden Pell',
+      name: 'Old Warden Abner',
       x: 10,
       y: 6,
       facing: 'left',

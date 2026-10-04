@@ -36,7 +36,7 @@ const key = (x, y) => `${x},${y}`;
 const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const say = (entry, state) => resolveDialogue(entry.dialogue, getWorldConditions(state));
 const top = (id) => Math.max(...TRAINERS[id].party.map((e) => e.level));
-const WARDENS = ['circleAshby', 'circleMerrow', 'circleHale'];
+const WARDENS = ['circleAshby', 'circleIsla', 'circleHale'];
 
 /**
  * The story at a milestone, built through the real systems.
@@ -140,7 +140,7 @@ describe('Kestrel, the fifth and last time', () => {
 });
 
 describe('the Circle\'s Trial', () => {
-  const gates = { earthGate: 'circleAshby', seaGate: 'circleMerrow', skyGate: 'circleHale' };
+  const gates = { earthGate: 'circleAshby', seaGate: 'circleIsla', skyGate: 'circleHale' };
 
   it('opens its doors on the Aerie only after Kestrel — so never before the Hollow', () => {
     const doors = AERIE.barriers.find((b) => b.id === 'trialDoors');
@@ -165,7 +165,7 @@ describe('the Circle\'s Trial', () => {
     // ...and each win opens the way to the next.
     recordTrainerVictory('circleAshby', state);
     expect(wardens.map((w) => nextTo(reach(state), w))).toEqual([true, true, false]);
-    recordTrainerVictory('circleMerrow', state);
+    recordTrainerVictory('circleIsla', state);
     expect(wardens.map((w) => nextTo(reach(state), w))).toEqual([true, true, true]);
     expect(nextTo(reach(state), champion)).toBe(false);
     recordTrainerVictory('circleHale', state);
@@ -201,8 +201,8 @@ describe('the Circle\'s Trial', () => {
   });
 
   it('climbs: each Warden stronger than the last, and the Champion strongest of all', () => {
-    expect(top('circleMerrow')).toBeGreaterThanOrEqual(top('circleAshby'));
-    expect(top('circleHale')).toBeGreaterThanOrEqual(top('circleMerrow'));
+    expect(top('circleIsla')).toBeGreaterThanOrEqual(top('circleAshby'));
+    expect(top('circleHale')).toBeGreaterThanOrEqual(top('circleIsla'));
     for (const id of [...WARDENS, 'kestrelAerie', 'vaneDirector']) expect(top('circleChampion')).toBeGreaterThan(top(id));
   });
 });

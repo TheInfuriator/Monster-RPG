@@ -59,7 +59,7 @@ export const aerieRoad = {
     '%%%5--52222225555522222222@%%%', // 16  an item in the scree (25,16)
     '%%%5--522222255555222222225%%%', // 17
     '%%%5--522222255555222222225%%%', // 18
-    '%%%5--555555555555222222225%%%', // 19  Summit Guide Ysolde at (9,19)
+    '%%%5--555555555555222222225%%%', // 19  Summit Guide Orla at (9,19)
     '%%%5------------z5555555555%%%', // 20  the switchback
     '%%%5------------z5555555555%%%', // 21
     '%%%55555555555--z5555555555%%%', // 22
@@ -125,7 +125,7 @@ export const aerieRoad = {
     },
     {
       id: 'aerieGuide',
-      name: 'Ysolde',
+      name: 'Orla',
       trainer: 'aerieGuide',
       sightRange: 2,
       x: 9,

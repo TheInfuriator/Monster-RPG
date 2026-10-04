@@ -245,6 +245,12 @@ export const tidalHall = {
       movement: 'static',
       dialogue: [
         {
+          when: 'storyComplete',
+          pages: [
+            'Champion of the Circle. The tide came in on time last night, for the first time in a month. I suspect that was you as well.',
+          ],
+        },
+        {
           when: 'trainer:tidalLeaderOndine',
           pages: [
             'You carry the tide well. Keep the Sigil dry.',

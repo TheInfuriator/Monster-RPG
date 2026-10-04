@@ -250,6 +250,13 @@ export const stormHall = {
       movement: 'static',
       dialogue: [
         {
+          when: 'storyComplete',
+          pages: [
+            'The Champion, in my Hall. I told the Circle you would be. Well — I told myself, at any rate.',
+            'The spire has not missed a storm since you came down from the Aerie. Neither have my coils.',
+          ],
+        },
+        {
           when: 'trainer:stormLeaderHalcyon',
           pages: [
             'Three Sigils. Every Leader in the valley has now said the same thing about you.',

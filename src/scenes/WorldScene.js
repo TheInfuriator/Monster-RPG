@@ -20,6 +20,7 @@
  */
 
 import Phaser from 'phaser';
+import { playSfx } from '../systems/SoundEffects.js';
 import {
   SCENES,
   GAME_WIDTH,
@@ -758,6 +759,7 @@ export class WorldScene extends Phaser.Scene {
   /** A "!" above a trainer's head. Destroyed as soon as they start walking. */
   showTrainerAlert(npc) {
     this.clearTrainerAlert();
+    playSfx(this, 'alert');
 
     this.trainerAlert = this.add
       .text(npc.x, npc.y - TILE_SIZE - 6, '!', {
@@ -965,6 +967,7 @@ export class WorldScene extends Phaser.Scene {
    */
   showBadgeAward(badge) {
     this.cameras.main.flash(240, 255, 255, 255);
+    playSfx(this, 'sigil');
 
     const panel = this.add.container(GAME_WIDTH / 2, 108)
       .setScrollFactor(0)
@@ -1666,6 +1669,7 @@ export class WorldScene extends Phaser.Scene {
    */
   healAtMender() {
     const outcome = healParty(gameState);
+    if (gameState.party.length > 0) playSfx(this, 'heal');
     this.requestAutosave('heal');
 
     // Healing here makes this your recovery point. Every future Mender's Hall

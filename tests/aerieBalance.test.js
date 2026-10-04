@@ -28,7 +28,7 @@ import { winRate } from './helpers/battleSim.js';
 
 const ROAD = ['aerieAce', 'aerieGuide', 'aerieHopeful'];
 const HOLLOW = ['vaneOdile', 'vaneVosslerHollow', 'vaneBrack', 'vaneCraleHollow', 'vaneRusk', 'vaneDirector'];
-const TRIAL = ['circleAshby', 'circleMerrow', 'circleHale', 'circleChampion'];
+const TRIAL = ['circleAshby', 'circleIsla', 'circleHale', 'circleChampion'];
 const FINALE = [...HOLLOW, 'kestrelAerie', ...TRIAL];
 
 const walks = {};
@@ -79,7 +79,7 @@ describe('from the Storm Sigil to the Champion', () => {
     it(`${starter}: the Trial climbs to the Champion — the hardest of the four, never a wall`, () => {
       const champion = rate('circleChampion', starter);
       expect(champion).toBeGreaterThanOrEqual(0.3);
-      for (const id of ['circleAshby', 'circleMerrow', 'circleHale']) {
+      for (const id of ['circleAshby', 'circleIsla', 'circleHale']) {
         expect(rate(id, starter), id).toBeGreaterThanOrEqual(champion);
       }
     });

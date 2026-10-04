@@ -42,9 +42,9 @@ export class BootScene extends Phaser.Scene {
     );
 
     // The master volume setting drives Phaser's sound manager, now and
-    // whenever the player changes it. There is no music or sound yet, so for
-    // now this is the whole of it: when audio arrives, every sound played
-    // through `this.sound` is already at the player's chosen volume. This
+    // whenever the player changes it. Every sound in the game (Phase 14,
+    // src/systems/SoundEffects.js) is synthesised into that manager's master
+    // chain, so this one setting turns all of them up, down or off. This
     // scene runs exactly once, so the listener is added exactly once.
     const applyVolume = (settings) => {
       this.game.sound.volume = settings.masterVolume / 100;

@@ -68,9 +68,9 @@ export const circleHall = {
     '_]]]]]]]]]]]]]]]]_', //  7  the sky chamber
     '_]]]]]]]]]]]]]]]]_', //  8  Warden Hale at (8,8)
     '_]]]]]]]]]]]]]]]]_', //  9
-    '________88________', // 10  GATE 2 (8,10),(9,10): opens once Warden Merrow is beaten
+    '________88________', // 10  GATE 2 (8,10),(9,10): opens once Warden Isla is beaten
     '_))))))))))))))))_', // 11  the sea chamber
-    '_))))))))))))))))_', // 12  Warden Merrow at (8,12)
+    '_))))))))))))))))_', // 12  Warden Isla at (8,12)
     '_))))))))))))))))_', // 13
     '________88________', // 14  GATE 1 (8,14),(9,14): opens once Warden Ashby is beaten
     '_cccccccccccccccc_', // 15  the earth chamber
@@ -90,7 +90,7 @@ export const circleHall = {
     },
     {
       id: 'seaGate', name: 'the sea chamber\'s gate', tile: 'G', tiles: [[8, 10], [9, 10]],
-      closed: true, openWhen: 'trainer:circleMerrow',
+      closed: true, openWhen: 'trainer:circleIsla',
     },
     {
       id: 'skyGate', name: 'the sky chamber\'s gate', tile: 'G', tiles: [[8, 6], [9, 6]],
@@ -132,9 +132,9 @@ export const circleHall = {
       ],
     },
     trialWarden('circleAshby', 'Warden Ashby', 16, [
-      'Go on up. Merrow is waiting, and the sea does not like to be kept waiting.',
+      'Go on up. Isla is waiting, and the sea does not like to be kept waiting.',
     ]),
-    trialWarden('circleMerrow', 'Warden Merrow', 12, [
+    trialWarden('circleIsla', 'Warden Isla', 12, [
       'The tide always comes back. So will I, next year. Go on — Hale is next.',
     ]),
     trialWarden('circleHale', 'Warden Hale', 8, [

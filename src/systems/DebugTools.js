@@ -776,7 +776,7 @@ export function installDebugTools(game) {
       });
       stages.kestrelFinal = after(stages.core, { map: 'aerie', spawn: 'fromLodge', trainers: ['vaneDirector'], flags: ['convergenceStopped'] });
       stages.circleHall = after(stages.kestrelFinal, { map: 'circleHall', spawn: 'default', trainers: ['kestrelAerie'] });
-      stages.champion = after(stages.circleHall, { trainers: ['circleAshby', 'circleMerrow', 'circleHale'] });
+      stages.champion = after(stages.circleHall, { trainers: ['circleAshby', 'circleIsla', 'circleHale'] });
       stages.postStory = after(stages.champion, {
         map: 'aerie', spawn: 'afterCredits', trainers: ['circleChampion'], flags: ['championshipWon', 'storyComplete'],
       });

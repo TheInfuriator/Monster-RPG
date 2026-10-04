@@ -26,6 +26,7 @@
  */
 
 import Phaser from 'phaser';
+import { attachMenuSounds } from '../systems/SoundEffects.js';
 import {
   SCENES,
   GAME_WIDTH,
@@ -36,7 +37,7 @@ import {
   FONT_FAMILY,
   DEPTHS,
 } from '../config/gameConfig.js';
-import { CONTROL_HINTS } from '../config/controls.js';
+import { CONTROL_HINTS, KEY_BINDINGS } from '../config/controls.js';
 import { InputManager } from '../core/InputManager.js';
 import { Menu } from '../ui/Menu.js';
 import { SettingsPanel } from '../ui/SettingsPanel.js';
@@ -69,6 +70,7 @@ export class TitleScene extends Phaser.Scene {
     // `this.controls` (our action wrapper) is deliberately NOT called `this.input`,
     // because Phaser already owns `scene.input` for its own keyboard/mouse plugin.
     this.controls = new InputManager(this);
+    attachMenuSounds(this, KEY_BINDINGS);
 
     this.buildBackdrop();
     this.buildTitle();

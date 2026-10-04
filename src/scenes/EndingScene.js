@@ -23,6 +23,7 @@ import {
 } from '../config/gameConfig.js';
 import { creatureTextureKey } from '../config/assets.js';
 import { InputManager } from '../core/InputManager.js';
+import { playSfx } from '../systems/SoundEffects.js';
 
 /** A page must be on screen this long before a press will turn it. */
 const PAGE_HOLD_MS = 450;
@@ -75,6 +76,7 @@ export class EndingScene extends Phaser.Scene {
 
     this.showPage(0);
     this.cameras.main.fadeIn(FADE_MS, 0, 0, 0);
+    playSfx(this, 'fanfare');
   }
 
   update(time) {
@@ -148,6 +150,7 @@ export class EndingScene extends Phaser.Scene {
       for (const [x, y] of [[300, 150], [312, 156], [326, 148], [340, 158], [352, 152], [120, 140], [132, 146]]) {
         g.fillRect(x, y, 3, 3);
       }
+      this.clipPicture();
       return;
     }
 
@@ -171,6 +174,7 @@ export class EndingScene extends Phaser.Scene {
         g.fillStyle(colour, 0.85);
         g.fillRect(GAME_WIDTH / 2 + dx - 3, 40, 6, 150);
       });
+      this.clipPicture();
       return;
     }
 
@@ -182,11 +186,19 @@ export class EndingScene extends Phaser.Scene {
     g.fillStyle(0xf2d75c, 1);
     g.fillRect(232, 150, 16, 22);
 
+    this.clipPicture();
+
     if (kind === 'partner' && this.partnerSpecies) {
       this.partner = this.add
         .image(GAME_WIDTH / 2 + 96, 168, creatureTextureKey(this.partnerSpecies))
         .setOrigin(0.5, 1);
     }
+  }
+
+  /** Keep the picture in its frame: nothing spills into the words below it. */
+  clipPicture() {
+    this.picture.fillStyle(COLORS.ink, 1);
+    this.picture.fillRect(0, PICTURE_HEIGHT, GAME_WIDTH, GAME_HEIGHT - PICTURE_HEIGHT);
   }
 
   finish() {

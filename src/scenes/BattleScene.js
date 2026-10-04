@@ -20,6 +20,8 @@
  */
 
 import Phaser from 'phaser';
+import { playSfx, attachMenuSounds } from '../systems/SoundEffects.js';
+import { KEY_BINDINGS } from '../config/controls.js';
 import {
   SCENES, GAME_WIDTH, GAME_HEIGHT, COLORS, TEXT_STYLES, DEPTHS,
 } from '../config/gameConfig.js';
@@ -83,6 +85,7 @@ export class BattleScene extends Phaser.Scene {
 
   create() {
     this.controls = new InputManager(this);
+    attachMenuSounds(this, KEY_BINDINGS);
     // The bag goes in first so the engine can spend an orb itself; a config may
     // still override it, which is what the unit tests do.
     this.engine = new BattleEngine({
@@ -338,6 +341,7 @@ export class BattleScene extends Phaser.Scene {
 
     // A short shake so a hit is felt, not just read.
     if (amount > 0) {
+      playSfx(this, 'hit');
       this.tweens.add({
         targets: sprite,
         x: sprite.x + (side === 'player' ? -8 : 8),
@@ -358,6 +362,7 @@ export class BattleScene extends Phaser.Scene {
 
   async animateFaint(side) {
     const sprite = side === 'player' ? this.playerSprite : this.opponentSprite;
+    playSfx(this, 'faint');
 
     await new Promise((resolve) => {
       this.tweens.add({
@@ -429,6 +434,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (event.captured) {
+      playSfx(this, 'caught');
       // A short settle, then the orb stays shut.
       await this.pause(CAPTURE_UI.clickPause);
       this.tweens.add({ targets: orb, alpha: 0.85, duration: 160 });
@@ -797,6 +803,7 @@ export class BattleScene extends Phaser.Scene {
 
       if (gain.levelsGained > 0) {
         this.playerHud.refresh();
+        playSfx(this, 'levelUp');
         await this.showMessage(`${name} grew to Lv. ${gain.toLevel}!`);
       }
 
@@ -898,6 +905,7 @@ export class BattleScene extends Phaser.Scene {
 
     const outcome = evolveCreature(creature, targetSpeciesId);
     if (!outcome.evolved) return;
+    playSfx(this, 'evolve');
 
     // Experience is shared, so the creature that evolves is not always the one
     // standing on the field. Only redraw the field for the creature that is

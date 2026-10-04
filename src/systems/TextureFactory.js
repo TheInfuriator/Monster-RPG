@@ -142,42 +142,49 @@ function drawTideWheel(high) {
   return canvas;
 }
 
-/** The Wellspring, low and dim or running high and bright (Phase 14). */
+/**
+ * The Wellspring, low and dim or running high and bright (Phase 14).
+ *
+ * Seamless: every edge of the tile matches every other, so a block of them
+ * reads as one pool (its rim is the flagstones round it). Three currents rise
+ * through it in three colours — the earth's amber, the sea's blue and the
+ * storm's white — as streaks that run on from tile to tile.
+ */
 function drawWellspring(bright) {
   const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
-  rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0xc9c4b8);               // the stone rim
-  rect(ctx, 2, 2, 28, 28, bright ? 0x3f8fb0 : 0x24323d);
-  speckle(ctx, bright ? 0x9fe3f0 : 0x34505e, bright ? 12 : 6, 14051, 3);
-  // The three currents, rising: amber, blue and white.
-  const colours = bright ? [0xf2b64a, 0x7fd8ff, 0xffffff] : [0x5e4a2a, 0x2f4d5e, 0x5a6470];
+  rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, bright ? 0x3f8fb0 : 0x22303a);
+  speckle(ctx, bright ? 0x8fdcef : 0x2e4450, bright ? 14 : 8, 14051, 2);
+  const colours = bright ? [0xf2b64a, 0x9fe3ff, 0xffffff] : [0x4a3d27, 0x2b4656, 0x4b545e];
+  // Short streaks, offset so the rows of tiles stagger like rising water.
   colours.forEach((colour, i) => {
-    rect(ctx, 7 + i * 7, bright ? 6 : 16, 3, bright ? 20 : 8, colour);
+    const x = 5 + i * 10;
+    rect(ctx, x, (i * 11) % TILE_SIZE, 2, bright ? 12 : 6, colour);
+    rect(ctx, x + 1, ((i * 11) + 18) % TILE_SIZE, 2, bright ? 9 : 4, colour);
   });
-  if (bright) {
-    rect(ctx, 5, 4, 22, 2, 0xd9fffb);
-    rect(ctx, 5, 26, 22, 2, 0xd9fffb);
-  }
+  if (bright) speckle(ctx, 0xffffff, 6, 14052, 1);
   return canvas;
 }
 
-/** The Convergence engine's housing, its core lit or cold (Phase 14). */
+/**
+ * The Convergence engine (Phase 14), seamless like the Wellspring so a block
+ * of tiles reads as one machine: a steel body with three conduits running
+ * straight through it — lit with the three currents while it runs, dark
+ * glass once it is shut down.
+ */
 function drawEngine(lit) {
   const { canvas, ctx } = makeCanvas(TILE_SIZE, TILE_SIZE);
-  rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x3e434b);
-  rect(ctx, 2, 2, 28, 28, 0x5c636d);
-  rect(ctx, 2, 2, 28, 2, 0x8a919b);
-  for (const [x, y] of [[4, 4], [26, 4], [4, 26], [26, 26]]) rect(ctx, x, y, 2, 2, 0x2e3138);
-  rect(ctx, 8, 8, 16, 16, lit ? 0x1f2a33 : 0x22252b);
-  if (lit) {
-    // Three currents wound together, and the glow they throw.
-    rect(ctx, 10, 10, 12, 12, 0x6fd3c8);
-    rect(ctx, 11, 11, 3, 10, 0xf2b64a);
-    rect(ctx, 15, 11, 2, 10, 0xffffff);
-    rect(ctx, 18, 11, 3, 10, 0x7fd8ff);
-  } else {
-    rect(ctx, 10, 10, 12, 12, 0x2b2f36);
-    rect(ctx, 11, 11, 4, 1, 0x4b5059);
-  }
+  rect(ctx, 0, 0, TILE_SIZE, TILE_SIZE, 0x4b5059);
+  rect(ctx, 0, 14, TILE_SIZE, 4, 0x3e434b);                 // a seam band
+  for (const x of [3, 15, 27]) rect(ctx, x, 15, 2, 2, 0x8a919b);   // rivets on it
+  const conduits = lit ? [0xf2b64a, 0xffffff, 0x7fd8ff] : [0x2b2f36, 0x2b2f36, 0x2b2f36];
+  conduits.forEach((colour, i) => {
+    const x = 5 + i * 9;
+    rect(ctx, x - 1, 0, 6, 14, 0x2e3138);
+    rect(ctx, x - 1, 18, 6, 14, 0x2e3138);
+    rect(ctx, x, 0, 4, 14, colour);
+    rect(ctx, x, 18, 4, 14, colour);
+  });
+  if (lit) speckle(ctx, 0xc7f1ec, 4, 14053, 1);
   return canvas;
 }
 

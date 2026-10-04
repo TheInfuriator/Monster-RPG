@@ -233,7 +233,7 @@ export const aerie = {
     },
     {
       id: 'hollowWarden',
-      name: 'Warden Breck',
+      name: 'Warden Dace',
       x: 31,
       y: 13,
       facing: 'down',

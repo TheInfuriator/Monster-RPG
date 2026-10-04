@@ -1079,7 +1079,7 @@ export const TRAINERS = {
 
   aerieGuide: {
     id: 'aerieGuide',
-    name: 'Ysolde',
+    name: 'Orla',
     title: 'Summit Guide',
     rewardMoney: 1420,
     party: [
@@ -1353,13 +1353,13 @@ export const TRAINERS = {
       'The earth\'s current runs under everything: slow, deep, and very hard to move. Let us see if you can.',
     ],
     outro: [
-      'Moved. Well done. The gate is open — Merrow is next.',
+      'Moved. Well done. The gate is open — Isla is next.',
     ],
   },
 
-  circleMerrow: {
-    id: 'circleMerrow',
-    name: 'Merrow',
+  circleIsla: {
+    id: 'circleIsla',
+    name: 'Isla',
     title: 'Sea Warden',
     rewardMoney: 1850,
     party: [
@@ -1369,7 +1369,7 @@ export const TRAINERS = {
       { species: 'marlance', level: 35 },
     ],
     intro: [
-      'Merrow, Sea Warden of the Circle. I kept the harbour\'s current for thirty years, until the Vane bottled it.',
+      'Isla, Sea Warden of the Circle. I kept the harbour\'s current for thirty years, until the Vane bottled it.',
       'You poured it back. So I will not go easy on you — that would be an insult.',
     ],
     outro: [

@@ -16,6 +16,8 @@
  */
 
 import Phaser from 'phaser';
+import { attachMenuSounds } from '../systems/SoundEffects.js';
+import { KEY_BINDINGS } from '../config/controls.js';
 import {
   SCENES,
   GAME_WIDTH,
@@ -61,6 +63,7 @@ export class StarterSelectScene extends Phaser.Scene {
 
   create() {
     this.controls = new InputManager(this);
+    attachMenuSounds(this, KEY_BINDINGS);
 
     this.buildBackdrop();
     this.buildCards();

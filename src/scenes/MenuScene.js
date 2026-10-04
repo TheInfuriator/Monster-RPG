@@ -33,6 +33,8 @@
  */
 
 import Phaser from 'phaser';
+import { attachMenuSounds } from '../systems/SoundEffects.js';
+import { KEY_BINDINGS } from '../config/controls.js';
 import {
   SCENES, GAME_WIDTH, GAME_HEIGHT, COLORS, CSS_COLORS, TEXT_STYLES, FONT_FAMILY, DEPTHS,
 } from '../config/gameConfig.js';
@@ -172,6 +174,7 @@ export class MenuScene extends Phaser.Scene {
 
   create() {
     this.controls = new InputManager(this);
+    attachMenuSounds(this, KEY_BINDINGS);
 
     // A dim wash over the paused world, so it reads as "on top of" rather than
     // "instead of".
@@ -526,16 +529,19 @@ export class MenuScene extends Phaser.Scene {
       const y = 154 + i * 22;
       if (!move) return;
 
+      // Line one: the type, the name, and the numbers at the right edge.
+      // Line two: the description, with the whole width to itself — sharing
+      // a line with the numbers, a long one ran into them (Phase 14 UI audit).
       this.typeBadge(124, y + 1, move.type);
       this.text(174, y, move.name, { fontSize: '11px' });
-      this.text(174, y + 11, move.description, { fontSize: '8px', color: CSS_COLORS.parchmentDim });
 
-      const power = move.power ? `Pow ${move.power}` : 'Pow  -';
-      const accuracy = move.accuracy === null ? 'Acc  -' : `Acc ${Math.round(move.accuracy * 100)}`;
-      this.text(342, y, `${move.category.slice(0, 3).toUpperCase()}  ${power}  ${accuracy}`, {
+      const power = move.power ? `Pow ${move.power}` : 'Pow -';
+      // Accuracy is stored as a percentage already (100 = never misses).
+      const accuracy = move.accuracy === null ? 'Acc -' : `Acc ${move.accuracy}`;
+      this.text(456, y + 2, `${move.category.slice(0, 3).toUpperCase()}  ${power}  ${accuracy}   PP ${entry.pp}/${entry.maxPp}`, {
         fontSize: '8px', color: CSS_COLORS.parchmentDim,
-      });
-      this.text(342, y + 11, `PP ${entry.pp}/${entry.maxPp}`, { fontSize: '9px' });
+      }).setOrigin(1, 0);
+      this.text(124, y + 11, move.description, { fontSize: '8px', color: CSS_COLORS.parchmentDim });
     });
 
     // --- Where it came from, and where it is going ---

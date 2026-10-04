@@ -46,6 +46,14 @@ export const playerHouse = {
       movement: 'lookAround',
       dialogue: [
         {
+          // Phase 14: home again, after it is all over.
+          when: 'storyComplete',
+          pages: [
+            'Champion of the Warden Circle! The whole town knows. Old Rell has told everyone twice.',
+            'Come here. ...I am so proud of you. Now sit down — the kettle is on.',
+          ],
+        },
+        {
           when: 'gotStarter',
           pages: [
             'Look at you — a Warden with a partner of your own.',

@@ -363,7 +363,7 @@ export function walkToStormSigil(starter, options = {}) {
  * (Phase 14), in order, until it is six strong: first an answer to each of
  * the Trial's Wardens the team has none for — the earth (water and grass hit
  * it), the sea (electric and grass), the sky (rock and ice) — then whatever
- * else the road offers. Old Warden Pell in the Lodge says as much in the
+ * else the road offers. Old Warden Abner in the Lodge says as much in the
  * game.
  */
 export const AERIE_CATCHES = {
@@ -443,7 +443,7 @@ export function walkToChampion(starter, {
 
   trainer('kestrelAerie', 4700);
   trainer('circleAshby', 4800);
-  trainer('circleMerrow', 4900);
+  trainer('circleIsla', 4900);
   trainer('circleHale', 5000);
   trainer('circleChampion', 5100);
 

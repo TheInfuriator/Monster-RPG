@@ -41,6 +41,9 @@ export const wardensLodge = {
       facing: 'down',
       sprite: 'researcher',
       movement: 'static',
+      // Phase 14: once the story is complete, Wick has gone up to the Aerie
+      // to meet the new Champion (src/data/maps/aerie.js).
+      absentWhen: 'storyComplete',
       dialogue: [
         {
           // After the starter is chosen, Wick has nothing left to hand over.
@@ -83,6 +86,14 @@ export const wardensLodge = {
       sprite: 'villager',
       movement: 'lookAround',
       dialogue: [
+        {
+          when: 'storyComplete',
+          action: 'practiceBattle',
+          pages: [
+            'The Professor? Gone — straight up the valley to the Aerie the moment the news came down. She took the Thornway at a run!',
+            'Care for a practice bout, Champion? My Nibbit is very nervous about it.',
+          ],
+        },
         {
           // Once you have a partner, Bly offers a practice bout. It is
           // repeatable on purpose and awards nothing, so it can never be

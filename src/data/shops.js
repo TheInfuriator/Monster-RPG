@@ -150,7 +150,7 @@ export const SHOPS = {
   aerieLodge: {
     id: 'aerieLodge',
     name: 'Aerie Lodge',
-    keeper: 'Quill',
+    keeper: 'Hettie',
     greeting: 'Carried up on my own back. Priced accordingly.',
     stock: [
       { item: 'superPotion' },

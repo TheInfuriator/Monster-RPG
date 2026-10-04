@@ -138,6 +138,13 @@ export const emberhollow = {
       movement: 'static',
       dialogue: [
         {
+          when: 'storyComplete',
+          pages: [
+            'The pond is warmer this week. The current is running strong again — all the way down here.',
+            'That will be your doing, Champion. I have told everyone. Twice.',
+          ],
+        },
+        {
           pages: [
             'This pond has never once frozen. Not in ninety years.',
             'The current runs close to the surface here. You can feel it, if you stand still.',
