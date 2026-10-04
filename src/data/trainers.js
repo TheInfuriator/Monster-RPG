@@ -1363,10 +1363,10 @@ export const TRAINERS = {
     title: 'Sea Warden',
     rewardMoney: 1850,
     party: [
-      { species: 'barnaclaw', level: 33 },
-      { species: 'rimelet', level: 34 },
-      { species: 'brookel', level: 34 },
-      { species: 'marlance', level: 35 },
+      { species: 'barnaclaw', level: 32 },
+      { species: 'rimelet', level: 33 },
+      { species: 'brookel', level: 33 },
+      { species: 'marlance', level: 34 },
     ],
     intro: [
       'Isla, Sea Warden of the Circle. I kept the harbour\'s current for thirty years, until the Vane bottled it.',

@@ -38,7 +38,7 @@ const walk = (starter, options = {}) => {
   return walks[id];
 };
 const SWITCHER = { switching: true };
-const rate = (id, starter, seeds = 20) =>
+const rate = (id, starter, seeds = 40) =>
   winRate(id, walk(starter, SWITCHER).before[id], { seeds, starter, switching: true });
 
 describe('from the Storm Sigil to the Champion', () => {
