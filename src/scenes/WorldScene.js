@@ -262,6 +262,20 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /**
+   * Bring every barrier up to date with the story, animating only the ones
+   * that actually changed — a gate that was already shut does not flicker.
+   */
+  syncChangedBarriers() {
+    const next = createBarrierState(this.map.definition, {
+      conditions: getWorldConditions(gameState), state: gameState,
+    });
+    const changed = this.map.barriers
+      .map((b) => b.id)
+      .filter((id) => Boolean(next[id]) !== this.map.isBarrierClosed(id));
+    this.syncBarriers({ animate: changed });
+  }
+
+  /**
    * Draw the sky this map shows under these conditions. Nothing is rebuilt
    * unless the sky actually changed, so calling it after every flag is free.
    */
@@ -838,7 +852,7 @@ export class WorldScene extends Phaser.Scene {
     // trainer DATA. Nothing here names Fern or Kestrel.
     this.startDialogue(this.trainerLines(trainer.outro), {
       speaker: getTrainerDisplayName(trainer),
-      onDone: () => this.finishTrainerWin(trainer, flagsSet),
+      onDone: () => this.finishTrainerWin(trainer),
     });
     return true;
   }
@@ -855,10 +869,13 @@ export class WorldScene extends Phaser.Scene {
    * and control comes back. The player stays frozen throughout, so none of it
    * can be walked away from or saved half-way.
    */
-  finishTrainerWin(trainer, flagsSet = []) {
-    if (flagsSet.length > 0 && this.map.barriers.length > 0) {
-      this.syncBarriers({ animate: this.map.barriers.map((b) => b.id) });
-    }
+  finishTrainerWin(trainer) {
+    // A win can open a barrier two ways: a story flag the trainer sets (Route
+    // 2's cordon), or simply being beaten — the Circle Hall's gates and the
+    // Circle's Walk follow `trainer:` conditions (Phase 14). Until Phase 14
+    // only the first was synced here, so a gate that followed a beaten
+    // trainer stayed drawn shut until the map was next loaded.
+    this.syncChangedBarriers();
 
     const npc = this.npcManager.npcs.find((entry) => entry.definition.trainer === trainer.id);
 

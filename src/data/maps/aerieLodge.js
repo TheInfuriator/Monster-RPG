@@ -24,7 +24,7 @@ export const aerieLodge = {
     '_OHHOOO?OVVVO_', // 3  the mending array; the storage terminal (7,3); the shop's shelves
     '_OOOOOOOOOOOO_', // 4  Mender Tove (2,4); Hettie (10,4)
     '_CCCCOOOOCCCC_', // 5  two counters
-    '_OOOOOOOOOOAP_', // 6  a bench by the fire
+    '_OOOOOOOOOOAP_', // 6  a bench by the fire; Old Warden Abner beside it (12,7)
     '_OOOOOOMOOOOO_', // 7  door mat at x7
     '______________', // 8
   ],
@@ -74,8 +74,9 @@ export const aerieLodge = {
     {
       id: 'aerieLodgeGuest',
       name: 'Old Warden Abner',
-      x: 10,
-      y: 6,
+      // By the fire, out of the way of the shop counter.
+      x: 12,
+      y: 7,
       facing: 'left',
       sprite: 'elder',
       movement: 'static',
@@ -111,12 +112,6 @@ export const aerieLodge = {
       dialogue: [
         { action: 'storage', pages: ['A storage terminal. Its screen glows a patient green.'] },
       ],
-    },
-    {
-      x: 2,
-      y: 3,
-      type: 'sign',
-      dialogue: ['The mending array. Someone has carved WARDENS REST HERE into the frame, a long time ago.'],
     },
   ],
 };

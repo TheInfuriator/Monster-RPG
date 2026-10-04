@@ -235,6 +235,20 @@ describe('the Aerie Lodge — the last rest before the Trial', () => {
     expect(actions).toContain('storage');
   });
 
+  it('lets the player actually reach the Mender, the shop counter and the terminal', () => {
+    // Face to face, or across a counter (spoken to from its far side).
+    const state = openedState();
+    const seen = reachable(LODGE, state, LODGE.spawnPoints.default);
+    const canTalkTo = ({ x, y }) => SIDES.some(([dx, dy]) => {
+      if (seen.has(key(x + dx, y + dy))) return true;
+      const between = LODGE.tiles[y + dy]?.[x + dx];
+      return between && TILE_DEFINITIONS[between]?.counter && seen.has(key(x + 2 * dx, y + 2 * dy));
+    });
+    for (const entry of [...LODGE.npcs, ...LODGE.interactables]) {
+      expect(canTalkTo(entry), entry.id || `${entry.x},${entry.y}`).toBe(true);
+    }
+  });
+
   it('stocks the Mender\'s Draught and every Orb worth carrying this high', () => {
     const stock = getShopStock('aerieLodge', {}).map((item) => item.id);
     for (const id of ['mendersDraught', 'superPotion', 'clearTonic', 'greatOrb', 'ultraOrb']) expect(stock).toContain(id);
