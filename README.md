@@ -6,20 +6,22 @@ befriend creatures called **Aethers**, and challenge the region's Beacon Halls.
 Built with [Phaser 3](https://phaser.io/) and [Vite](https://vite.dev/) in plain
 JavaScript — no framework, no backend, no build magic to learn.
 
-> **Status: Phase 12 (Mistvault Cavern, Tidewatch Harbor and the second
-> Sigil) complete — the game now runs to the second Beacon Hall.**
-> Take a starter, walk Route 1, earn the **Verdant Sigil** from Leader Fern,
-> beat your rival **Kestrel** at the Thornway gate and climb **Route 2**. At
-> the top the Wardens take their cordon down: **Mistvault Cavern** is three
-> maps of rubble, chasms and mist bridges that only hold where an aether
-> current runs — steer it with two old valves. Deep inside, the **Hollow
-> Vane** are siphoning the current into storage cells; beat their Draw Foreman
-> and throw the breaker. Out through the Grotto lies **Tidewatch Harbor**: a
-> third Mender, a better shop, a lighthouse, Kestrel again — and the **Tidal
-> Hall**, where three wheels turn one tide. Beat Leader **Ondine** for the
-> **Tidal Sigil**. Save anywhere; **Continue** exactly where you were — Phase
-> 11 saves carry straight over. The Stormrise Climb, under a rockslide, is
-> next — see [TODO.md](TODO.md).
+> **Status: Phase 13 (the Stormrise Climb, Voltspire City and the third
+> Sigil) complete — the game now runs to the third and last Beacon Hall.**
+> Take a starter, earn the **Verdant Sigil** from Leader Fern, climb the
+> Thornway, steer the current through **Mistvault Cavern**, stop the **Hollow
+> Vane**'s siphon and win the **Tidal Sigil** from Leader Ondine. Then Warden
+> Hale lifts the rockslide: the **Stormrise Climb** is three maps of mountain
+> — terraces with one-way ledges, wind, snow and drifting mist, its own wild
+> Aethers on heath, frost scree and stormgrass, and a rare one where the
+> lightning comes down. On the Frost Shelf the Vane have built a lightning
+> relay that has stolen the storm for a month; beat their Relay Overseer and
+> ground it. Kestrel waits at the top. Over the pass lies **Voltspire City** —
+> a fourth Mender, a storage terminal, the best shop yet — and the **Storm
+> Hall**, three chambers of wired coils, where Leader **Halcyon** holds the
+> **Storm Sigil**: three of three. Save anywhere; **Continue** exactly where
+> you were — Phase 12 saves carry straight over. The Aerie Gate, at the top
+> of the city, is next — see [TODO.md](TODO.md).
 
 ---
 
@@ -119,7 +121,8 @@ src/
     WorldScene.js      The overworld — connects the systems below
     StarterSelectScene.js  Choosing your first Aether
     BattleScene.js     The battle screen — presentation only
-    MenuScene.js       The pause menu, the Save screen, and the shop counter
+    MenuScene.js       The pause menu, the Save screen, the shop counter and
+                       the storage terminal
   systems/             Reusable logic
     TileMap.js         Parses map data, answers "can I walk here?"
     MapRenderer.js     Draws a TileMap
@@ -139,7 +142,12 @@ src/
     NpcPresence.js     Whether an NPC is on their map right now (and how a
                        beaten one leaves or goes back to their post)
     PuzzleSystem.js    Gates, hedges and bridges that open and close, and what
-                       moves them: switches, levers, the current, signals
+                       moves them: switches, levers, the current, signals,
+                       wired coils (`toggles`) and circuits
+    StorageSystem.js   Deposit, withdraw and swap at a storage terminal —
+                       atomic, lossless (Phase 13)
+    WeatherRenderer.js Wind, rain, snow and mist a map declares — a fixed,
+                       recycled particle pool (Phase 13)
     BadgeSystem.js     Earning and reading Sigils
     ProgressionSystem.js  Flags, beaten trainers and Sigils as one set of conditions
     WildBattle.js      Turning an encounter into a battle, and taking delivery
@@ -171,7 +179,7 @@ src/
     transitions.js     Shared fade-between-scenes helper
 tests/                 Vitest tests for logic and data integrity
   helpers/             Shared test builders: a rich save state, the battle
-                       driver, simulated walks from Route 2 to the Tidal Sigil,
+                       driver, simulated walks from Route 2 to the Storm Sigil,
                        and the lever-puzzle proof (every setting x every place
                        to stand)
   fixtures/            Save files written by earlier builds of the game
@@ -571,7 +579,7 @@ Supported tile options:
 | `overhead` | Drawn *on top of* the player (tree canopies) |
 | `counter` | The player can talk to whoever stands behind it |
 | `object` | Furniture: drawn transparently over the map's `objectBase` floor |
-| `ledge` | A one-way hop (terrain exists; hopping is not implemented yet) |
+| `ledge` | A one-way hop: `ledge: 'down'` (or up/left/right) is solid, and walking into it in that direction hops the player over it (Phase 13 — see "Ledges") |
 
 **Furniture and floors.** Furniture textures are drawn with a see-through
 background, and each interior names the floor beneath them:
@@ -839,7 +847,10 @@ debug.gates()                 // barriers and switches on this map
 debug.toggle('rootWest')      // press a root switch from anywhere
 debug.levers()                // levers here (valves, tide wheels), positions, live signals
 debug.lever('springValve', 'west')  // set a lever from anywhere (or 'tide', 'high')
-debug.stage('tidewatch')      // jump the STORY to a Phase 12 milestone (no name: list)
+debug.stage('tidewatch')      // jump the STORY to a Phase 12-13 milestone (no name: list):
+                              //   ... tidalSigil, stormrise, frostShelf, summit, voltspire, stormHall, stormSigil
+debug.weather()               // the sky on this map: what is drawn, and its declared choices
+debug.terminal()              // open a storage terminal from anywhere
 debug.resetPuzzle()           // put this map's hedges back how you found them
 debug.sigils()                // every Sigil and whether it is earned
 debug.sigil('verdantSigil')   // award one (pass false to take it back)
@@ -1161,6 +1172,70 @@ flag that makes someone absent while they are standing right there, they leave
 then fading. Kestrel at Mistvault's cordon does this the moment Corran takes
 it down. Nothing about it is saved: next visit they are simply not there.
 
+### Ledges (Phase 13)
+
+A ledge is a tile with `ledge: '<direction>'` — `L` is the one drawn so far,
+facing down. It is solid; walking into it IN its direction hops the player
+over it to the tile beyond (`TileMap.getLedgeHop`), two tiles in one short
+arc with input locked, and ONE step is announced, on landing — so the ledge
+tile itself never rolls an encounter or trips a trainer. The other way it is
+just a wall. A hop is refused if the landing is not walkable or is blocked by
+a barrier or a person.
+
+A one-way door can strand a player, so `tests/ledges.test.js` walks every map
+that has ledges: from every reachable tile an exit must still be reachable
+(barriers as found, and all open), every ledge must be hoppable from
+somewhere, and every landing must be open, non-encounter ground with nobody
+standing or wandering on it. Add a ledge and the proof runs on your map.
+
+### Weather (Phase 13)
+
+A map declares its sky; nothing else is needed:
+
+```js
+weather: { kind: 'snow', amount: 2 },   // wind | rain | snow | mist, amount 1-3
+
+// or choices the story can change — the first whose `when` holds is drawn:
+weather: [
+  { when: 'stormriseRelayStopped', kind: 'wind', amount: 2 },
+  { kind: 'mist', amount: 1 },
+],
+```
+
+`WeatherRenderer` makes a fixed pool of particles when the map loads (at most
+60) and recycles them; nothing is created per frame, and the pool is destroyed
+on every map change. It is a picture only — no gameplay effect, nothing saved.
+Validation rejects an unknown kind, a bad amount, weather indoors, and a
+choice list whose unconditional choice is not last.
+
+### Wired levers and circuits (Phase 13)
+
+Two optional PuzzleSystem fields, used by the Storm Hall's coils:
+
+```js
+levers: [
+  { id: 'r1a', x: 5, y: 19, look: 'coil', positions: ['dark', 'lit'], toggles: ['r1b'] },
+  // ...pressing r1a flips r1a AND r1b
+],
+circuits: [
+  { id: 'room1', needs: ['r1a:lit', 'r1b:lit', 'r1c:lit'] },   // holds only while all do
+  { id: 'hall', needs: ['circuit:room1', 'circuit:room2'] },   // may need EARLIER circuits
+],
+barriers: [{ id: 'gate1', tile: '!', tiles: [[16, 16]], closed: true, openWhenSignal: 'circuit:room1' }],
+```
+
+A lever's starting state is its FIRST position, so a coil that starts lit
+lists `'lit'` first and says which picture each position shows (`art`).
+Prove the puzzle with `tests/helpers/leverProof.js` (it understands `toggles`).
+
+### A storage terminal (Phase 13)
+
+Any sign can open one: `dialogue: [{ action: 'storage', pages: ['A storage
+terminal.'] }]` on a `?` tile. Every Mender's Hall has one. The rules —
+six travelling at most, a full party swaps, the last Aether able to fight
+stays, every move atomic and lossless — live in `src/systems/StorageSystem.js`
+and are unit tested there; the screen in MenuScene only draws and asks.
+
 ---
 
 ## Artwork
@@ -1181,7 +1256,7 @@ cohesive. To swap in real artwork later, load images under the existing keys in
 npm test
 ```
 
-3462 tests covering map parsing, collision, spawn fallbacks, map validation, game
+4091 tests covering map parsing, collision, spawn fallbacks, map validation, game
 state, story flags, random helpers, dialogue branching, inventory operations,
 interaction targeting, type effectiveness, the move and creature databases, stat
 and experience maths, the creature factory, the party, the starter-selection
@@ -1222,7 +1297,17 @@ and who alone may set each story flag; the Hollow Vane as a faction; Tidewatch's
 services and its people before and after the Sigil; the rockslide that nothing
 opens; lever states in the save validator; and simulated walks from the top of
 Route 2 through Mistvault to the Tidal Sigil for every starter, measuring every
-Vane fight, Kestrel's third meeting, the Hall and Ondine.
+Vane fight, Kestrel's third meeting, the Hall and Ondine — and Phase 13: ledge
+hops on a tiny map and a proof over every real map that no ledge can strand
+anyone; weather plans, choices and a fake-scene renderer that never allocates
+per frame; wired coils and circuits; a proof over every coil pattern times every
+place to stand that the Storm Hall can never trap anyone, with every chamber
+solved from where it starts; the rockslide, the relay and who alone may set
+each flag; the Climb's three habitats and its rare find; storage moves under
+hundreds of random deposits, withdrawals and swaps that never lose, duplicate
+or change an Aether, and a save round trip; Voltspire's services and the Aerie
+Gate that nothing opens; and simulated walks from the Tidal Sigil up the Climb
+to the Storm Sigil for every starter.
 
 A large block of them are **data integrity** checks that run automatically over
 every map you add. They catch, without you writing a line of test code:
@@ -1264,6 +1349,13 @@ every map you add. They catch, without you writing a line of test code:
   NPC that leaves mid-visit (`leaveBy`) without anything that sends it away
 - two barriers on one tile, or an NPC, spawn point or switch standing where a
   barrier can close
+- a ledge that strands a player, can never be hopped, or lands on a person, an
+  item or encounter ground (Phase 13)
+- weather of an unknown kind or amount, weather indoors, or a choice list that
+  hides its later choices
+- a coil that toggles itself, an unknown lever state or the same one twice; a
+  circuit with no needs, a duplicate id, or a need on a later circuit
+- a tile watched by two trainers at once
 - a switch pointing at a barrier that does not exist, doing nothing, or sitting
   somewhere it could never be stepped on
 - a Sigil with a duplicate display order, an icon nothing can draw, or a Leader
@@ -1286,7 +1378,7 @@ every map you add. They catch, without you writing a line of test code:
 - two maps that would show the same place name on a save slot
 
 Twenty-five seeded battles are also played to completion in the test suite, and
-every one of the 63 moves is used in a real battle to check nothing throws and
+every one of the 65 moves is used in a real battle to check nothing throws and
 HP never leaves its bounds.
 
 Gameplay is additionally verified in a real browser with Playwright during
@@ -1342,6 +1434,28 @@ Everything below works end to end, on the keyboard, from a new game:
     Deckhand and a Diver to **Leader Ondine**
 25. Win the **Tidal Sigil**. North, the Stormrise Climb is under a rockslide:
     the end of the road, for now
+
+## The Stormrise Climb, Voltspire and the third Sigil (Phase 13)
+
+26. Talk to **Warden Hale** with the Tidal Sigil: the rockslide rolls aside
+27. **The Terraces**: switchbacks up five terraces, wind, heath full of new
+    Aethers, Climber Tamsin and Herder Bryn — and ledges, a quick hop back down
+28. **The Frost Shelf**: still, misty air; Surveyor Marl and Mountaineer
+    Ossian (who points at the scree's Rimelet and Pebblit); the Hollow Vane's
+    lightning relay behind a charged fence. Beat **Relay Overseer Crale**,
+    ground the relay, and watch the fence die and the wind come back — then
+    read the board: **the Convergence**
+29. **The Saddle**: snow, stormgrass, the old cairn, a rare **Thundrel** if
+    you are lucky, a Skyherd and a Stormchaser — and **Kestrel**, a fourth
+    time, at the top of the pass
+30. **Voltspire City**: the Voltspire, a fourth Mender, a **storage terminal**
+    (deposit, withdraw, swap), the Mender's Draught, and the shut **Aerie Gate**
+31. **The Storm Hall**: three chambers of wired coils — touch one and its
+    neighbours flip too — past Stormwrights Ada, Fenn and Ines to **Leader
+    Halcyon**
+32. Win the **Storm Sigil**: three of three. A Vane Surveyor is watching the
+    Aerie road, and the Warden Circle has been sent for — the end of the road,
+    for now
 
 ---
 

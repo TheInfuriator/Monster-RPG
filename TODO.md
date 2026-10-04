@@ -2,17 +2,19 @@
 
 **Legend:** `[x]` done & verified · `[~]` in progress · `[ ]` not started
 
-Current phase: **Phase 12 — Mistvault Cavern + Tidewatch Harbor + the second
+Current phase: **Phase 13 — the Stormrise Climb + Voltspire City + the third
 Sigil** ✅ complete
-Next phase: **Phase 13 — the Stormrise Climb** (recommended; see below)
+Next phase: **Phase 14 — the Aerie** (recommended; see below)
 
-**Playable end to end, to the second Sigil:** New Game → starter → Route 1 →
+**Playable end to end, to the third Sigil:** New Game → starter → Route 1 →
 the Verdant Sigil → Kestrel at the Thornway gate → Route 2 → Kestrel again →
-**the cordon comes down → Mistvault Cavern (the Mouth, the Galleries' valve
-puzzle, the Draw Site) → the Hollow Vane's Draw Foreman and the siphon →
-Tidewatch Harbor → Kestrel a third time → the Tidal Hall's tide puzzle →
-Leader Ondine → the Tidal Sigil → the Stormrise rockslide.** It survives
-closing the tab — and Phase 11 saves carry straight over.
+the cordon → Mistvault Cavern → the Hollow Vane's Draw Foreman → Tidewatch
+Harbor → Kestrel a third time → the Tidal Hall → the Tidal Sigil → **Warden
+Hale lifts the rockslide → the Stormrise Climb (the Terraces, the Frost
+Shelf, the Saddle) → the Vane's lightning relay grounded → Kestrel a fourth
+time → Voltspire City → the Storm Hall's coils → Leader Halcyon → the Storm
+Sigil, three of three → the Aerie Gate, shut.** It survives closing the tab —
+and Phase 12 saves carry straight over.
 
 ---
 
@@ -413,6 +415,7 @@ closing the tab — and Phase 11 saves carry straight over.
 - **Storage access in Tidewatch** (GAME_DESIGN section 2) is not built: the
   phase excludes a storage manager. A fitter in the Mender's Hall says the
   Circle's storage link is not finished; overflow still goes to storage.
+  *(Phase 13 finishes it: a storage terminal in every Mender's Hall.)*
 - **No cutscene system.** The Vane confrontation is a trainer fight plus a
   breaker plus a flag — enough, and testable. A scripted reveal waits for the
   Vane's leadership.
@@ -426,20 +429,75 @@ closing the tab — and Phase 11 saves carry straight over.
 - **Glows are pictures only;** a channel that should block or open uses a
   barrier, as the bridges do.
 
-## Phase 13 — the Stormrise Climb (recommended next)
-- [ ] Lift the rockslide (`stormriseOpen` — one flag, one Warden's dialogue
-      branch) and build **Route 3 — the Stormrise Climb**: elevation, weather
-      flavour, rare Aethers (GAME_DESIGN section 2)
-- [ ] The Hollow Vane's next survey on the Climb — the cells were bound for
-      Stormrise; reveal a little more of why, not all of it
-- [ ] Kestrel's fourth meeting (a fourth Aether)
-- [ ] Storage access (a small, deliberate swap screen — not a full manager)
-- [ ] Measure the Climb from the Tidal Sigil with `walkToTidalSigil`'s team
+## Phase 13 — the Stormrise Climb, Voltspire City and the third Sigil ✅
+- [x] **One-way ledges** (`L`): a two-tile hop downhill, input locked, one step
+      on landing, no encounter roll mid-hop; a generic proof that no map with
+      ledges can strand anyone, and that every landing is open ground
+- [x] **Overworld weather** declared by a map (wind, rain, snow, mist; amount
+      1-3; story-dependent choices): a fixed, recycled particle pool, cleaned
+      up on every map change; no frame-rate cost
+- [x] **PuzzleSystem coils and circuits:** `toggles` (wired levers) and
+      `circuits` (AND-gates over signals), validated; the lever proof updated
+- [x] **The rockslide lifts** for a Tidal Sigil-holder (Warden Hale,
+      `stormriseOpen`, animated, autosaved); old saves load with it down
+- [x] **Route 3 — the Stormrise Climb**, three maps (the Terraces, the Frost
+      Shelf, the Saddle): heath, frost scree and stormgrass tables, ledges,
+      weather, a cairn landmark, five route trainers, seven items
+- [x] **Four species** (Cirrup → Stormcrest, Rimelet — the first Ice —,
+      Thundrel — the first Dragon, rare but fair) and **two moves** (Rime
+      Shard, Drake Pulse): 43 species, 65 moves
+- [x] **The Hollow Vane's Stormrise relay:** Surveyor Marl and Relay Overseer
+      Crale (a new rank); grounding the relay drops the charged fence, darkens
+      the wire, brings the wind back, sends the Vane off, moves Hale up, and
+      reveals Survey 16 and **the Convergence** — not what it is for
+- [x] **Kestrel's fourth meeting** on the summit (four Aethers, every starter
+      branch), and a character beat: the Sigils are no longer the whole point
+- [x] **Voltspire City:** the Mender's Hall (the fourth recovery point), the
+      Supply Post (the Mender's Draught), the Voltspire landmark, townsfolk,
+      the Storm Hall, the Aerie Gate
+- [x] **Storage terminals** in every Mender's Hall: deposit, withdraw, swap;
+      full party must swap; the last fighter stays; atomic and lossless
+      (`StorageSystem`); keyboard navigation and safe cancel; no save change
+- [x] **The Storm Hall:** three chambers of wired coils, each gate on its
+      own circuit, proved trap-free over every pattern and place to stand;
+      three Stormwrights; **Leader Halcyon**; the **Storm Sigil**, 3 of 3
+- [x] **The post-Sigil Vane hook** (a Surveyor watching the Aerie road) and
+      **the Phase 14 boundary** (the Aerie Gate: `aerieOpen`, set by nothing)
+- [x] **Balance measured** from the Tidal Sigil through the real engine for
+      every starter; the Overseer and Kestrel 4 re-pitched from walls; the
+      Mountaineer points at the scree's answer; Fern and Ondine re-checked
+- [x] **Save version 3, unchanged;** a real Phase 12 build's save continued in
+      the Phase 13 build at the same address
+- [x] `debug.stage()` for Phase 13 milestones, `debug.weather()`, `debug.terminal()`
+- [x] Browser-verified with normal controls and true reloads — see CHANGELOG.md
+
+### Phase 13 deferrals
+- **Storage is minimal on purpose:** no boxes, search, sorting, release or
+  storage healing. If storage grows past a few dozen Aethers, a box system is
+  the natural next step; the terminal's columns already scroll.
+- **NPCs are still not ADDED mid-visit.** Hale appears on the Frost Shelf on
+  the next visit after the relay is grounded, not while the player watches.
+- **Weather is a picture only:** it never changes a battle. Weather in battle
+  (rain powering Water moves, say) would be a battle-engine change.
+- **One ledge direction is drawn** (`ledge_down`); the engine supports all
+  four, and a new tile entry is all another direction needs.
+- **The balance driver never switches,** so the Water starter needs the
+  Rimelet and the Grass starter the Pebblit the Mountaineer points at. A
+  switching driver would likely show both as easier.
+
+## Phase 14 — the Aerie (recommended next)
+- [ ] Open the Aerie Gate (`aerieOpen` — the Warden Circle convenes for a
+      holder of three Sigils) and build the road up to the Aerie
+- [ ] The Convergence: what the Hollow Vane are doing with three bottled
+      currents, their leadership, and the final confrontation
+- [ ] Kestrel's last meetings (a full team of six)
+- [ ] The Champion gauntlet, and an ending
+- [ ] Balance it from the Storm Sigil with `walkToStormSigil`'s team
 
 ## Later — Expansion
-- [ ] Voltspire City and Beacon Hall 3 (Storm), rival encounters 5+
-- [ ] The rest of the Hollow Vane story arc
-- [ ] Champion gauntlet (30+ creatures and 50+ moves: done in Phase 11)
+- [ ] Postgame, rematches, challenge modes (all out of scope until the
+      story is finished)
+- [ ] A full storage box system, if it is ever needed
 
 ## Later — Polish
 - [ ] Audio system with silent fallbacks (the volume setting is already wired)

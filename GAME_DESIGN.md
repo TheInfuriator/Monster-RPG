@@ -31,8 +31,8 @@ springs, storms, and mineral veins. Full planned region (built incrementally):
 | 4 | **Route 2 — Thornway** | Route | Tougher trainers, branching path |
 | 5 | **Mistvault Cavern** | Dungeon | Dark/Rock creatures, puzzle, Hollow Vane event |
 | 6 | **Tidewatch Harbor** | Town | Second Beacon Hall (Tidal), storage access |
-| 7 | **Route 3 — Stormrise Climb** | Route | Elevation, weather flavour, rare Aethers |
-| 8 | **Voltspire City** | City | Third Beacon Hall (Storm), championship gateway |
+| 7 | **Route 3 — Stormrise Climb** | Route | Elevation, weather flavour, rare Aethers — **built (Phase 13)** |
+| 8 | **Voltspire City** | City | Third Beacon Hall (Storm), championship gateway — **built (Phase 13)** |
 | 9 | **The Aerie** | Final challenge | Champion gauntlet |
 
 **Vertical slice (first playable build) = locations 1, 2, and 3.**
@@ -44,10 +44,15 @@ Phase 11), and now **Mistvault Cavern** (location 5: three maps — the Mouth,
 the Galleries and the Draw Site) and **Tidewatch Harbor** (location 6: the
 town, its Mender's Hall and Supply Post, and the Tidal Hall).
 
-The Stormrise Climb (location 7) is held back the same way Mistvault was in
-Phase 11 — the road is visible at the top of Tidewatch, under a rockslide,
+**Built in Phase 13:** **Route 3 — the Stormrise Climb** (location 7: three
+maps — the Terraces, the Frost Shelf and the Saddle) and **Voltspire City**
+(location 8: the city, its Mender's Hall and Supply Post, and the Storm Hall).
+Locations 1-8 are all real; the region's three Beacon Halls are all built.
+
+The Aerie (location 9) is held back the same way the Stormrise Climb was in
+Phase 12 — the road is visible at the top of Voltspire, behind the Aerie Gate,
 with a Warden and a sign that explain why, rather than an invisible wall or an
-empty road. See section 23.
+empty map. See section 24.
 
 ### Region flavour notes
 - Emberhollow: warm ochre + slate, a small quarry town built on a dormant ember vent.
@@ -215,11 +220,41 @@ other route families (about 270 first stage, 400 evolved); Burrzap is 342.
 15 of 18 types** (Ice, Psychic and Dragon are still held back). The full-game
 target of 30+ creatures is met.
 
+### Added in Phase 12 (Mistvault and Tidewatch): 5 species — 39 in all
+
+| # | Line | Types | Where |
+|---|------|-------|-------|
+| 35 | Gloamite | Rock/Dark | Mistvault's rubble |
+| 36 | Corrodit | Poison/Steel | loose from the Vane's cable runs |
+| 37-38 | Minnet → Marlance (26) | Water, then Water/Steel | the Grotto's shallows |
+| 39 | Barnaclaw | Water/Rock | the Grotto's shallows, the harbour |
+
+### Added in Phase 13 (the Stormrise Climb): 4 species — 43 in all
+
+| # | Line | Types | Where |
+|---|------|-------|-------|
+| 40-41 | Cirrup → Stormcrest (27) | Electric/Flying | heath, frost scree and stormgrass; Stormcrest is Leader Halcyon's ace |
+| 42 | Rimelet | Ice | the Frost Shelf's scree |
+| 43 | Thundrel | Electric/Dragon | the summit's stormgrass, rare (about 1 encounter in 23) |
+
+Each earns its place: Cirrup is the Climb's own common bird and grows into the
+Storm Hall's ace; Rimelet is the game's **first Ice type** — the natural answer
+to a flier, met on the very shelf before the Hall; Thundrel is the route's
+rare find and the **first Dragon**. Stat totals: Cirrup 290, Stormcrest 430,
+Rimelet 350, Thundrel 430.
+
+**Now 43 species: 15 evolutionary families and 10 single-stage species, 17 of
+18 types** (only Psychic is still held back).
+
 ---
 
-## 4b. Moves — 61 built
+## 4b. Moves — 65 built
 
-27 physical, 18 special, 16 status, across 15 types. (56 until Phase 11, which
+30 physical, 19 special, 16 status, across 17 types. (Phase 12 added two —
+**Riptide**, the first physical Water move, and **Siphon Fang**, the Vane's
+draining bite — and Phase 13 two more, each for a new species that needed it:
+**Rime Shard**, the first Ice move, for Rimelet; **Drake Pulse**, the first
+Dragon move, for Thundrel.) (56 until Phase 11, which
 added five, each for a new species that needed it: **Hop Kick** and **Flurry
 Jabs** for the Fighting family, **Glimmer** and **Moonpetal** for the first
 Fairy creatures, **Burrow Strike** for a Ground attack between Mud Slap's 30
@@ -335,7 +370,10 @@ Wake up in Emberhollow
   → Mistvault Cavern: the valve puzzle, the Hollow Vane, the siphon stopped
   → Tidewatch Harbor: Kestrel again; Beacon Hall #2 (Tidal), Leader Ondine
   → Earn the Tidal Sigil; the Stormrise road is under a rockslide  ← END OF PHASE 12
-  → Route 3, Voltspire City: Beacon Hall #3 (Storm)
+  → Warden Hale lifts the rockslide
+  → Route 3 (the Stormrise Climb): the Hollow Vane's relay grounded; Kestrel 4
+  → Voltspire City: Beacon Hall #3 (Storm), Leader Halcyon
+  → Earn the Storm Sigil (3 of 3); the Aerie Gate stays shut  ← END OF PHASE 13
   → The Aerie: Champion gauntlet
 ```
 
@@ -351,6 +389,9 @@ Wake up in Emberhollow
 | Mistvault wild Aethers / Vane Surveyors / Draw Foreman's ace | 15–19 / 16–18 / 20 *(measured)* |
 | Rival battle #3 — Tidewatch (Kestrel's ace L19) | 17–21 *(measured)* |
 | **Beacon Hall 2 (Ondine)** — trainers 18–19, ace L21 | **19–22** *(measured)* |
+| Route 3 wild Aethers / trainers / Relay Overseer's ace | 20–25 / 21–23 / 23 *(measured)* |
+| Rival battle #4 — the Stormrise summit (Kestrel's ace L23) | 21–27 *(measured, the starter)* |
+| **Beacon Hall 3 (Halcyon)** — trainers 23–24, ace L26 | **25–29** *(measured)* |
 
 The planned pacing had Route 2 at 14-18, Mistvault at 20-25 and Hall 2 at
 18-22. Walking the road through the real engine (tests/helpers/routeWalk.js)
@@ -362,7 +403,7 @@ Mistvault did not (it is 15-19 as built). Section 23 has the numbers.
 
 | Planned | Expected player level |
 |---------|----------------------|
-| **Beacon Hall 3** | **25–30** |
+| **Beacon Hall 3** | **25–30** — held: the team's best is 25-29 at the Storm Sigil |
 | Champion | 33–38 |
 
 ---
@@ -403,7 +444,15 @@ gave any, so the game uses the neutral default rather than guessing).
 | 1 | Thistlewood, in front of the Thornway gate | once the Verdant Sigil is held | Flittle L12, **starter L13** |
 | 2 | Route 2, the gully below Mistvault | on the way to the cordon | Gustwing L14, Grubbit L13, **evolved starter L16** |
 | 3 | Tidewatch Harbor, beside the Hall road | on the way to the Tidal Hall | Gustwing L18, Grubbit L19, **evolved starter L19** |
-| 4+ | later routes / The Aerie | Phase 13 onwards | grows to a full 6 |
+| 4 | the Stormrise summit, under the pass into Voltspire | once the Vane's relay is grounded | Gustwing L21, Carapex L21, Zaplet L21, **evolved starter L23** (Phase 13) |
+| 5+ | The Aerie | Phase 14 | grows to a full 6 |
+
+**Meeting 4 is the first where the rivalry gives a little.** Kestrel took the
+goat track round the relay fence, watched the storm come back from the
+summit, and did not know what to do with it — so they do what they know and
+fight. Afterwards: "I used to think the Sigils were the whole point." They
+stay on the summit to find out where the Vane took the cells, and after the
+third Sigil they have followed the cable tracks toward the Aerie.
 
 The **original plan** had three appearances — Emberhollow after the starter
 (L5), Route 1's exit (starter L9 + Flittle L8) and after Hall 1 (evolved
@@ -437,6 +486,16 @@ told a scrap at a time and only the first scraps so far: they siphon the
 currents into storage cells; they are surveying the whole valley (Survey 14 was
 Mistvault; Survey 15 is Tidewatch's harbour current); and the cells are bound
 for **Stormrise**. Section 23.
+
+**As built (Phase 13):** a third rank, **Relay Overseer** (Crale), and Survey
+16 on the Frost Shelf: a lightning relay that draws every bolt off the
+mountain into cells, leaving the Climb a month of dead, still air. Grounding
+it is the phase's story event. What Phase 13 reveals: the three currents —
+the earth's (Mistvault), the sea's (the harbour) and the storm's (Stormrise)
+— are all bottled and all sent to ONE place, marked on the Vane's map high
+above Voltspire: **"the Convergence"**. What the Convergence DOES is not
+told; that, and the confrontation, are Phase 14's. After the third Sigil a
+Vane Surveyor watches the Aerie road — a hook, not a fight. Section 24.
 
 ---
 
@@ -520,7 +579,10 @@ them, and later phases will gate areas with them.
 | `mistvaultOpen` | Talking to Warden Corran once Kestrel is beaten below Mistvault (Phase 12) | The cordon comes down (animated, one `story` autosave); Kestrel runs into the cave; Corran, the sign and Ashby change |
 | `mistvaultSiphonStopped` | Throwing the breaker at the Draw Site, once the Foreman is beaten (Phase 12) | The tideward mist clears; every Galleries bridge holds for good; the channels light; Route 2's spring fills; a dozen people change what they say |
 | `pickedUpMistvault…`, `pickedUpTidewatchBeachTonic` | Taking the cavern's seven items and the harbour's one | Each stays taken |
-| `stormriseOpen` | *nothing yet* | Would lift the rockslide on the Stormrise Climb. Reserved for Phase 13 |
+| `stormriseOpen` | Talking to Warden Hale with the Tidal Sigil (Phase 13) | The rockslide rolls aside (animated, one `story` autosave); Hale, the sign and Kestrel change |
+| `stormriseRelayStopped` | Grounding the relay console on the Frost Shelf, once the Relay Overseer is beaten (Phase 13) | The charged fence across the pass goes dead; the wire is drawn dark; the shelf's mist gives way to wind; the Vane leave; Hale moves up to the shelf; people on the Climb change what they say |
+| `pickedUpStormrise…` | Taking the Climb's seven ground items | Each stays taken |
+| `aerieOpen` | *nothing yet* | Would open the Aerie Gate in Voltspire. Reserved for Phase 14 |
 
 The player's **starter** is not a flag either — it is `GameState.starter`
 (Phase 11) — but it is readable as one: `starter:pyrret`, `starter:drizzle` or
@@ -707,8 +769,9 @@ defaulting to wild battles only. Nothing checks an NPC, a map or a scene name.
 Six travel with you. A capture past that goes to **storage**, automatically,
 with a message saying so — the player is never asked to throw one away
 mid-battle, and nothing is ever lost or overwritten. Storage is a plain array on
-GameState, and it is saved and loaded in order (Phase 10). It is a *summary*:
-you can see what is waiting, not move it back.
+GameState, and it is saved and loaded in order (Phase 10). The pause menu's
+Storage page is a *summary*; moving Aethers happens at a **storage terminal**
+in any Mender's Hall (Phase 13, section 24): deposit, withdraw, swap.
 
 Reordering is a swap: pick one up with Shift, choose a slot, Confirm. The first
 slot is the creature that goes out first, so the order matters immediately.
@@ -1920,7 +1983,7 @@ with `openWhen: 'stormriseOpen'`, a flag nothing sets. There is nothing behind
 it — no exit, no stranded road. Warden Hale says the Wardens are clearing it;
 the sign says CLOSED: rockslide. Kestrel, after the Sigil: "when the Wardens
 dig out the Stormrise road, I am going first." Phase 13 opens it with one flag
-and builds the road beyond.
+and builds the road beyond — section 24.
 
 ### Saving
 
@@ -1935,3 +1998,205 @@ and builds the road beyond.
   a valve or a wheel — they are saved with the next save.
 - A real Phase 11 save, written by the released Phase 11 build and continued
   in the Phase 12 build at the same address, loads exactly, with the cordon up.
+
+---
+
+## 24. The Stormrise Climb, Voltspire City and the third Sigil (Phase 13)
+
+The road north from Tidewatch to the last Beacon Hall: the rockslide lifts,
+three maps of mountain climb, the Hollow Vane's next operation, Kestrel a
+fourth time, the last town before the championship, the Storm Hall, Leader
+Halcyon and the Storm Sigil — three of three. The Aerie Gate stays shut.
+
+### The rockslide lifts
+
+Warden Hale has a new branch for a holder of the **Tidal Sigil**: talking to
+them sets `stormriseOpen`, the boulders roll aside while the player watches
+(the same animated barrier as Route 2's cordon), and the game autosaves. Two
+road tiles on Tidewatch's top row are the way up. A Phase 12 save loads with
+the slide still down and Hale ready to open it. Once the relay is grounded
+Hale leaves the rockslide and reappears on the Frost Shelf, holding the site.
+
+### Route 3 — the Stormrise Climb, three maps
+
+| Map | Size | Ground (wild table) | What is there |
+|-----|------|---------------------|---------------|
+| **The Terraces** | 30x38 | heath (`stormriseHeath`, 20-23) | five terraces up the mountainside, the road switching back between them; two heath strips across the road; a Climber and a Herder; three items; light wind |
+| **The Frost Shelf** | 30x30 | frost scree (`stormriseScree`, 21-24) | the Vane compound — relay masts, lit wire, cells, the board, the console — and the charged fence across the pass; a Mountaineer; Surveyor Marl and Relay Overseer Crale; mist, then wind |
+| **The Saddle** | 30x26 | stormgrass (`stormriseSummit`, 22-25) | the old cairn (the route's landmark), a plateau reached only from above, a Skyherd, a Stormchaser, Kestrel under the pass; snow |
+
+**Elevation is tiles.** Rock faces separate terraces; a **ledge** (`L`) is a
+one-way step down. Walk into one going downhill and the player hops over it
+— two tiles in one short arc, input locked, one step announced on landing
+(the ledge tile itself is never "stepped on": no encounter roll, no trainer
+check). Nobody can climb one. `tests/ledges.test.js` walks every map with
+ledges and proves that from every reachable tile an exit is still reachable
+(with barriers as found and all open), that every ledge can be hopped from
+somewhere, and that every landing is open, non-encounter ground with nobody
+standing or wandering on it.
+
+**Weather** is declared by a map and drawn generically (`WeatherRenderer`):
+wind, rain, snow or mist, amount 1-3, at most 60 particles, made once per
+map and recycled, cleaned up on every map change. A map may list choices
+with `when` conditions — the Frost Shelf is misty while the relay runs and
+windy once it is grounded. A picture only: it never blocks, never changes a
+battle, saves nothing.
+
+**Encounters per terrain.** Each map rolls its own table on its own ground:
+the heath brings back the Thornway's faces a few levels on with Cirrup as the
+new common; the scree is Rimelet's (the first Ice type); the stormgrass has
+the Climb's highest levels and its rare find, **Thundrel** — about one
+encounter in 23, only on the summit, at 23-24, catchable with the Orbs the
+shops sell. Four new species, two new moves (section 4/4b).
+
+### The Hollow Vane: Survey 16, the lightning relay
+
+On the Frost Shelf the Vane have built a **lightning relay**: every bolt that
+strikes the mountain comes down its masts into storage cells, which is why
+the Climb has had a month of dead, still air — and why Voltspire's lamps,
+which run on its spire, went out street by street. The relay's wire powers a
+**charged fence** across the pass, so nobody goes on to Voltspire while it
+runs.
+
+- **Surveyor Marl** watches the shelf road. **Relay Overseer Crale** (a new
+  rank) stands on the only tile in front of the **relay console**.
+- Beat the Overseer and they walk off; ground the relay at the console and
+  `stormriseRelayStopped` is set: the fence goes dead (`openWhen`), every lit
+  wire is drawn dark (a `glows` picture shown while the flag holds), the mist
+  breaks and the wind comes back (`weather` choices), Marl packs up and
+  leaves (`leaveBy`), and one `story` autosave records it.
+- The **board** says why Stormrise mattered: SURVEY 16 — STORM DRAW, cells
+  filled 40 of 40, and a map with three lines — from Mistvault, the harbour
+  and this mountain — all ending at one mark above Voltspire: **THE
+  CONVERGENCE**. Hale, the Overseer and the post-Sigil hook repeat the scrap;
+  nobody says what the Convergence is for.
+
+### Kestrel, the fourth time
+
+Beside the road under the pass into Voltspire, so nobody reaches the city
+without meeting them (Gustwing 21, Carapex 21, Zaplet 21, starter 23 — the
+starter strong against the player's, as always). Section 8 has the character
+beat. The first draft added a Rimelet; with it all four of Kestrel's Aethers
+hit Grass super-effectively and the Grass walk won 0% of the time, so the new
+member is a Zaplet, a threat to the Water starter instead.
+
+### Voltspire City
+
+A copper-roofed city on a high shelf, built round the **Voltspire**, a copper
+spire that has called the storm down into the city's lamps for three hundred
+years (the landmark: it stands in the middle of the road, which goes round
+it). The **Mender's Hall** (the fourth recovery point; healing unchanged),
+the **Supply Post** (the economy step: the **Mender's Draught**, 100 HP for
+900), five townsfolk who remember the dark month, and the **Storm Hall**, the
+biggest roof in the city.
+
+### Storage terminals
+
+Minimal storage access, not a storage suite: a **storage terminal** in every
+Mender's Hall (`action: 'storage'`, so it is data). Two columns — the party
+and storage — moved between with the arrow keys; Confirm on an Aether offers
+**Deposit / Swap / Cancel** (party) or **Withdraw / Swap / Cancel**
+(storage). `src/systems/StorageSystem.js` owns every rule:
+
+- six travel at most; a full party must **swap**;
+- the party always keeps one Aether able to fight — the last one cannot be
+  deposited, or swapped for a fainted one;
+- every move is **atomic** — every rule checked first, then done whole, or
+  nothing changes; Cancel at any point before Confirm changes nothing;
+- the Aether that moves is the very same object: id, nickname, level,
+  experience, HP, PP, status and moves untouched; nothing copied, nothing
+  dropped. Storage does not heal.
+
+`party` and `storage` are the plain arrays they always were, so the **save
+format did not change**. No boxes, search, sorting or release — that is a
+later phase's storage system, if one is ever wanted.
+
+### The Storm Hall — wired coils
+
+Three chambers stacked one above another. Each has a few **coils**, wired
+together: touch one and it flips — and so does every coil wired to it
+(PuzzleSystem's new `toggles`). A chamber's gate opens while its **circuit**
+holds (`circuits`: an AND-gate over signals, which may need an earlier
+circuit):
+
+| Chamber | Coils | Starts | The circuit wants | Fewest touches |
+|---------|-------|--------|-------------------|----------------|
+| 1 | three in a row | dark-LIT-dark | all lit | 2 (the ends — the middle is the trap) |
+| 2 | four in a row | LIT-dark-LIT-dark | all lit | 3 |
+| 3 | four in a square | lit-lit / dark-lit | the plate's pattern: lit on the diagonal | 3 |
+
+Touching all three chambers' circuits at once lights the dais (`circuit:hall`).
+The difference from the game's other puzzles: the Verdant Hall's coils each
+swap two particular hedges; Mistvault's valves route one current; the Tidal
+Hall has ONE shared tide; here every press changes several things at once,
+and only WHICH coils are touched matters, never the order.
+
+**Never a trap:** touching a coil twice undoes it; no coil stands beside a
+gate; each chamber's coils are inside that chamber; each gate follows only its
+own chamber's circuit. `tests/stormHall.test.js` proves it with the lever
+proof over every coil pattern and every place to stand (door and Leader
+reachable from every situation), and solves each chamber from where it
+starts. A Sigil-holder finds every gate open whatever the coils say.
+
+**Stormwrights Ada, Fenn and Ines** wait one past each gate, each watching the
+tile you step onto. **Leader Halcyon** (Voltmane 24, Burrzap 24, Stormcrest
+26), an ordinary trainer with `badge: 'stormSigil'`, is spoken to — like Fern
+and Ondine, no sight line (a browser run caught Halcyon and Ines both watching
+the tile before the dais; a test now checks that no tile anywhere is watched
+by two trainers).
+
+### The Storm Sigil — three of three
+
+Awarded once, after the win, through the same path as the other two; the
+Sigil screen reads **3 of 3**. Halcyon's post-victory lines point at the
+Aerie and the Vane; Kestrel's at the cable tracks going up; the Aerie Warden's
+at the Circle. A **Vane Surveyor** appears at the edge of the gate square,
+watching the Aerie road — no battle, no answers: "The Convergence does not
+need your permission."
+
+### Balance — measured, not guessed
+
+`walkStormrise` and `walkToStormSigil` (tests/helpers/routeWalk.js) walk on
+from the Tidal Sigil through the real engine, every starter, with and without
+the optional Stormchaser (tests/stormriseBalance.test.js):
+
+- **Relay Overseer:** the first draft's Ironvole walled the Fire and Grass
+  walks (7% and 0%). Shipped (Umbrat 21, Gloamite 22, Corrodit 23): 97%,
+  100%, 100% — still the strongest Vane yet.
+- **Kestrel 4:** 97% / 100% / 75% (Fire / Water / Grass).
+- **Halcyon:** hardest for the Water starter — 47% — and 90% / 72% for Fire
+  and Grass; harder than Ondine against the very same teams.
+- **The Frost Shelf's catch.** The Water walk cannot beat Halcyon, and the
+  Grass walk cannot beat Kestrel, with the teams the Tidal Sigil left them;
+  a Rimelet (for Water) or a Pebblit (for Grass) off the scree makes both
+  fair. The Mountaineer says so in the game; a test fails if the hint stops
+  being needed. No fight anywhere on the Climb or in the Hall takes more than
+  three tries.
+- **Levels:** the team's best is 24-27 at the top of the Climb and 25-29 at
+  the Storm Sigil (the plan's 25-30 for Hall 3 held).
+- **Economy:** the Climb pays 7,300 coins from the foot to the Hall door —
+  a few Draughts and an Ultra Orb, not the shelf. The reward ceiling for
+  ordinary trainers now grows with level (55 coins a level, 80 for a Leader).
+- **Fern and Ondine, re-checked:** their guard rails pass unchanged; nothing
+  in their Halls or the roads to them changed, so they were not rebalanced.
+
+### Where Phase 13 ends
+
+The **Aerie Gate** at the top of Voltspire's gate square is a barrier with
+`openWhen: 'aerieOpen'`, a flag nothing sets. Behind it the road runs a tile
+into the rock and stops — no exit, no empty map. Warden Sorrel and the sign
+say it opens for holders of three Sigils, when the Warden Circle convenes;
+after the third Sigil, Sorrel says the Circle has been sent for. Phase 14
+opens it.
+
+### Saving
+
+- **Save version 3 — unchanged.** Coil positions are booleans in the existing
+  `puzzles` record; story progress is two flags, a Sigil and beaten trainers;
+  storage moves rearrange the existing `party` and `storage` arrays.
+- **Autosaves:** arriving on each new map; the rockslide and the relay (one
+  `story` autosave each); every battle; healing; leaving a storage terminal
+  (`storage`). Never mid-hop.
+- A real Phase 12 save, written by the released Phase 12 build and continued
+  in the Phase 13 build at the same address, loads exactly, with the
+  rockslide down, and plays on.
