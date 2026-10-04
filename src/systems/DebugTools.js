@@ -167,7 +167,9 @@ export function installDebugTools(game) {
           '  debug.sigils()                  every Sigil and whether it is earned',
           '  debug.sigil(id, earned=true)    award or remove a Sigil',
           '  debug.teleport(mapId, spawn)    change map',
-          '  debug.stage(name)               jump the story to a Phase 12 milestone (no name: list them)',
+          '  debug.stage(name)               jump the story to a Phase 12-13 milestone (no name: list them)',
+          '  debug.weather()                 the sky on this map, and its choices',
+          '  debug.terminal()                open a storage terminal from here',
           '  debug.saves()                   both save slots: status and summary',
           '  debug.save(slot)                force a save into "manual" or "autosave"',
           '  debug.dumpSave(slot)            the raw saved text of a slot',
@@ -714,7 +716,7 @@ export function installDebugTools(game) {
     },
 
     /**
-     * Put the STORY at a Phase 12 milestone and go there: the flags, beaten
+     * Put the STORY at a Phase 12 or 13 milestone and go there: the flags, beaten
      * trainers and Sigils a player would have by then, recorded exactly the
      * way real play records them. The party is left alone — bring your own
      * (debug.give) — so a stage never hides a balance problem.
@@ -727,6 +729,13 @@ export function installDebugTools(game) {
         tidewatch: { map: 'tidewatch', spawn: 'fromMistvault', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped'] },
         tidalHall: { map: 'tidalHall', spawn: 'default', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped'] },
         tidalSigil: { map: 'tidewatch', spawn: 'fromTidalHall', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch', 'tidalLeaderOndine'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped'], sigils: ['tidalSigil'] },
+        // Phase 13 — the Stormrise Climb and Voltspire City.
+        stormrise: { map: 'stormriseLower', spawn: 'fromTidewatch', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch', 'tidalLeaderOndine'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped', 'stormriseOpen'], sigils: ['tidalSigil'] },
+        frostShelf: { map: 'stormriseHigh', spawn: 'fromLower', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch', 'tidalLeaderOndine'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped', 'stormriseOpen'], sigils: ['tidalSigil'] },
+        summit: { map: 'stormriseSummit', spawn: 'fromHigh', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch', 'tidalLeaderOndine', 'vaneOverseer'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped', 'stormriseOpen', 'stormriseRelayStopped'], sigils: ['tidalSigil'] },
+        voltspire: { map: 'voltspire', spawn: 'fromStormrise', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch', 'tidalLeaderOndine', 'vaneOverseer', 'kestrelStormrise'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped', 'stormriseOpen', 'stormriseRelayStopped'], sigils: ['tidalSigil'] },
+        stormHall: { map: 'stormHall', spawn: 'default', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch', 'tidalLeaderOndine', 'vaneOverseer', 'kestrelStormrise'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped', 'stormriseOpen', 'stormriseRelayStopped'], sigils: ['tidalSigil'] },
+        stormSigil: { map: 'voltspire', spawn: 'fromStormHall', trainers: ['kestrelThornway', 'kestrelRoute2', 'vaneForeman', 'kestrelTidewatch', 'tidalLeaderOndine', 'vaneOverseer', 'kestrelStormrise', 'stormLeaderHalcyon'], flags: ['mistvaultOpen', 'mistvaultSiphonStopped', 'stormriseOpen', 'stormriseRelayStopped'], sigils: ['tidalSigil', 'stormSigil'] },
       };
       if (!name || !stages[name]) {
         console.info(`[debug] stages: ${Object.keys(stages).join(', ')}`);
@@ -742,6 +751,27 @@ export function installDebugTools(game) {
       debug.teleport(stage.map, stage.spawn);
       console.info(`[debug] story at "${name}": ${stage.map}`);
       return name;
+    },
+
+    /** The sky on this map (Phase 13): what is drawn, and every choice it has. */
+    weather() {
+      const scene = world(game);
+      if (!scene) return null;
+      const info = {
+        map: scene.map.id,
+        drawn: scene.weather ? scene.weather.key : 'none',
+        declared: scene.map.definition.weather || null,
+      };
+      console.info('[debug] weather', info);
+      return info;
+    },
+
+    /** Open a storage terminal wherever you are (Phase 13). */
+    terminal() {
+      const scene = world(game);
+      if (!scene) return null;
+      scene.runDialogueAction('storage');
+      return true;
     },
 
     // --- World ---------------------------------------------------------
