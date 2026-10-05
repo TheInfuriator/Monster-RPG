@@ -212,10 +212,14 @@ export class BattleEngine {
 
     const opponentAction = this.chooseOpponentAction();
 
+    // `actor` is the creature each action was chosen FOR. A trainer's next
+    // creature is sent out the moment the last one faints (checkForEnd), so
+    // without this the newcomer would carry out the fainted one's move in the
+    // same turn — a free hit the player never got in return.
     const order = resolveTurnOrder(
       [
-        { battler: this.player, action: this.decorateAction(playerAction) },
-        { battler: this.opponent, action: opponentAction },
+        { battler: this.player, action: this.decorateAction(playerAction), actor: this.player.creature },
+        { battler: this.opponent, action: opponentAction, actor: this.opponent.creature },
       ],
       this.random
     );
@@ -223,8 +227,9 @@ export class BattleEngine {
     for (const entry of order) {
       if (this.isOver()) break;
 
-      // A creature that fainted earlier in the turn does not get to act.
-      if (isFainted(entry.battler.creature)) continue;
+      // A creature that fainted earlier in the turn does not get to act, and
+      // nor does one sent out in its place: it arrived after the moves were chosen.
+      if (isFainted(entry.battler.creature) || entry.battler.creature !== entry.actor) continue;
 
       events.push(...this.performAction(entry.battler, entry.action));
 

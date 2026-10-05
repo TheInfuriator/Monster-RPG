@@ -684,10 +684,12 @@ export const TRAINERS = {
     badge: 'stormSigil',
     // Electric against Water is the Hall's whole point, so the Water starter
     // finds Halcyon hardest — measured hard, never a wall (see
-    // tests/stormriseBalance.test.js).
+    // tests/stormriseBalance.test.js). Burrzap went up a level in Phase 14,
+    // when the battle engine stopped giving a newly sent-out Aether a free
+    // hit: without that, Water and Grass had drawn level.
     party: [
       { species: 'voltmane', level: 24 },
-      { species: 'burrzap', level: 24 },
+      { species: 'burrzap', level: 25 },
       { species: 'stormcrest', level: 26 },
     ],
     intro: [
@@ -1403,10 +1405,14 @@ export const TRAINERS = {
     title: 'Champion',
     rewardMoney: 2000,
     setFlags: ['championshipWon'],
+    // Measured, not guessed (tests/aerieBalance.test.js). Cragmaw is the
+    // answer to a Fire team, and stands level with the ace: at 35 the Fire
+    // walk won 93% once the engine stopped giving a newly sent-out Aether a
+    // free hit (Phase 14), easier than Kestrel's last meeting.
     party: [
       { species: 'stormcrest', level: 35 },
       { species: 'rimelet', level: 35 },
-      { species: 'cragmaw', level: 35 },
+      { species: 'cragmaw', level: 38 },
       { species: 'gustwing', level: 36 },
       { species: 'brawnhare', level: 36 },
       { species: 'thundrel', level: 38 },

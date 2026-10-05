@@ -344,6 +344,47 @@ describe('fainting', () => {
     expect(textOf(events)).toMatch(/Kestrel sent out Flittle!/);
     expect(battle.isOver()).toBe(false);
   });
+
+  it('gives the newcomer no move in the turn it arrives — the move was chosen for the one that fainted', () => {
+    // Found in the Phase 14 play pass: the Champion's second Aether struck with
+    // the first one's move the moment it was sent out.
+    for (let seed = 1; seed <= 20; seed += 1) {
+      const opponents = [createCreature('nibbit', 3), createCreature('flittle', 20)];
+      opponents[0].currentHp = 1;
+      const battle = makeBattle({
+        playerParty: [createCreature('pyrret', 30)],
+        opponentParty: opponents,
+        battleType: 'trainer',
+        opponentName: 'Kestrel',
+        random: seeded(seed),
+      });
+      battle.start();
+      const hpBefore = battle.player.creature.currentHp;
+      const events = battle.submitPlayerAction(useMove(battle, 'ember'));
+      const text = textOf(events);
+      expect(text).toMatch(/Kestrel sent out Flittle!/);
+      expect(text).not.toMatch(/(Nibbit|Flittle) used/);
+      expect(battle.player.creature.currentHp).toBe(hpBefore);
+
+      // From the next turn on, it fights as normal.
+      const next = textOf(battle.submitPlayerAction(useMove(battle, 'ember')));
+      if (!battle.isOver()) expect(next).toMatch(/Flittle used/);
+    }
+  });
+
+  it('still lets the opponent act when the PLAYER switches — that costs the player the turn', () => {
+    const battle = makeBattle({
+      playerParty: [createCreature('pyrret', 30), createCreature('drizzle', 30)],
+      opponentParty: [createCreature('flittle', 20)],
+      battleType: 'trainer',
+      opponentName: 'Kestrel',
+      random: seeded(3),
+    });
+    battle.start();
+    const text = textOf(battle.submitPlayerAction({ type: 'switch', index: 1 }));
+    expect(battle.player.creature.speciesId).toBe('drizzle');
+    expect(text).toMatch(/Flittle used/);
+  });
 });
 
 describe('finishing a battle', () => {

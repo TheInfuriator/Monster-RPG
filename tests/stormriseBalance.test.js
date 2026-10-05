@@ -93,12 +93,20 @@ describe('from the Tidal Sigil to the Storm Sigil', () => {
   });
 
   it('needs the Frost Shelf\'s catch exactly where the Mountaineer says, and nowhere else', () => {
-    // Without it, the Water player cannot beat Halcyon and the Grass player
-    // cannot beat Kestrel; with it, both are fair fights (above).
+    // Without it, the Water player can hardly beat Halcyon and the Grass
+    // player can hardly beat Kestrel; with it, both are fair fights (above).
+    // Measured as win rates over 40 seeds: a single walk's try count can land
+    // a lucky first win (Phase 14 measured the Grass walk winning Kestrel at
+    // the first try without the catch, at 15%).
     expect(Object.keys(STORMRISE_ANSWER).sort()).toEqual(['drizzle', 'sproutle']);
-    const without = (starter) => walk(starter, { climbCatch: null });
-    expect(without('drizzle').tries.stormLeaderHalcyon).toBeGreaterThan(4);
-    expect(without('sproutle').tries.kestrelStormrise).toBeGreaterThan(4);
+    const without = (starter, id) => {
+      const team = walk(starter, { climbCatch: null }).before[id];
+      return winRate(id, team, { seeds: 40, starter });
+    };
+    expect(without('drizzle', 'stormLeaderHalcyon')).toBeLessThan(0.3);
+    expect(without('sproutle', 'kestrelStormrise')).toBeLessThan(0.3);
+    expect(rate('stormLeaderHalcyon', 'drizzle', 40)).toBeGreaterThanOrEqual(0.4);
+    expect(rate('kestrelStormrise', 'sproutle', 40)).toBeGreaterThanOrEqual(0.6);
     expect(walk('drizzle').tries.stormLeaderHalcyon).toBeLessThanOrEqual(4);
     expect(walk('sproutle').tries.kestrelStormrise).toBeLessThanOrEqual(4);
   });
