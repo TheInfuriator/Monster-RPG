@@ -179,11 +179,23 @@ the same address, loads exactly and plays on through the gate.
   review): the words found a starter in storage, the picture looked only in
   the party. Both ask one function now, and only the starter is said to have
   walked out of the Warden's Lodge with the player.
-- **Harness, not game:** the journey's walk past Voltspire's Sorrel stalled
-  behind them (the greedy walker); the audio suite imported a dev-server path
-  that a production build does not serve; and tests compared
-  `defeatedTrainers` as a list when it is a map. Each was fixed in the test,
-  not the game.
+- **Harness, not game** — each fixed in the test, never in the game:
+  - the journey's walk past Voltspire's Sorrel stalled behind them (the
+    greedy walker); its replacement, two Left taps, only reached the gate's
+    column when the first tap happened to turn AND step — it now walks there
+    by position;
+  - doors entered with one tap of a direction the player was not facing only
+    turned them (the game's rule): the Aerie Lodge entry retries now; and
+    under heavy CPU load a walker could overshoot onto the Storm Hall's door,
+    after which a fixed Up walked a tile into the Hall;
+  - the journey's "left the Mender's Hall" in Thistlewood failed twice under
+    load and passed alone (3.4 s); it has done so before in earlier phases;
+  - the visual pass waited for an action menu by a property the battle menu
+    does not have, so its new Party-list check could look too early;
+  - the audio suite imported a dev-server path a production build does not
+    serve; tests compared `defeatedTrainers` as a list when it is a map;
+  - one journey check could never fail (`|| true`, since Phase 9): it now
+    checks the Hall Keeper's actual words, in journeys 11 to 14.
 
 <!-- VERIFICATION -->
 
