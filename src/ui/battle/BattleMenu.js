@@ -70,15 +70,22 @@ export class BattleMenu {
     const rows = Math.ceil(items.length / this.columns);
     const cellWidth = (this.width - 20) / this.columns;
     const cellHeight = (this.height - 18) / Math.max(1, rows);
+    // A label with its detail on the line below needs about 26px a row. A
+    // list of five or six (a full party) gets less than that, so there the
+    // detail sits at the right-hand end of the label's own line instead of
+    // running into the row beneath.
+    this.stacked = cellHeight >= 26;
+    this.cellHeight = cellHeight;
 
     items.forEach((item, i) => {
       const column = i % this.columns;
       const row = Math.floor(i / this.columns);
       const cx = 12 + column * cellWidth;
       const cy = 11 + row * cellHeight;
+      const labelY = this.labelY(row, item);
 
       const label = this.scene.add
-        .text(cx + 12, cy + (item.detail ? 8 : cellHeight / 2 - 2), item.label, {
+        .text(cx + 12, labelY, item.label, {
           ...TEXT_STYLES.body, fontSize: '13px',
         })
         .setOrigin(0, 0.5);
@@ -86,18 +93,17 @@ export class BattleMenu {
       const objects = [label];
 
       if (item.detail) {
-        const detail = this.scene.add
-          .text(cx + 12, cy + 23, item.detail, {
-            fontFamily: FONT_FAMILY, fontSize: '10px', color: CSS_COLORS.parchmentDim,
-          })
-          .setOrigin(0, 0.5);
+        const style = { fontFamily: FONT_FAMILY, fontSize: '10px', color: CSS_COLORS.parchmentDim };
+        const detail = this.stacked
+          ? this.scene.add.text(cx + 12, cy + 23, item.detail, style).setOrigin(0, 0.5)
+          : this.scene.add.text(cx + cellWidth - 16, labelY, item.detail, style).setOrigin(1, 0.5);
         objects.push(detail);
       }
 
       // A small coloured pip for a move's type.
       if (item.accent !== undefined) {
         const pip = this.scene.add
-          .rectangle(cx + 4, cy + 8, 4, 12, item.accent).setOrigin(0, 0.5);
+          .rectangle(cx + 4, labelY, 4, 12, item.accent).setOrigin(0, 0.5);
         objects.push(pip);
       }
 
@@ -114,8 +120,14 @@ export class BattleMenu {
     }
 
     this.cellWidth = cellWidth;
-    this.cellHeight = cellHeight;
     this.refresh();
+  }
+
+  /** Where a row's label sits: high in its cell when a detail line goes under it. */
+  labelY(row, item) {
+    const cy = 11 + row * this.cellHeight;
+    if (this.stacked && item?.detail) return cy + 8;
+    return cy + this.cellHeight / 2 - (this.stacked ? 2 : 0);
   }
 
   /** An optional line of text under the menu, e.g. a move's description. */
@@ -157,10 +169,7 @@ export class BattleMenu {
 
     const column = this.index % this.columns;
     const row = Math.floor(this.index / this.columns);
-    this.cursor.setPosition(
-      6 + column * this.cellWidth,
-      11 + row * this.cellHeight + (this.selected?.detail ? 8 : this.cellHeight / 2 - 2)
-    );
+    this.cursor.setPosition(6 + column * this.cellWidth, this.labelY(row, this.selected));
 
     if (this.hint) this.hint.setText(this.selected?.hint || '');
   }

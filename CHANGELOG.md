@@ -157,6 +157,12 @@ the same address, loads exactly and plays on through the gate.
   never got. Each action now remembers which Aether it was chosen for. Tests
   prove it fails on the old engine; every balance guard rail was re-run (see
   Balance).
+- **The battle's Party list overlapped itself with six Aethers** (found in
+  the play pass, the Champion's chamber): each entry's level-and-HP line ran
+  into the name below it, and the last row's was cut off by the frame — the
+  same for any five- or six-line list, such as the move-to-forget prompt.
+  Lists too tall for two lines a row now put the detail at the right-hand
+  end of the name's own line; the action, move and Bag menus are unchanged.
 - **Old Warden Abner stood on the only tile in front of the Lodge's shop
   counter** (found planning the journey): the shop could not be reached. He
   sits by the fire now, and a new test proves every Mender, shopkeeper and
