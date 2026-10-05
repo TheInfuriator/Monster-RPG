@@ -192,6 +192,11 @@ the same address, loads exactly and plays on through the gate.
     load and passed alone (3.4 s); it has done so before in earlier phases;
   - the visual pass waited for an action menu by a property the battle menu
     does not have, so its new Party-list check could look too early;
+  - the journey and persistence suites pressed once more after the ending's
+    last page (it fades out while still "active"): a stray press into the
+    credits, which skipped the roll or not depending on whether it landed
+    inside the credits' input grace. They now stop when the ending is
+    finishing, and the journey checks for exactly seven presses;
   - the audio suite imported a dev-server path a production build does not
     serve; tests compared `defeatedTrainers` as a list when it is a map;
   - one journey check could never fail (`|| true`, since Phase 9): it now
