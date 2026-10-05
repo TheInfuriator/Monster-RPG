@@ -114,21 +114,27 @@ section 25.
 - **Two players.** A test-only **switching policy** (trade a badly matched
   Aether for a clearly better one, at most once per foe) is compared with the
   never-switching player of every earlier phase. The Aerie Road is no wall for
-  either. From the Lodge on, the switcher never needs more than three tries:
-  **Director Thale** 75% / 100% / 100% (Fire / Water / Grass), **Kestrel 5**
-  53% / 70% / 60%, **Champion Seren** 73% / 50% / 100% — the hardest fight of
+  either. From the Lodge on, the switcher never needs more than two tries:
+  **Director Thale** 95% / 98% / 100% (Fire / Water / Grass), **Kestrel 5**
+  63% / 70% / 57%, **Champion Seren** 78% / 45% / 100% — the hardest fight of
   the Trial for every starter. The never-switcher beats Thale and Kestrel with
   tries but not reliably the Champion: the finale asks for switching, as the
-  valley's people have advised since Mistvault.
+  valley's people have advised since Mistvault. All on the fixed engine (see
+  Fixed during verification).
 - **Measured fixes:** the Summit Guide's Cragmaw walled the Fire walk (now
   Brawnhare and Rimelet); Sea Warden Isla, water-heavy, was harder than the
   Champion for Fire over 40 seeds (55% against 63%) — one level lower; the
-  Director, Brack and the Hopeful's prize money were cut to stay under the
-  reward ceiling.
-- **Levels:** the switcher's best Aether meets the Champion at 37-41; the
+  Champion's Cragmaw stands at 38, level with her ace, after the engine fix
+  made her the Fire walk's easiest big fight (93%); the Director, Brack and
+  the Hopeful's prize money were cut to stay under the reward ceiling.
+- **Levels:** the switcher's best Aether meets the Champion at 38-41; the
   Champion's own six are 35-38.
-- **Fern, Ondine, Halcyon and Kestrel 1-4:** their guard rails pass
-  unchanged; nothing before the Aerie Gate was rebalanced.
+- **Fern, Ondine, Halcyon and Kestrel 1-4:** their guard rails were re-run
+  on the fixed engine. All hold but one: with no free hits, the Water and
+  Grass walks found Halcyon equally hard (67.5% / 65%), so his Burrzap is a
+  level higher (25) — Fire 80%, Water 50%, Grass 60%, hardest for Water again.
+  The Frost Shelf's catch is now checked by win rate: without it, 5% against
+  Halcyon (Water) and 15% against Kestrel 4 (Grass).
 
 ### Saves
 
@@ -142,6 +148,15 @@ the same address, loads exactly and plays on through the gate.
 
 ### Fixed during verification
 
+- **A trainer's next Aether struck with the fainted one's move** (found in
+  the manual play pass, in the Champion's chamber: her Rimelet used
+  Stormcrest's Aerial Dive the moment it was sent out). Since Phase 4, when
+  the player's move knocked out a trainer's Aether first, the replacement was
+  sent in at once and then carried out the move chosen for the one that had
+  fainted — a free hit in every trainer battle, which a fainted player Aether
+  never got. Each action now remembers which Aether it was chosen for. Tests
+  prove it fails on the old engine; every balance guard rail was re-run (see
+  Balance).
 - **Old Warden Abner stood on the only tile in front of the Lodge's shop
   counter** (found planning the journey): the shop could not be reached. He
   sits by the fire now, and a new test proves every Mender, shopkeeper and

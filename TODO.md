@@ -532,6 +532,10 @@ from every earlier phase carry straight over.
 - [x] **UI audit** with a late-game save; the Summary's accuracy and layout,
       the Wellspring and engine tiles, and gates that follow a beaten trainer
       fixed
+- [x] **A battle-engine bug from Phase 4 fixed** (found in the play pass): a
+      trainer's next Aether, sent out mid-turn, struck with the fainted one's
+      move. Every balance guard rail re-run on the fixed engine; Halcyon's
+      Burrzap and the Champion's Cragmaw re-measured up a level or three
 - [x] **Save version 3, unchanged** (one optional summary field, `champion`)
 - [x] `debug.stage()` for every Phase 14 milestone; `debug.ending()`
 - [x] Browser-verified: New Game to the credits by keyboard, with deliberate

@@ -2169,8 +2169,8 @@ reachable from every situation), and solves each chamber from where it
 starts. A Sigil-holder finds every gate open whatever the coils say.
 
 **Stormwrights Ada, Fenn and Ines** wait one past each gate, each watching the
-tile you step onto. **Leader Halcyon** (Voltmane 24, Burrzap 24, Stormcrest
-26), an ordinary trainer with `badge: 'stormSigil'`, is spoken to — like Fern
+tile you step onto. **Leader Halcyon** (Voltmane 24, Burrzap 25, Stormcrest
+26 — Burrzap was 24 until Phase 14's engine fix, section 25), an ordinary trainer with `badge: 'stormSigil'`, is spoken to — like Fern
 and Ondine, no sight line (a browser run caught Halcyon and Ines both watching
 the tile before the dais; a test now checks that no tile anywhere is watched
 by two trainers).
@@ -2196,6 +2196,11 @@ the optional Stormchaser (tests/stormriseBalance.test.js):
 - **Kestrel 4:** 97% / 100% / 75% (Fire / Water / Grass).
 - **Halcyon:** hardest for the Water starter — 47% — and 90% / 72% for Fire
   and Grass; harder than Ondine against the very same teams.
+- *On the final engine (section 25):* the Overseer 100% for every starter,
+  Kestrel 4 100% / 100% / 88%, and Halcyon — Burrzap a level higher — 80% /
+  50% / 60%: still hardest for Water. Without the Frost Shelf's catch the
+  Water walk beats Halcyon 5% of the time and the Grass walk beats Kestrel
+  15%.
 - **The Frost Shelf's catch.** The Water walk cannot beat Halcyon, and the
   Grass walk cannot beat Kestrel, with the teams the Tidal Sigil left them;
   a Rimelet (for Water) or a Pebblit (for Grass) off the scree makes both
@@ -2358,7 +2363,7 @@ The Wardens are spoken to, like the Leaders:
 | **Earth Warden Ashby** (Mistvault) | Gloamite 33, Brawnhare 33, Cragmaw 34, Ironvole 34 |
 | **Sea Warden Isla** (new) | Barnaclaw 32, Rimelet 33, Brookel 33, Marlance 34 |
 | **Sky Warden Hale** (the rockslide and the Frost Shelf) | Gustwing 34, Voltmane 34, Stormcrest 35, Thundrel 35 |
-| **Champion Seren** (original; held the chamber eleven years) | Stormcrest 35, Rimelet 35, Cragmaw 35, Gustwing 36, Brawnhare 36, **Thundrel 38** |
+| **Champion Seren** (original; held the chamber eleven years) | Stormcrest 35, Rimelet 35, Gustwing 36, Brawnhare 36, Cragmaw 38, **Thundrel 38** |
 
 ### The ending
 
@@ -2406,33 +2411,47 @@ one. The Aerie Road, fought before the Lodge, is held to the old standard of
 the never-switching player.
 
 **The comparison** — tries (a loss keeps its experience) / win rate over 40
-seeds, never-switching (N) and switching (S):
+seeds, never-switching (N) and switching (S), measured on the final engine
+(below):
 
 | | Fire N | Water N | Grass N | Fire S | Water S | Grass S |
 |---|---|---|---|---|---|---|
-| Ace Corin | 1 / 80% | 1 / 53% | 1 / 88% | 1 / 83% | 1 / 85% | 1 / 100% |
+| Ace Corin | 1 / 88% | 1 / 78% | 1 / 88% | 1 / 90% | 2 / 98% | 1 / 100% |
 | Guide Orla | 1 / 100% | 1 / 100% | 1 / 90% | 1 / 100% | 1 / 100% | 1 / 100% |
-| Hopeful Mabry | 1 / 100% | 1 / 45% | 1 / 63% | 1 / 68% | 1 / 98% | 1 / 100% |
+| Hopeful Mabry | 1 / 100% | 1 / 45% | 1 / 65% | 1 / 80% | 1 / 95% | 1 / 100% |
 | the five Vane below Thale | 1 each | 1 each | 1 each | 1 each | 1 each | 1 each |
-| **Director Thale** | 5 / 15% | 1 / 83% | 7 / 3% | 3 / 75% | 1 / 100% | 1 / 100% |
-| **Kestrel 5** | 2 / 20% | 5 / 45% | 3 / 45% | 2 / 53% | 1 / 70% | 3 / 60% |
-| Earth Warden Ashby | 1 / 90% | 1 / 98% | 2 / 38% | 1 / 93% | 1 / 100% | 1 / 100% |
-| Sea Warden Isla | 1 / 88% | 1 / 100% | 2 / 50% | 1 / 93% | 1 / 100% | 1 / 100% |
-| Sky Warden Hale | 1 / 63% | 1 / 100% | 2 / 55% | 1 / 100% | 1 / 98% | 1 / 100% |
-| **Champion Seren** | never / 0% | 2 / 35% | 19 / 3% | 1 / 73% | 1 / 50% | 1 / 100% |
-| team's best at the Champion | 32 | 36 | 31 | 37 | 40 | 41 |
+| **Director Thale** | 7 / 50% | 1 / 93% | 11 / 23% | 1 / 95% | 1 / 98% | 1 / 100% |
+| **Kestrel 5** | 1 / 18% | 1 / 73% | 1 / 73% | 1 / 63% | 1 / 70% | 1 / 57% |
+| Earth Warden Ashby | 1 / 100% | 1 / 100% | 1 / 68% | 1 / 98% | 1 / 100% | 1 / 100% |
+| Sea Warden Isla | 1 / 100% | 1 / 100% | 1 / 57% | 1 / 98% | 1 / 100% | 1 / 100% |
+| Sky Warden Hale | 1 / 80% | 1 / 98% | 1 / 98% | 1 / 100% | 1 / 98% | 1 / 100% |
+| **Champion Seren** | never / 0% | 1 / 43% | never / 0% | 1 / 78% | 1 / 45% | 1 / 100% |
+| team's best at the Champion | 33 | 37 | 29 | 38 | 40 | 41 |
 
 So: the road is no wall for anyone; the never-switching player can still beat
 the Director and Kestrel (with tries), but not reliably the Champion — the
 finale asks the player to switch, putting the right Aether in front of each
 foe, as the people on the road have advised since Mistvault.
-For the switcher nothing takes more than three tries, the
-Director is a real fight below the climax, Kestrel's last meeting is the
-closest rival fight yet, and the Trial climbs to the Champion — the hardest of
-the four for every starter (tied at 100% for the Grass walk, whose Thornmane
-carries it at 41). Two measured fixes: the Summit Guide's Cragmaw walled the
-Fire walk (now Brawnhare and Rimelet), and the Sea Warden one level lower so
-the Champion, not Isla, is the Fire player's hardest Trial fight.
+For the switcher nothing takes more than two tries, the Director is a real
+fight below the climax, Kestrel's last meeting is the closest rival fight
+yet, and the Trial climbs to the Champion — the hardest of the four for every
+starter (tied at 100% for the Grass walk, whose Thornmane carries it at 41).
+Three measured fixes: the Summit Guide's Cragmaw walled the Fire walk (now
+Brawnhare and Rimelet); the Sea Warden one level lower so the Champion, not
+Isla, is the Fire player's hardest Trial fight; and the Champion's Cragmaw at
+38, level with her ace, once the engine fix below made her the Fire walk's
+easiest big fight (93%).
+
+**The engine fix, found in the play pass.** Until Phase 14, when the player's
+move knocked out a trainer's Aether first, the trainer's next one was sent
+out at once and then carried out the fainted one's move in the same turn — a
+free hit, every time, in every trainer battle since Phase 4 (a fainted
+player Aether, rightly, waits for the forced switch). It is fixed in
+`BattleEngine`, with tests. Every number in this section is measured on the
+fixed engine. Every earlier section's figures were measured before it: every
+guard rail they describe was re-run after the fix and holds, with two
+changes — Halcyon's Burrzap is a level higher (section 24), and the Frost
+Shelf's catch is checked by win rate.
 
 **Fern, Ondine, Halcyon and Kestrel 1-4 re-checked:** their guard rails pass
 unchanged; nothing before the Aerie Gate was rebalanced.
